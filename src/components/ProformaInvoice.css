@@ -1,0 +1,792 @@
+/* Proforma Invoice Modal & In-Place Direct Editing Styles */
+
+.proforma-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(38, 29, 21, 0.78);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 10px 40px 10px;
+}
+
+/* Floating Toolbar */
+.proforma-toolbar {
+  position: sticky;
+  top: 10px;
+  width: 210mm;
+  max-width: 96vw;
+  background: #3d2614;
+  color: #fdfbf7;
+  padding: 8px 14px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 8px 24px rgba(38, 29, 21, 0.4);
+  z-index: 10000;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.proforma-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.proforma-toolbar-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  letter-spacing: 0.3px;
+}
+
+.proforma-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rate-quick-setter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.rate-batch-input {
+  width: 65px;
+  padding: 2px 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: #25170d;
+  border: 1px solid #c27c44;
+  color: #ffffff;
+  border-radius: 3px;
+  text-align: right;
+  outline: none;
+}
+
+.rate-batch-input:focus {
+  border-color: #d6985f;
+  box-shadow: 0 0 0 2px rgba(214, 152, 95, 0.35);
+}
+
+/* Printable Document Frame */
+.proforma-document-container {
+  width: 210mm;
+  background-color: #ffffff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  margin: 0 auto;
+  color: #111111;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 9.5px;
+  line-height: 1.25;
+  box-sizing: border-box;
+}
+
+.proforma-box {
+  border: 1.5px solid #222222;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* Header */
+.p-header-title {
+  text-align: center;
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  padding: 4px 0;
+  border-bottom: 1.5px solid #222222;
+  text-transform: uppercase;
+  background-color: #ffffff;
+}
+
+/* In-Place Editable Inputs */
+.p-input {
+  border: 1px dashed transparent;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  color: #000000;
+  padding: 1px 3px;
+  border-radius: 2px;
+  outline: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.p-input:hover {
+  background-color: #f7f1e6;
+  border-color: #c7baa3;
+}
+
+.p-input:focus {
+  background-color: #ffffff;
+  border: 1px solid #8c542b;
+  box-shadow: 0 0 0 2px rgba(140, 84, 43, 0.18);
+}
+
+.p-input::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+/* Top Split Grid (50% Left / 50% Right) */
+.p-top-grid {
+  display: grid;
+  grid-template-columns: 50% 50%;
+  border-bottom: 1.5px solid #222222;
+}
+
+.p-left-col {
+  border-right: 1.5px solid #222222;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Seller Box */
+.p-seller-box {
+  display: flex;
+  gap: 10px;
+  padding: 6px 8px;
+  border-bottom: 1.5px solid #222222;
+  align-items: flex-start;
+}
+
+.p-seller-logo {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.p-seller-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.p-seller-details {
+  flex: 1;
+}
+
+.p-seller-name {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 2px;
+  color: #000000;
+}
+
+.p-seller-line {
+  font-size: 9px;
+  line-height: 1.25;
+  color: #111111;
+}
+
+/* Party Boxes (Consignee & Buyer) */
+.p-party-box {
+  padding: 5px 8px;
+  border-bottom: 1.5px solid #222222;
+}
+
+.p-party-heading {
+  font-size: 9px;
+  font-weight: 700;
+  color: #333333;
+  margin-bottom: 2px;
+}
+
+.p-party-name-input {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #000000;
+  margin-bottom: 2px;
+}
+
+.p-party-addr-input {
+  font-size: 9px;
+  line-height: 1.3;
+  color: #222222;
+  margin-bottom: 2px;
+  resize: vertical;
+}
+
+.p-party-meta {
+  display: flex;
+  align-items: center;
+  font-size: 9px;
+  line-height: 1.25;
+  margin-top: 1px;
+}
+
+.p-party-meta-label {
+  width: 65px;
+  color: #222222;
+  flex-shrink: 0;
+}
+
+.p-party-meta-separator {
+  margin-right: 3px;
+  color: #222222;
+}
+
+.p-party-meta-input {
+  font-weight: 600;
+  font-size: 9px;
+  color: #000000;
+}
+
+/* Right Metadata Grid */
+.p-right-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.p-meta-grid-row {
+  display: grid;
+  border-bottom: 1px solid #222222;
+}
+
+.p-meta-grid-row.cols-3 {
+  grid-template-columns: 33.3% 33.3% 33.4%;
+}
+
+.p-meta-grid-row.cols-2 {
+  grid-template-columns: 50% 50%;
+}
+
+.p-meta-grid-row.full {
+  grid-template-columns: 100%;
+}
+
+.p-meta-cell {
+  padding: 3px 6px;
+  border-right: 1px solid #222222;
+  font-size: 9px;
+  min-height: 25px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.p-meta-cell:last-child {
+  border-right: none;
+}
+
+.p-label {
+  font-size: 8px;
+  color: #444444;
+  display: block;
+  line-height: 1.1;
+  margin-bottom: 1px;
+  pointer-events: none;
+}
+
+.p-val-input {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #000000;
+  padding: 1px 2px;
+}
+
+.p-val-textarea {
+  font-size: 9px;
+  font-weight: 700;
+  color: #000000;
+  line-height: 1.3;
+  resize: vertical;
+}
+
+/* Item Table */
+.p-table-container {
+  width: 100%;
+}
+
+.p-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.5px;
+}
+
+.p-items-table th {
+  border-bottom: 1.5px solid #222222;
+  border-right: 1px solid #222222;
+  padding: 4px 3px;
+  font-weight: 700;
+  font-size: 8.5px;
+  background-color: #f6f7f6;
+  vertical-align: middle;
+}
+
+.p-items-table th:last-child {
+  border-right: none;
+}
+
+.p-item-row td {
+  padding: 2.5px 4px;
+  border-right: 1px solid #222222;
+  border-bottom: none;
+  vertical-align: middle;
+  line-height: 1.25;
+}
+
+.p-item-row td:last-child {
+  border-right: none;
+}
+
+.p-item-desc {
+  font-weight: 700;
+  font-size: 9.5px;
+  color: #000000;
+  padding-left: 8px !important;
+}
+
+.p-mono {
+  font-family: 'JetBrains Mono', Courier, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 9px;
+}
+
+/* Total Row */
+.p-total-row td {
+  border-top: 1.5px solid #222222;
+  border-bottom: 1.5px solid #222222;
+  border-right: 1px solid #222222;
+  padding: 4px 4px;
+  background-color: #f6f7f6;
+}
+
+.p-total-row td:last-child {
+  border-right: none;
+}
+
+/* Words Bar */
+.p-words-bar {
+  border-bottom: 1.5px solid #222222;
+  padding: 4px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+}
+
+.p-words-label {
+  font-size: 8px;
+  color: #444444;
+  display: block;
+}
+
+.p-words-text {
+  font-size: 10px;
+  font-weight: 800;
+  color: #000000;
+}
+
+.p-eoe {
+  font-size: 9px;
+  font-weight: 700;
+  color: #333333;
+}
+
+/* HSN Section */
+.p-hsn-container {
+  border-bottom: 1.5px solid #222222;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.p-hsn-subtable-wrapper {
+  margin-left: auto;
+  width: 200px;
+}
+
+.p-hsn-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9px;
+  border: 1px solid #222222;
+}
+
+.p-hsn-table th {
+  border: 1px solid #222222;
+  padding: 2px 6px;
+  font-weight: 700;
+  font-size: 8.5px;
+  background-color: #f6f7f6;
+}
+
+.p-hsn-table td {
+  border: 1px solid #222222;
+  padding: 2px 6px;
+}
+
+.p-hsn-total-row td {
+  font-weight: 800;
+  background-color: #f6f7f6;
+}
+
+.p-tax-words-line {
+  font-size: 9px;
+  margin-top: 2px;
+  color: #111111;
+}
+
+/* Bottom Grid: Bank Details (Left) | Payment Scanner (Middle) | Big Seals (Right) */
+.p-bottom-grid {
+  display: grid;
+  grid-template-columns: 42% 26% 32%;
+  border-bottom: 1px solid #222222;
+}
+
+/* Bank Details Box (Replaced HSN/SAC and Terms & Conditions) */
+.p-bottom-bank-box {
+  border-right: 1.5px solid #222222;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  background-color: #ffffff;
+  min-height: 98px;
+}
+
+.p-bank-heading {
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 3px;
+}
+
+.p-bank-row {
+  display: flex;
+  font-size: 8px;
+  line-height: 1.5;
+  margin-bottom: 2.5px;
+  color: #111111;
+}
+
+.p-bank-label {
+  width: 105px;
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #333333;
+}
+
+.p-bank-colon {
+  margin-right: 6px;
+  font-weight: 700;
+  color: #000000;
+}
+
+.p-bank-val {
+  flex: 1;
+  color: #000000;
+}
+
+.p-bottom-left {
+  border-right: 1.5px solid #222222;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 6px 8px;
+}
+
+.p-terms-section {
+  margin-bottom: 4px;
+}
+
+.p-declaration-section {
+  padding-top: 4px;
+  border-top: 1px dashed #cccccc;
+}
+
+.p-declaration-heading {
+  font-size: 8.5px;
+  font-weight: 800;
+  margin-bottom: 2px;
+  color: #000000;
+}
+
+.p-declaration-text {
+  font-size: 7.8px;
+  line-height: 1.3;
+  color: #222222;
+}
+
+/* Payment Scanner Box */
+.p-bottom-qr-box {
+  border-right: 1.5px solid #222222;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+  text-align: center;
+  background-color: #fbfbfb;
+}
+
+.p-qr-header {
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #15803d;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+}
+
+.p-qr-image-wrapper {
+  background: #ffffff;
+  padding: 2px;
+  border: 1px solid #c2b59b;
+  border-radius: 4px;
+  display: inline-flex;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.p-qr-img {
+  width: 74px;
+  height: 74px;
+  display: block;
+}
+
+.p-qr-apps {
+  font-size: 7.2px;
+  font-weight: 700;
+  color: #444444;
+  margin-top: 3px;
+}
+
+.p-qr-upi-id {
+  font-size: 7.5px;
+  color: #111111;
+  margin-top: 1px;
+}
+
+/* Big Seals Box: Customer Seal + Authorised Signatory */
+.p-bottom-seals-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.p-customer-seal-big {
+  border-right: 1px solid #222222;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 98px;
+}
+
+.p-seal-title {
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #333333;
+}
+
+.p-seal-space {
+  flex: 1;
+}
+
+.p-auth-seal-big {
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: right;
+  min-height: 98px;
+}
+
+.p-for-company {
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #000000;
+  word-break: break-word;
+  line-height: 1.25;
+}
+
+.p-sign-space {
+  flex: 1;
+}
+
+.p-auth-title {
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #222222;
+}
+
+/* Footnote */
+.p-computer-note {
+  text-align: center;
+  font-size: 8.5px;
+  color: #444444;
+  padding: 3px 0;
+  font-style: italic;
+  background-color: #ffffff;
+}
+
+/* Alignment Helpers */
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.font-bold {
+  font-weight: 800;
+}
+
+/* Helpers for Print vs Screen */
+.print-only {
+  display: none !important;
+}
+
+.p-print-preline {
+  white-space: pre-line;
+  font-size: 9px;
+  line-height: 1.25;
+  color: #000000;
+}
+
+/* Screen mode: hide sheet-print-container */
+@media screen {
+  .sheet-print-container {
+    display: none !important;
+  }
+}
+
+/* Strict Single-Page A4 Print Stylesheet */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 4mm 5mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: #000000 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  /* When proforma modal is active, hide everything outside the modal */
+  body.proforma-modal-open #root,
+  body.proforma-modal-open .app-container {
+    display: none !important;
+  }
+
+  body.proforma-modal-open {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  body.proforma-modal-open .proforma-modal-overlay {
+    display: block !important;
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  body.proforma-modal-open .sheet-print-container {
+    display: none !important;
+  }
+
+  /* When printing directly from main calculator sheet */
+  .sheet-print-container {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .proforma-document-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+  }
+
+  .proforma-box {
+    border: 1.5px solid #000000 !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Reset all form inputs to look like crisp print text */
+  .p-input,
+  input,
+  textarea {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    color: #000000 !important;
+    resize: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .p-input::placeholder,
+  input::placeholder,
+  textarea::placeholder {
+    color: transparent !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
