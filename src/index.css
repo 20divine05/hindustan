@@ -1677,6 +1677,21 @@ input[type="number"] {
     padding: 0.28rem 0.4rem !important;
     font-size: 0.86rem !important;
   }
+
+  /* Remove +500 +1000 quick buttons and clear on phone view */
+  .calc-charge-quick-chips {
+    display: none !important;
+  }
+
+  /* Remove unwanted volume and rate clutter text in Planing card on phone view */
+  .calc-planing-desktop-details {
+    display: none !important;
+  }
+
+  /* Remove +500 +1000 discount chips on phone view */
+  .calc-discount-quick-chips {
+    display: none !important;
+  }
 }
 
 /* 7. Step 4 GST & Discount Elements */

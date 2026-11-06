@@ -497,10 +497,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     return sum > 0 ? sum : (totals.totalAmount || 0);
   }, [items, ratePerCft, totals.totalAmount]);
 
-  const sqftBilledItems = useMemo(() => {
-    return items.filter((it) => (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT');
-  }, [items]);
-
   const additionalChargesTotal = (carpentryCharges || 0) + (transportationCharges || 0) + (planingCharges || 0) + (sawingCharges || 0) + (otherCharges || 0);
   const subtotalWithCharges = timberSubtotal + additionalChargesTotal;
 
@@ -1505,7 +1501,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
               {/* 1. Carpentry Works */}
               <div className="calc-charge-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
                   <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <Scissors size={14} color="var(--primary-600)" /> Carpentry Works (₹)
                   </label>
@@ -1520,7 +1516,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   placeholder="0"
                   style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, padding: '0.4rem 0.55rem' }}
                 />
-                <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.25rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
                   {[500, 1000, 2000, 5000].map(amt => (
                     <button
                       key={amt}
@@ -1547,7 +1543,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
               {/* 2. Transportation Charges */}
               <div className="calc-charge-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
                   <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <Truck size={14} color="var(--primary-600)" /> Transportation Charges (₹)
                   </label>
@@ -1562,7 +1558,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   placeholder="0"
                   style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, padding: '0.4rem 0.55rem' }}
                 />
-                <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.25rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
                   {[1000, 2000, 3500, 5000].map(amt => (
                     <button
                       key={amt}
@@ -1587,160 +1583,130 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </div>
               </div>
 
-              {/* 3. Planing Charges (Depends on per CFT price) */}
-              <div className="calc-charge-card" style={{ border: '1.5px solid var(--border-medium)', borderRadius: '10px', padding: '0.75rem', background: 'var(--bg-card)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                  <label style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              {/* 3. Planing Charges */}
+              <div className="calc-charge-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <Sparkles size={14} color="var(--primary-600)" /> Planing Charges (₹)
                   </label>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-700)' }}>
                     ₹ {formatIndianCurrency(planingCharges)}
                   </span>
                 </div>
+                <input
+                  type="number"
+                  value={planingCharges === 0 ? '' : planingCharges}
+                  onChange={(e) => {
+                    const val = Math.max(0, Number(e.target.value) || 0);
+                    setPlaningCharges(val);
+                    if (totals.totalCft > 0 && val > 0) {
+                      setPlaningRatePerCft(Math.round((val / totals.totalCft) * 100) / 100);
+                    } else if (val === 0) {
+                      setPlaningRatePerCft(0);
+                    }
+                  }}
+                  placeholder="0"
+                  style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, padding: '0.4rem 0.55rem' }}
+                />
 
-                {/* Display Total CFT */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'var(--primary-50, #f8f6f0)', border: '1px solid var(--border-light)', borderRadius: '6px', padding: '0.35rem 0.6rem', marginBottom: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Total Timber Volume for Planing:
-                    </span>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 800, fontFamily: 'var(--font-mono, monospace)', color: 'var(--primary-800)' }}>
-                      {totals.totalCft > 0 ? totals.totalCft.toFixed(4) : '0.0000'} CFT
-                    </span>
-                  </div>
-                  {sqftBilledItems.length > 0 && (
-                    <div style={{ fontSize: '0.7rem', color: 'var(--primary-700)', fontStyle: 'italic' }}>
-                      ⚡ Includes {sqftBilledItems.length} item{sqftBilledItems.length > 1 ? 's' : ''} priced in SQFT converted to cubic CFT for planing.
+                {/* Desktop-only extended details for Planing */}
+                <div className="calc-planing-desktop-details">
+                  {/* Display Total CFT */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'var(--primary-50, #f8f6f0)', border: '1px solid var(--border-light)', borderRadius: '6px', padding: '0.35rem 0.6rem', marginTop: '0.45rem', marginBottom: '0.45rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        Total Timber Volume:
+                      </span>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 800, fontFamily: 'var(--font-mono, monospace)', color: 'var(--primary-800)' }}>
+                        {totals.totalCft > 0 ? totals.totalCft.toFixed(4) : '0.0000'} CFT
+                      </span>
                     </div>
-                  )}
-                </div>
-
-                {/* Input: Planing Rate per CFT */}
-                <div style={{ marginBottom: '0.45rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
-                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                      Planing Rate (₹ / CFT):
-                    </label>
-                    {totals.totalCft > 0 && planingRatePerCft > 0 && (
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        {totals.totalCft.toFixed(3)} × ₹{planingRatePerCft} = ₹{formatIndianCurrency(planingCharges)}
-                      </span>
-                    )}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                    <div style={{ position: 'relative', flex: 1 }}>
-                      <span style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                        ₹
+
+                  {/* Input: Planing Rate per CFT */}
+                  <div style={{ marginBottom: '0.35rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                        Or Enter Rate (₹ / CFT):
+                      </label>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <span style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                          ₹
+                        </span>
+                        <input
+                          type="number"
+                          step="any"
+                          value={planingRatePerCft === 0 ? '' : planingRatePerCft}
+                          onChange={(e) => {
+                            const rate = Math.max(0, parseFloat(e.target.value) || 0);
+                            setPlaningRatePerCft(rate);
+                            const calculated = Math.round(totals.totalCft * rate * 100) / 100;
+                            setPlaningCharges(calculated);
+                          }}
+                          placeholder="e.g. 15 or 20"
+                          style={{ width: '100%', fontSize: '0.85rem', fontWeight: 800, padding: '0.32rem 0.5rem 0.32rem 1.6rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
+                        />
+                      </div>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                        / CFT
                       </span>
-                      <input
-                        type="number"
-                        step="any"
-                        value={planingRatePerCft === 0 ? '' : planingRatePerCft}
-                        onChange={(e) => {
-                          const rate = Math.max(0, parseFloat(e.target.value) || 0);
-                          setPlaningRatePerCft(rate);
-                          const calculated = Math.round(totals.totalCft * rate * 100) / 100;
+                    </div>
+                  </div>
+
+                  {/* Quick Rate Buttons */}
+                  <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                    {[10, 15, 20, 25, 30].map(r => (
+                      <button
+                        key={r}
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          setPlaningRatePerCft(r);
+                          const calculated = Math.round(totals.totalCft * r * 100) / 100;
                           setPlaningCharges(calculated);
                         }}
-                        placeholder="e.g. 15 or 20"
-                        style={{ width: '100%', fontSize: '0.9rem', fontWeight: 800, padding: '0.38rem 0.5rem 0.38rem 1.6rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
-                      />
-                    </div>
-                    <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                      per CFT
-                    </span>
-                  </div>
-                </div>
-
-                {/* Quick Rate Buttons */}
-                <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                  {[10, 15, 20, 25, 30].map(r => (
-                    <button
-                      key={r}
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => {
-                        setPlaningRatePerCft(r);
-                        const calculated = Math.round(totals.totalCft * r * 100) / 100;
-                        setPlaningCharges(calculated);
-                      }}
-                      style={{
-                        fontSize: '0.7rem',
-                        padding: '0.18rem 0.45rem',
-                        background: planingRatePerCft === r ? 'var(--primary-100, #eedfc8)' : 'var(--bg-card)',
-                        borderColor: planingRatePerCft === r ? 'var(--primary-600)' : 'var(--border-medium)',
-                        fontWeight: planingRatePerCft === r ? 800 : 600
-                      }}
-                    >
-                      ₹{r}/cft
-                    </button>
-                  ))}
-                </div>
-
-                {/* Or Enter Total Planing Charges Directly */}
-                <div style={{ borderTop: '1px dashed var(--border-light)', paddingTop: '0.35rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                      Total Planing Amount (₹):
-                    </label>
-                    {planingCharges > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPlaningCharges(0);
-                          setPlaningRatePerCft(0);
+                        style={{
+                          fontSize: '0.7rem',
+                          padding: '0.18rem 0.45rem',
+                          background: planingRatePerCft === r ? 'var(--primary-100, #eedfc8)' : 'var(--bg-card)',
+                          borderColor: planingRatePerCft === r ? 'var(--primary-600)' : 'var(--border-medium)',
+                          fontWeight: planingRatePerCft === r ? 800 : 600
                         }}
-                        style={{ background: 'none', border: 'none', padding: 0, fontSize: '0.7rem', color: 'var(--danger-500)', cursor: 'pointer', fontWeight: 700 }}
                       >
-                        Clear
+                        ₹{r}
                       </button>
-                    )}
+                    ))}
                   </div>
-                  <input
-                    type="number"
-                    value={planingCharges === 0 ? '' : planingCharges}
-                    onChange={(e) => {
-                      const val = Math.max(0, Number(e.target.value) || 0);
-                      setPlaningCharges(val);
-                      if (totals.totalCft > 0 && val > 0) {
-                        setPlaningRatePerCft(Math.round((val / totals.totalCft) * 100) / 100);
-                      } else if (val === 0) {
-                        setPlaningRatePerCft(0);
-                      }
-                    }}
-                    placeholder="0"
-                    style={{ width: '100%', fontSize: '0.85rem', fontWeight: 700, padding: '0.32rem 0.5rem', borderRadius: '6px', border: '1px solid var(--border-light)' }}
-                  />
                 </div>
               </div>
 
               {/* 4. Other Miscellaneous Charges */}
-              <div className="calc-charge-card" style={{ gridColumn: '1 / -1' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem', alignItems: 'center' }}>
-                  <div>
-                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                      Other Service Label:
-                    </label>
-                    <input
-                      type="text"
-                      value={otherChargesLabel}
-                      onChange={(e) => setOtherChargesLabel(e.target.value)}
-                      placeholder="e.g. Loading / Seasoning Charges"
-                      style={{ width: '100%', fontSize: '0.85rem', fontWeight: 600, padding: '0.4rem 0.55rem' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                      Amount (₹):
-                    </label>
-                    <input
-                      type="number"
-                      value={otherCharges === 0 ? '' : otherCharges}
-                      onChange={(e) => setOtherCharges(Math.max(0, Number(e.target.value) || 0))}
-                      placeholder="0"
-                      style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, padding: '0.4rem 0.55rem' }}
-                    />
-                  </div>
+              <div className="calc-charge-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <Layers size={14} color="var(--primary-600)" /> Other Charges (₹)
+                  </label>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                    ₹ {formatIndianCurrency(otherCharges)}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <input
+                    type="number"
+                    value={otherCharges === 0 ? '' : otherCharges}
+                    onChange={(e) => setOtherCharges(Math.max(0, Number(e.target.value) || 0))}
+                    placeholder="0"
+                    style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, padding: '0.4rem 0.55rem' }}
+                  />
+                  <input
+                    type="text"
+                    value={otherChargesLabel}
+                    onChange={(e) => setOtherChargesLabel(e.target.value)}
+                    placeholder="Label (e.g. Loading / Seasoning)"
+                    style={{ width: '100%', fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.45rem' }}
+                  />
                 </div>
               </div>
 
@@ -1866,7 +1832,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </div>
 
                 {/* Quick Chips */}
-                <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                <div className="calc-discount-quick-chips" style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
                   {discountType === 'percentage' ? (
                     [2, 5, 10, 15].map(p => (
                       <button
@@ -2632,8 +2598,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="action-menu-item"/*  */
                   disabled={saveStatus === 'saving'}
+                  className="action-menu-item"/*  */
                 >
                   <Save size={18} />
                   <div>
