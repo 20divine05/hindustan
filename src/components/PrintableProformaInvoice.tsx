@@ -4,6 +4,65 @@ import { formatIndianCurrency, numberToIndianCurrencyWords } from '../utils/indi
 import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
 import './ProformaInvoice.css';
 
+export const renderDimensionHtml = (dim: string) => {
+  if (!dim) return null;
+  const parts = dim.trim().split(/([xX×])/);
+  if (parts.length <= 1) {
+    const formatted = /^\d+$/.test(dim.trim()) ? dim.trim().padStart(2, '0') : dim;
+    return <span className="p-dim-num">{formatted}</span>;
+  }
+  return (
+    <span>
+      {parts.map((p, idx) => {
+        if (p.toLowerCase() === 'x' || p === '×') {
+          return (
+            <span key={idx} className="p-dim-mul">
+              ×
+            </span>
+          );
+        }
+        const formatted = /^\d+$/.test(p) ? p.padStart(2, '0') : p;
+        return (
+          <span key={idx} className="p-dim-num">
+            {formatted}
+          </span>
+        );
+      })}
+    </span>
+  );
+};
+
+export const renderWithSmallDecimalHtml = (val: string | number, prefix: string = '', suffix: string = '') => {
+  const str = typeof val === 'number' ? val.toString() : val;
+  if (!str || str === '-') return '-';
+  const dotIdx = str.lastIndexOf('.');
+  if (dotIdx === -1) {
+    return <>{prefix}{str}{suffix}</>;
+  }
+  const before = str.slice(0, dotIdx);
+  if (!/\d/.test(before)) {
+    return <>{prefix}{str}{suffix}</>;
+  }
+  const after = str.slice(dotIdx + 1);
+  const match = after.match(/^(\d+)(.*)$/);
+  if (!match) {
+    return <>{prefix}{str}{suffix}</>;
+  }
+  const intStr = str.slice(0, dotIdx + 1);
+  const decStr = match[1];
+  const postStr = match[2];
+
+  return (
+    <>
+      {prefix}
+      <span>{intStr}</span>
+      <span className="p-dec-small">{decStr}</span>
+      {postStr}
+      {suffix}
+    </>
+  );
+};
+
 export interface PrintableProformaInvoiceProps {
   businessSettings?: BusinessSettings;
   invoiceNo?: string;
@@ -42,6 +101,7 @@ export interface PrintableProformaInvoiceProps {
     carpentry?: number;
     transportation?: number;
     planing?: number;
+    planingRatePerCft?: number;
     sawing?: number;
     other?: number;
     otherLabel?: string;
@@ -113,88 +173,37 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
     woodMap.get(wood)!.push(it);
   }
 
-  const totalCft = validItems.reduce((acc, it) => acc + it.cft, 0);
+  const totalCft = validItems.reduce((acc, it) => acc + (typeof it.cft === 'number' ? it.cft : 0), 0);
   const totalPieces = validItems.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
+
+  const totalSqftBilled = validItems
+    .filter((it) => (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT')
+    .reduce((acc, it) => acc + (typeof it.sqft === 'number' ? it.sqft : 0), 0);
+
+  const totalCftBilled = validItems
+    .filter((it) => !((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT'))
+    .reduce((acc, it) => acc + (typeof it.cft === 'number' ? it.cft : 0), 0);
+
   const timberTotalAmount = validItems.reduce((acc, it) => {
-    const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : ratePerCft;
-    const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(it.cft * r * 100) / 100;
+    const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT';
+    const defaultRowRate = isSqft ? 120 : ratePerCft;
+    const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
+    const mult = isSqft ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft;
+    const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * r * 100) / 100;
     return acc + amt;
   }, 0);
 
-  // Append Additional Charges as official line items
-  const additionalChargeItems: Array<{
-    slNo: number;
-    description: string;
-    hsn: string;
-    cft: number;
-    pieces: number;
-    rate: number;
-    per: string;
-    discPercent: string;
-    amount: number;
-  }> = [];
-
-  let nextChargeIndex = validItems.length + 1;
-
   const totalCarpentryWorks = (additionalCharges?.carpentry || 0) + (additionalCharges?.sawing || 0);
-  if (totalCarpentryWorks > 0) {
-    additionalChargeItems.push({
-      slNo: nextChargeIndex++,
-      description: 'CARPENTRY WORKS',
-      hsn: '9988',
-      cft: 0,
-      pieces: 1,
-      rate: totalCarpentryWorks,
-      per: 'JOB',
-      discPercent: '-',
-      amount: totalCarpentryWorks
-    });
-  }
-  if (additionalCharges?.transportation && additionalCharges.transportation > 0) {
-    additionalChargeItems.push({
-      slNo: nextChargeIndex++,
-      description: 'TRANSPORTATION & DELIVERY CHARGES',
-      hsn: '9965',
-      cft: 0,
-      pieces: 1,
-      rate: additionalCharges.transportation,
-      per: 'TRIP',
-      discPercent: '-',
-      amount: additionalCharges.transportation
-    });
-  }
-  if (additionalCharges?.planing && additionalCharges.planing > 0) {
-    additionalChargeItems.push({
-      slNo: nextChargeIndex++,
-      description: 'PLANING CHARGES',
-      hsn: '9988',
-      cft: 0,
-      pieces: 1,
-      rate: additionalCharges.planing,
-      per: 'JOB',
-      discPercent: '-',
-      amount: additionalCharges.planing
-    });
-  }
-  if (additionalCharges?.other && additionalCharges.other > 0) {
-    additionalChargeItems.push({
-      slNo: nextChargeIndex++,
-      description: (additionalCharges.otherLabel || 'OTHER CHARGES').toUpperCase(),
-      hsn: '9988',
-      cft: 0,
-      pieces: 1,
-      rate: additionalCharges.other,
-      per: 'JOB',
-      discPercent: '-',
-      amount: additionalCharges.other
-    });
-  }
+  const totalTransportation = additionalCharges?.transportation || 0;
+  const totalPlaning = additionalCharges?.planing || 0;
+  const totalOther = additionalCharges?.other || 0;
+  const additionalChargesSum = totalCarpentryWorks + totalTransportation + totalPlaning + totalOther;
 
-  const additionalChargesSum = additionalChargeItems.reduce((acc, it) => acc + it.amount, 0);
   const subtotalWithCharges = timberTotalAmount + additionalChargesSum;
-  const effectiveTotal = finalGrandTotal !== undefined 
-    ? finalGrandTotal 
-    : Math.max(0, subtotalWithCharges - (discountAmount || 0) + (gstAmount || 0));
+  const computedFallback = Math.max(0, subtotalWithCharges - (discountAmount || 0) + (gstAmount || 0));
+  const effectiveTotal = (finalGrandTotal !== undefined && finalGrandTotal > 0)
+    ? finalGrandTotal
+    : (computedFallback > 0 ? computedFallback : timberTotalAmount);
   const amountInWords = numberToIndianCurrencyWords(effectiveTotal);
 
   let runningSl = 1;
@@ -362,143 +371,218 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
             <thead>
               <tr>
                 <th style={{ width: '4%' }}>Sl<br />No.</th>
-                <th style={{ width: '38%', textAlign: 'left', paddingLeft: '8px' }}>Description of Goods</th>
-                <th style={{ width: '12%', textAlign: 'right' }}>Quantity</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>Alt. Quantity</th>
-                <th style={{ width: '12%', textAlign: 'right' }}>Rate</th>
-                <th style={{ width: '6%' }}>per</th>
-                <th style={{ width: '13%', textAlign: 'right', paddingRight: '8px' }}>Amount</th>
+                <th style={{ width: '30%', textAlign: 'left', paddingLeft: '8px' }}>Description of Goods</th>
+                <th style={{ width: '11%', textAlign: 'right' }}>Quantity</th>
+                <th style={{ width: '13%', textAlign: 'right' }}>Alt. Quantity</th>
+                <th style={{ width: '13%', textAlign: 'right' }}>SQFT</th>
+                <th style={{ width: '11%', textAlign: 'right' }}>Rate</th>
+                <th style={{ width: '7%', textAlign: 'center', whiteSpace: 'nowrap' }}>per</th>
+                <th style={{ width: '12%', textAlign: 'right', paddingRight: '8px' }}>Amount</th>
               </tr>
             </thead>
             <tbody>
               {woodGroups.map((group, gIdx) => {
                 const groupPieces = group.items.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
                 const groupCft = group.items.reduce((acc, it) => acc + (typeof it.cft === 'number' ? it.cft : 0), 0);
+                const groupSqftBilled = group.items
+                  .filter((it) => (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT')
+                  .reduce((acc, it) => acc + (typeof it.sqft === 'number' ? it.sqft : 0), 0);
+                const groupCftBilled = group.items
+                  .filter((it) => !((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT'))
+                  .reduce((acc, it) => acc + (typeof it.cft === 'number' ? it.cft : 0), 0);
                 const groupAmount = group.items.reduce((acc, it) => {
-                  const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : ratePerCft;
-                  const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(it.cft * itemRate * 100) / 100;
+                  const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT';
+                  const defaultRowRate = isSqft ? 120 : ratePerCft;
+                  const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
+                  const mult = isSqft ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft;
+                  const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * itemRate * 100) / 100;
                   return acc + amt;
                 }, 0);
 
                 return (
                   <React.Fragment key={`wood-grp-${gIdx}`}>
-                    {/* Small Wood Heading */}
-                    <tr className="p-item-row" style={{ backgroundColor: '#fbfbfb', borderBottom: '1px solid #ddd' }}>
-                      <td className="text-center" style={{ color: '#888', fontSize: '8px', padding: '2px 0' }}>•</td>
-                      <td
-                        colSpan={6}
-                        className="p-item-desc"
-                        style={{
-                          fontWeight: 800,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.04em',
-                          color: '#000000',
-                          fontSize: '8.5px',
-                          padding: '2.5px 8px',
-                          textAlign: 'left'
-                        }}
-                      >
-                        {group.wood}
+                    {/* Wood Species Heading (no dots, continuous vertical borders) */}
+                    <tr className="p-wood-heading-row">
+                      <td></td>
+                      <td className="p-wood-heading-desc">
+                        {group.wood.toUpperCase()}
                       </td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
                     </tr>
 
-                    {/* Measurements of that wood */}
-                    {group.items.map((it) => {
+                    {/* Measurements of that wood (with zebra striping and small decimals) */}
+                    {group.items.map((it, itemIdx) => {
                       const currentSl = runningSl++;
-                      const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : ratePerCft;
-                      const amount = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(it.cft * itemRate * 100) / 100;
+                      const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
+                      const isSqftBilled = w >= 7 && it.rateUnit === 'SQFT';
+                      const defaultRowRate = isSqftBilled ? 120 : ratePerCft;
+                      const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
+                      const mult = isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft;
+                      const amount = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * itemRate * 100) / 100;
+                      const slStr = currentSl < 10 ? `0${currentSl}` : currentSl;
+
                       return (
-                        <tr key={`item-${currentSl}`} className="p-item-row">
-                          <td className="text-center">{currentSl}</td>
-                          <td className="p-item-desc" style={{ paddingLeft: '14px', fontWeight: 700 }}>
-                            {it.lengthFeet}X{it.widthInches}X{it.thicknessInches}
+                        <tr key={`item-${currentSl}`} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                          <td className="text-center">{slStr}</td>
+                          <td className="p-item-desc" style={{ paddingLeft: '8px' }}>
+                            {renderDimensionHtml(`${it.lengthFeet}X${it.widthInches}X${it.thicknessInches}`)}
                           </td>
                           <td className="text-right p-mono">{Number(it.pieces) > 0 ? `${it.pieces} PCS` : '-'}</td>
-                          <td className="text-right p-mono">{it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : '-'}</td>
-                          <td className="text-right p-mono">{itemRate.toFixed(2)}</td>
-                          <td className="text-center">CFT</td>
+                          <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? '-' : (it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : '-'))}</td>
+                          <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? (it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : '-') : '-')}</td>
+                          <td className="text-right p-mono">{renderWithSmallDecimalHtml(itemRate.toFixed(2))}</td>
+                          <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{isSqftBilled ? 'SQFT' : 'CFT'}</td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
-                            {formatIndianCurrency(amount)}
+                            {renderWithSmallDecimalHtml(formatIndianCurrency(amount))}
                           </td>
                         </tr>
                       );
                     })}
 
-                    {/* Wood Subtotal Row */}
-                    <tr className="p-item-row" style={{ backgroundColor: '#f3f4f6', borderTop: '1px solid #bbb', borderBottom: '1px solid #bbb', fontWeight: 700 }}>
+                    {/* Wood Subtotal Row (Total without wood species name) */}
+                    <tr className="p-item-row" style={{ backgroundColor: '#f3f4f6', borderTop: '1px solid #222222', borderBottom: '1px solid #222222', fontWeight: 700 }}>
                       <td className="text-center" style={{ color: '#888' }}>-</td>
                       <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 800, textTransform: 'uppercase' }}>
-                        Total {group.wood}
+                        Total
                       </td>
                       <td className="text-right p-mono" style={{ fontWeight: 800 }}>
                         {groupPieces} PCS
                       </td>
                       <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                        {groupCft.toFixed(4)} CFT
+                        {renderWithSmallDecimalHtml(groupCftBilled > 0 ? `${groupCftBilled.toFixed(4)} CFT` : (groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '-'))}
+                      </td>
+                      <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                        {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '-')}
                       </td>
                       <td className="text-right p-mono">-</td>
                       <td className="text-center">-</td>
                       <td className="text-right p-mono" style={{ fontWeight: 800, paddingRight: '8px' }}>
-                        {formatIndianCurrency(groupAmount)}
+                        {renderWithSmallDecimalHtml(formatIndianCurrency(groupAmount), 'Rs. ')}
                       </td>
                     </tr>
                   </React.Fragment>
                 );
               })}
 
-              {/* Additional Services & Charges */}
-              {additionalChargeItems.map((charge) => (
-                <tr key={`charge-${charge.slNo}`} className="p-item-row">
-                  <td className="text-center">{charge.slNo}</td>
-                  <td className="p-item-desc font-bold">{charge.description}</td>
-                  <td className="text-right p-mono">{charge.pieces} {charge.per}</td>
-                  <td className="text-right p-mono">-</td>
-                  <td className="text-right p-mono">{charge.rate.toFixed(2)}</td>
-                  <td className="text-center">{charge.per}</td>
-                  <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
-                    {formatIndianCurrency(charge.amount)}
+              {/* Total Wood Amount row at the end (with guaranteed line under total wood amount) */}
+              {totalPieces > 0 && (
+                <tr className="p-total-wood-row">
+                  <td className="text-center" style={{ color: '#444' }}>-</td>
+                  <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                    TOTAL WOOD AMOUNT
                   </td>
-                </tr>
-              ))}
-
-              {/* GST Line (without percentage mentioned) */}
-              {gstAmount > 0 && (
-                <tr className="p-item-row" style={{ backgroundColor: '#fafafa' }}>
-                  <td className="text-center">{runningSl++}</td>
-                  <td className="p-item-desc" style={{ fontWeight: 800 }}>
-                    GST
+                  <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                    {totalPieces} PCS
                   </td>
-                  <td className="text-right p-mono">-</td>
-                  <td className="text-right p-mono">-</td>
+                  <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                    {renderWithSmallDecimalHtml(totalCftBilled > 0 ? `${totalCftBilled.toFixed(4)} CFT` : `${totalCft.toFixed(4)} CFT`)}
+                  </td>
+                  <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                    {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '-')}
+                  </td>
                   <td className="text-right p-mono">-</td>
                   <td className="text-center">-</td>
-                  <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
-                    {formatIndianCurrency(gstAmount)}
+                  <td className="text-right p-mono" style={{ fontWeight: 800, paddingRight: '8px' }}>
+                    {renderWithSmallDecimalHtml(formatIndianCurrency(timberTotalAmount), 'Rs. ')}
                   </td>
                 </tr>
               )}
 
-              {/* Finally Discount Line */}
-              {discountAmount > 0 && (
-                <tr className="p-item-row" style={{ backgroundColor: '#fcfcfc' }}>
-                  <td className="text-center">{runningSl++}</td>
-                  <td className="p-item-desc" style={{ fontStyle: 'italic', color: '#166534', fontWeight: 700 }}>
-                    LESS: DISCOUNT {discountDesc ? `(${discountDesc})` : ''}
-                  </td>
-                  <td className="text-right p-mono">-</td>
-                  <td className="text-right p-mono">-</td>
-                  <td className="text-right p-mono">-</td>
-                  <td className="text-center">DISC</td>
-                  <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
-                    - {formatIndianCurrency(discountAmount)}
-                  </td>
-                </tr>
-              )}
+              {/* Additional Charges and Discount rows with zebra striping */}
+              {(() => {
+                let chargeIdx = 0;
+                return (
+                  <>
+                    {/* 1. Next: Planing Charges immediately after wood */}
+                    {totalPlaning > 0 && (
+                      <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                        <td className="text-center"></td>
+                        <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          PLANING CHARGES
+                        </td>
+                        <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                          {renderWithSmallDecimalHtml(formatIndianCurrency(totalPlaning))}
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* 2. Next: GST Line immediately after Planing Charges */}
+                    {gstAmount > 0 && (
+                      <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                        <td className="text-center"></td>
+                        <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          GST
+                        </td>
+                        <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                          {renderWithSmallDecimalHtml(formatIndianCurrency(gstAmount))}
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* 3. Next: Carpentry Charges after GST */}
+                    {totalCarpentryWorks > 0 && (
+                      <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                        <td className="text-center"></td>
+                        <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          CARPENTRY WORKS
+                        </td>
+                        <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                          {renderWithSmallDecimalHtml(formatIndianCurrency(totalCarpentryWorks))}
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* 4. Next: Transport Charges after Carpentry */}
+                    {totalTransportation > 0 && (
+                      <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                        <td className="text-center"></td>
+                        <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          TRANSPORTATION &amp; DELIVERY CHARGES
+                        </td>
+                        <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                          {renderWithSmallDecimalHtml(formatIndianCurrency(totalTransportation))}
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* 5. Next: Other Miscellaneous Charges (if any) */}
+                    {totalOther > 0 && (
+                      <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                        <td className="text-center"></td>
+                        <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          {(additionalCharges?.otherLabel || 'OTHER CHARGES').toUpperCase()}
+                        </td>
+                        <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                          {renderWithSmallDecimalHtml(formatIndianCurrency(totalOther))}
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* 6. Next: Discount Line */}
+                    {discountAmount > 0 && (
+                      <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                        <td className="text-center"></td>
+                        <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
+                          LESS: DISCOUNT {discountDesc ? `(${discountDesc})` : ''}
+                        </td>
+                        <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
+                          - {renderWithSmallDecimalHtml(formatIndianCurrency(discountAmount))}
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })()}
 
               {/* Spacing rows if fewer items */}
-              {validItems.length + additionalChargeItems.length < 6 && (
-                <tr style={{ height: `${Math.max(30, (6 - (validItems.length + additionalChargeItems.length)) * 20)}px` }}>
-                  <td colSpan={7} style={{ borderBottom: 'none' }}></td>
+              {validItems.length < 6 && (
+                <tr style={{ height: `${Math.max(25, (6 - validItems.length) * 18)}px` }}>
+                  <td colSpan={8} style={{ borderBottom: 'none' }}></td>
                 </tr>
               )}
             </tbody>
@@ -513,12 +597,15 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                   {totalPieces} PCS
                 </td>
                 <td className="text-right p-mono font-bold">
-                  {totalCft.toFixed(4)} CFT
+                  {renderWithSmallDecimalHtml(`${totalCft.toFixed(4)} CFT`)}
+                </td>
+                <td className="text-right p-mono font-bold">
+                  {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '-')}
                 </td>
                 <td></td>
                 <td></td>
-                <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
-                  ₹ {formatIndianCurrency(effectiveTotal)}
+                <td className="text-right p-mono font-bold p-final-total-highlight">
+                  {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), '₹ ')}
                 </td>
               </tr>
             </tfoot>

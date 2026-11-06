@@ -28,9 +28,13 @@ export function sanitizeAndComputeSheet(
 
     const calc = calculateRow(l, w, t, p);
 
+    const isSqftBilled = typeof w === 'number' && w >= 7 && item.rateUnit === 'SQFT';
+    const rateUnit: 'CFT' | 'SQFT' = isSqftBilled ? 'SQFT' : 'CFT';
     const r = typeof item.rate === 'number' ? item.rate : (typeof item.rate === 'string' && item.rate !== '' ? parseFloat(item.rate) : '');
-    const rateNum = typeof r === 'number' && !isNaN(r) ? r : 0;
-    const amount = Math.round(calc.cft * rateNum * 100) / 100;
+    const defaultRowRate = isSqftBilled ? 120 : 1200;
+    const rateNum = typeof r === 'number' && !isNaN(r) && r > 0 ? r : defaultRowRate;
+    const multiplier = isSqftBilled ? calc.sqft : calc.cft;
+    const amount = typeof item.amount === 'number' && item.amount > 0 ? item.amount : Math.round(multiplier * rateNum * 100) / 100;
 
     return {
       id: item.id || generateId(),
@@ -42,6 +46,7 @@ export function sanitizeAndComputeSheet(
       cft: calc.cft,
       sqft: calc.sqft,
       rate: r,
+      rateUnit,
       amount,
       woodType: item.woodType || '',
       remarks: item.remarks || ''

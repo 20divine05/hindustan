@@ -8,6 +8,7 @@ export interface MeasurementItem {
   cft: number;
   sqft: number;
   rate?: number | '';
+  rateUnit?: 'CFT' | 'SQFT';
   amount?: number;
   woodType?: string;
   remarks?: string;
@@ -25,6 +26,7 @@ export interface AdditionalCharges {
   carpentry?: number;
   transportation?: number;
   planing?: number;
+  planingRatePerCft?: number;
   sawing?: number;
   other?: number;
   otherLabel?: string;

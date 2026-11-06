@@ -131,7 +131,8 @@ export function calculateRow(
  */
 export function calculateTotals(
   items: MeasurementItem[],
-  _convention?: SqftConvention
+  _convention?: SqftConvention,
+  defaultRate: number = 1200
 ): SheetTotals {
   let totalPieces = 0;
   let totalCft = 0;
@@ -149,10 +150,15 @@ export function calculateTotals(
       validEntries++;
       totalPieces += p;
       const rowCft = calculateCFT(l, w, t, p);
+      const rowSqft = rowCft * 12; // SQFT = CFT × 12
       totalCft += rowCft;
-      totalSqft += rowCft * 12; // SQFT = CFT × 12
-      const rateNum = typeof item.rate === 'number' ? item.rate : 0;
-      const amt = typeof item.amount === 'number' ? item.amount : Math.round(rowCft * rateNum * 100) / 100;
+      totalSqft += rowSqft;
+
+      const isSqftBilled = w >= 7 && item.rateUnit === 'SQFT';
+      const multiplier = isSqftBilled ? (item.sqft || rowSqft) : rowCft;
+      const defaultRowRate = isSqftBilled ? 120 : defaultRate;
+      const rateNum = typeof item.rate === 'number' && item.rate > 0 ? item.rate : defaultRowRate;
+      const amt = typeof item.amount === 'number' && item.amount > 0 ? item.amount : Math.round(multiplier * rateNum * 100) / 100;
       totalAmount += amt;
     }
   }

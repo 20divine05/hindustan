@@ -194,6 +194,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   );
   const [transportationCharges, setTransportationCharges] = useState<number>(sheetToEdit?.additionalCharges?.transportation || 0);
   const [planingCharges, setPlaningCharges] = useState<number>(sheetToEdit?.additionalCharges?.planing || 0);
+  const [planingRatePerCft, setPlaningRatePerCft] = useState<number>(sheetToEdit?.additionalCharges?.planingRatePerCft || 0);
   const [sawingCharges, setSawingCharges] = useState<number>(0);
   const [otherCharges, setOtherCharges] = useState<number>(sheetToEdit?.additionalCharges?.other || 0);
   const [otherChargesLabel, setOtherChargesLabel] = useState<string>(sheetToEdit?.additionalCharges?.otherLabel || 'Other Charges');
@@ -269,6 +270,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       setCarpentryCharges((sheetToEdit.additionalCharges?.carpentry || 0) + (sheetToEdit.additionalCharges?.sawing || 0));
       setTransportationCharges(sheetToEdit.additionalCharges?.transportation || 0);
       setPlaningCharges(sheetToEdit.additionalCharges?.planing || 0);
+      setPlaningRatePerCft(sheetToEdit.additionalCharges?.planingRatePerCft || 0);
       setSawingCharges(0);
       setOtherCharges(sheetToEdit.additionalCharges?.other || 0);
       setOtherChargesLabel(sheetToEdit.additionalCharges?.otherLabel || 'Other Charges');
@@ -463,10 +465,42 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   };
 
   // Real-time unrounded totals calculation
-  const totals = calculateTotals(items, businessSettings?.sqftFormulaType);
+  const totals = calculateTotals(items, businessSettings?.sqftFormulaType, ratePerCft);
+
+  // Auto-sync Planing Charges when rate per CFT or total CFT changes
+  useEffect(() => {
+    if (planingRatePerCft > 0 && totals.totalCft > 0) {
+      setPlaningCharges(Math.round(totals.totalCft * planingRatePerCft * 100) / 100);
+    }
+  }, [totals.totalCft, planingRatePerCft]);
 
   // Financial calculations with additional charges, discounts, and GST
-  const timberSubtotal = totals.totalAmount || 0;
+  // Ensures timberSubtotal is never zero when timber items exist (supports both CFT and SQFT rates)
+  const timberSubtotal = useMemo(() => {
+    let sum = 0;
+    for (const it of items) {
+      const l = typeof it.lengthFeet === 'number' ? it.lengthFeet : 0;
+      const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
+      const t = typeof it.thicknessInches === 'number' ? it.thicknessInches : 0;
+      const p = typeof it.pieces === 'number' ? it.pieces : 0;
+      if (l > 0 && w > 0 && t > 0 && p > 0) {
+        const rowCft = it.cft > 0 ? it.cft : (l * w * t * p) / 2304;
+        const rowSqft = it.sqft > 0 ? it.sqft : (rowCft * 12);
+        const isSqft = w >= 7 && it.rateUnit === 'SQFT';
+        const defaultRowRate = isSqft ? 120 : ratePerCft;
+        const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
+        const mult = isSqft ? rowSqft : rowCft;
+        const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * r * 100) / 100;
+        sum += amt;
+      }
+    }
+    return sum > 0 ? sum : (totals.totalAmount || 0);
+  }, [items, ratePerCft, totals.totalAmount]);
+
+  const sqftBilledItems = useMemo(() => {
+    return items.filter((it) => (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT');
+  }, [items]);
+
   const additionalChargesTotal = (carpentryCharges || 0) + (transportationCharges || 0) + (planingCharges || 0) + (sawingCharges || 0) + (otherCharges || 0);
   const subtotalWithCharges = timberSubtotal + additionalChargesTotal;
 
@@ -520,6 +554,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         carpentry: carpentryCharges,
         transportation: transportationCharges,
         planing: planingCharges,
+        planingRatePerCft,
         sawing: sawingCharges,
         other: otherCharges,
         otherLabel: otherChargesLabel
@@ -531,7 +566,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       },
       customGstTaxableAmount: customGstTaxableAmount > 0 ? customGstTaxableAmount : undefined,
       gstPercent,
-      finalGrandTotal
+      finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : fullAmountBeforeGst
     };
     return sanitizeAndComputeSheet(raw, user?.id || 'guest');
   };
@@ -587,6 +622,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         carpentry: carpentryCharges,
         transportation: transportationCharges,
         planing: planingCharges,
+        planingRatePerCft,
         sawing: sawingCharges,
         other: otherCharges,
         otherLabel: otherChargesLabel
@@ -598,7 +634,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       },
       customGstTaxableAmount: customGstTaxableAmount > 0 ? customGstTaxableAmount : undefined,
       gstPercent,
-      finalGrandTotal
+      finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : fullAmountBeforeGst
     };
 
     // Always preserve working session draft
@@ -751,16 +787,23 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const invoiceItems = current.items
       .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)
       .map((it, idx) => {
-        const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : ratePerCft;
-        const rowAmount = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(it.cft * rowRate * 100) / 100;
+        const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
+        const isSqftBilled = w >= 7 && it.rateUnit === 'SQFT';
+        const defaultRowRate = isSqftBilled ? 120 : ratePerCft;
+        const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
+        const mult = isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft;
+        const rowAmount = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * rowRate * 100) / 100;
         return {
           slNo: idx + 1,
           description: `${it.lengthFeet}X${it.widthInches}X${it.thicknessInches} ${(it.woodType || 'MAHAGONY').toUpperCase()}`,
           hsn: '4407',
           cft: it.cft,
+          sqft: it.sqft,
+          widthInches: it.widthInches,
+          rateUnit: isSqftBilled ? ('SQFT' as const) : ('CFT' as const),
           pieces: typeof it.pieces === 'number' ? it.pieces : 0,
           rate: rowRate,
-          per: 'CFT',
+          per: isSqftBilled ? 'SQFT' : 'CFT',
           discPercent: '',
           amount: rowAmount
         };
@@ -790,6 +833,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         carpentry: carpentryCharges,
         transportation: transportationCharges,
         planing: planingCharges,
+        planingRatePerCft,
         sawing: sawingCharges,
         other: otherCharges,
         otherLabel: otherChargesLabel
@@ -821,16 +865,23 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const invoiceItems = current.items
       .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)
       .map((it, idx) => {
-        const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : ratePerCft;
-        const rowAmount = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(it.cft * rowRate * 100) / 100;
+        const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
+        const isSqftBilled = w >= 7 && it.rateUnit === 'SQFT';
+        const defaultRowRate = isSqftBilled ? 120 : ratePerCft;
+        const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
+        const mult = isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft;
+        const rowAmount = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * rowRate * 100) / 100;
         return {
           slNo: idx + 1,
           description: `${it.lengthFeet}X${it.widthInches}X${it.thicknessInches} ${(it.woodType || 'MAHAGONY').toUpperCase()}`,
           hsn: '4407',
           cft: it.cft,
+          sqft: it.sqft,
+          widthInches: it.widthInches,
+          rateUnit: isSqftBilled ? ('SQFT' as const) : ('CFT' as const),
           pieces: typeof it.pieces === 'number' ? it.pieces : 0,
           rate: rowRate,
-          per: 'CFT',
+          per: isSqftBilled ? 'SQFT' : 'CFT',
           discPercent: '',
           amount: rowAmount
         };
@@ -860,6 +911,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         carpentry: carpentryCharges,
         transportation: transportationCharges,
         planing: planingCharges,
+        planingRatePerCft,
         sawing: sawingCharges,
         other: otherCharges,
         otherLabel: otherChargesLabel
@@ -924,7 +976,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   return (
     <>
       {/* On-Screen Calculator Workspace (Hidden during print) */}
-      <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '100%' }}>
+      <div className="calc-main-container no-print">
 
         {/* 1. Header Toolbar (Sheet Title, Status, and Actions Button) */}
         <div className="calc-top-toolbar">
@@ -1056,6 +1108,20 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             <span className="step-num">6</span>
             <span className="step-label">Invoice</span>
           </button>
+
+          {/* Compact Auto-Save status badge inside navigation for mobile */}
+          <div className="calc-steps-save-status">
+            {saveStatus === 'saved' && (
+              <span className="badge badge-connected" title="All changes saved">
+                <CheckCircle size={10} /> Saved
+              </span>
+            )}
+            {saveStatus === 'saving' && (
+              <span className="badge badge-demo" title="Saving changes...">
+                <Clock size={10} /> Saving
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Feedback alert */}
@@ -1258,7 +1324,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <MapPin size={13} color="var(--primary-600)" /> Address / Delivery Site:
                 </label>
                 <textarea
-                  rows={2}
+                  rows={1}
+                  className="calc-address-textarea"
                   value={customerAddress}
                   onChange={(e) => setCustomerAddress(e.target.value)}
                   onBlur={persistCurrentCustomer}
@@ -1356,9 +1423,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             ========================================================================= */}
         {currentStep === 2 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="card calc-table-card" style={{ padding: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div>
+            <div className="card calc-table-card" style={{ padding: '0.85rem' }}>
+              <div className="calc-step2-top-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <div className="calc-step2-title-block">
                   <h3 style={{ fontSize: '1.15rem', margin: 0, color: 'var(--text-main)', fontWeight: 800 }}>
                     Timber Measurement Daily Tally
                   </h3>
@@ -1367,9 +1434,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span className="badge" style={{ backgroundColor: 'var(--primary-100)', color: 'var(--primary-800)', border: '1px solid var(--primary-200)', fontSize: '0.78rem', padding: '0.3rem 0.65rem', fontWeight: 700 }}>
-                    Total: {formatValue(totals.totalCft, 3)} CFT &bull; ₹ {formatIndianCurrency(totals.totalAmount || 0)}
+                <div className="calc-step2-actions-block" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span className="badge calc-step2-total-badge" style={{ backgroundColor: 'var(--primary-100)', color: 'var(--primary-800)', border: '1px solid var(--primary-200)', fontSize: '0.78rem', padding: '0.3rem 0.65rem', fontWeight: 700 }}>
+                    {customerName ? `${customerName} • ` : ''}Total: {formatValue(totals.totalCft, 3)} CFT &bull; ₹ {formatIndianCurrency(totals.totalAmount || 0)}
                   </span>
 
                   <button
@@ -1520,45 +1587,130 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </div>
               </div>
 
-              {/* 3. Planing Charges */}
-              <div className="calc-charge-card">
+              {/* 3. Planing Charges (Depends on per CFT price) */}
+              <div className="calc-charge-card" style={{ border: '1.5px solid var(--border-medium)', borderRadius: '10px', padding: '0.75rem', background: 'var(--bg-card)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                  <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <label style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <Sparkles size={14} color="var(--primary-600)" /> Planing Charges (₹)
                   </label>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-700)' }}>
                     ₹ {formatIndianCurrency(planingCharges)}
                   </span>
                 </div>
-                <input
-                  type="number"
-                  value={planingCharges === 0 ? '' : planingCharges}
-                  onChange={(e) => setPlaningCharges(Math.max(0, Number(e.target.value) || 0))}
-                  placeholder="0"
-                  style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, padding: '0.4rem 0.55rem' }}
-                />
-                <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
-                  {[500, 1000, 1500, 3000].map(amt => (
+
+                {/* Display Total CFT */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'var(--primary-50, #f8f6f0)', border: '1px solid var(--border-light)', borderRadius: '6px', padding: '0.35rem 0.6rem', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Total Timber Volume for Planing:
+                    </span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, fontFamily: 'var(--font-mono, monospace)', color: 'var(--primary-800)' }}>
+                      {totals.totalCft > 0 ? totals.totalCft.toFixed(4) : '0.0000'} CFT
+                    </span>
+                  </div>
+                  {sqftBilledItems.length > 0 && (
+                    <div style={{ fontSize: '0.7rem', color: 'var(--primary-700)', fontStyle: 'italic' }}>
+                      ⚡ Includes {sqftBilledItems.length} item{sqftBilledItems.length > 1 ? 's' : ''} priced in SQFT converted to cubic CFT for planing.
+                    </div>
+                  )}
+                </div>
+
+                {/* Input: Planing Rate per CFT */}
+                <div style={{ marginBottom: '0.45rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                      Planing Rate (₹ / CFT):
+                    </label>
+                    {totals.totalCft > 0 && planingRatePerCft > 0 && (
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        {totals.totalCft.toFixed(3)} × ₹{planingRatePerCft} = ₹{formatIndianCurrency(planingCharges)}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <div style={{ position: 'relative', flex: 1 }}>
+                      <span style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                        ₹
+                      </span>
+                      <input
+                        type="number"
+                        step="any"
+                        value={planingRatePerCft === 0 ? '' : planingRatePerCft}
+                        onChange={(e) => {
+                          const rate = Math.max(0, parseFloat(e.target.value) || 0);
+                          setPlaningRatePerCft(rate);
+                          const calculated = Math.round(totals.totalCft * rate * 100) / 100;
+                          setPlaningCharges(calculated);
+                        }}
+                        placeholder="e.g. 15 or 20"
+                        style={{ width: '100%', fontSize: '0.9rem', fontWeight: 800, padding: '0.38rem 0.5rem 0.38rem 1.6rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
+                      />
+                    </div>
+                    <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                      per CFT
+                    </span>
+                  </div>
+                </div>
+
+                {/* Quick Rate Buttons */}
+                <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                  {[10, 15, 20, 25, 30].map(r => (
                     <button
-                      key={amt}
+                      key={r}
                       type="button"
                       className="btn btn-ghost btn-sm"
-                      onClick={() => setPlaningCharges(amt)}
-                      style={{ fontSize: '0.7rem', padding: '0.18rem 0.45rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)' }}
+                      onClick={() => {
+                        setPlaningRatePerCft(r);
+                        const calculated = Math.round(totals.totalCft * r * 100) / 100;
+                        setPlaningCharges(calculated);
+                      }}
+                      style={{
+                        fontSize: '0.7rem',
+                        padding: '0.18rem 0.45rem',
+                        background: planingRatePerCft === r ? 'var(--primary-100, #eedfc8)' : 'var(--bg-card)',
+                        borderColor: planingRatePerCft === r ? 'var(--primary-600)' : 'var(--border-medium)',
+                        fontWeight: planingRatePerCft === r ? 800 : 600
+                      }}
                     >
-                      +₹{amt}
+                      ₹{r}/cft
                     </button>
                   ))}
-                  {planingCharges > 0 && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setPlaningCharges(0)}
-                      style={{ fontSize: '0.7rem', padding: '0.18rem 0.35rem', color: 'var(--danger-400)' }}
-                    >
-                      Clear
-                    </button>
-                  )}
+                </div>
+
+                {/* Or Enter Total Planing Charges Directly */}
+                <div style={{ borderTop: '1px dashed var(--border-light)', paddingTop: '0.35rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                      Total Planing Amount (₹):
+                    </label>
+                    {planingCharges > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPlaningCharges(0);
+                          setPlaningRatePerCft(0);
+                        }}
+                        style={{ background: 'none', border: 'none', padding: 0, fontSize: '0.7rem', color: 'var(--danger-500)', cursor: 'pointer', fontWeight: 700 }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    value={planingCharges === 0 ? '' : planingCharges}
+                    onChange={(e) => {
+                      const val = Math.max(0, Number(e.target.value) || 0);
+                      setPlaningCharges(val);
+                      if (totals.totalCft > 0 && val > 0) {
+                        setPlaningRatePerCft(Math.round((val / totals.totalCft) * 100) / 100);
+                      } else if (val === 0) {
+                        setPlaningRatePerCft(0);
+                      }
+                    }}
+                    placeholder="0"
+                    style={{ width: '100%', fontSize: '0.85rem', fontWeight: 700, padding: '0.32rem 0.5rem', borderRadius: '6px', border: '1px solid var(--border-light)' }}
+                  />
                 </div>
               </div>
 
@@ -2186,23 +2338,43 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <span className="preview-val font-bold">{totals.totalPieces} Pcs</span>
                 </div>
                 <div className="summary-preview-item">
-                  <span className="preview-label">Timber Amount:</span>
-                  <span className="preview-val">₹ {formatIndianCurrency(timberSubtotal)}</span>
+                  <span className="preview-label">Timber Amount (Wood):</span>
+                  <span className="preview-val font-bold">₹ {formatIndianCurrency(timberSubtotal)}</span>
                 </div>
-                <div className="summary-preview-item">
-                  <span className="preview-label">Extra Charges:</span>
-                  <span className="preview-val">₹ {formatIndianCurrency(additionalChargesTotal)}</span>
-                </div>
+                {planingCharges > 0 && (
+                  <div className="summary-preview-item">
+                    <span className="preview-label">Planing Charges{planingRatePerCft > 0 ? ` (₹${planingRatePerCft}/CFT)` : ''}:</span>
+                    <span className="preview-val font-bold">+₹ {formatIndianCurrency(planingCharges)}</span>
+                  </div>
+                )}
+                {gstAmount > 0 && (
+                  <div className="summary-preview-item">
+                    <span className="preview-label">GST ({gstPercent}%):</span>
+                    <span className="preview-val font-bold">+₹ {formatIndianCurrency(gstAmount)}</span>
+                  </div>
+                )}
+                {carpentryCharges > 0 && (
+                  <div className="summary-preview-item">
+                    <span className="preview-label">Carpenter Charges:</span>
+                    <span className="preview-val font-bold">+₹ {formatIndianCurrency(carpentryCharges)}</span>
+                  </div>
+                )}
+                {transportationCharges > 0 && (
+                  <div className="summary-preview-item">
+                    <span className="preview-label">Transport Charges:</span>
+                    <span className="preview-val font-bold">+₹ {formatIndianCurrency(transportationCharges)}</span>
+                  </div>
+                )}
+                {otherCharges > 0 && (
+                  <div className="summary-preview-item">
+                    <span className="preview-label">{otherChargesLabel}:</span>
+                    <span className="preview-val font-bold">+₹ {formatIndianCurrency(otherCharges)}</span>
+                  </div>
+                )}
                 {discountAmount > 0 && (
                   <div className="summary-preview-item">
                     <span className="preview-label">Discount:</span>
-                    <span className="preview-val" style={{ color: '#15803d' }}>-₹ {formatIndianCurrency(discountAmount)}</span>
-                  </div>
-                )}
-                {gstPercent > 0 && (
-                  <div className="summary-preview-item">
-                    <span className="preview-label">GST ({gstPercent}%):</span>
-                    <span className="preview-val">+₹ {formatIndianCurrency(gstAmount)}</span>
+                    <span className="preview-val font-bold" style={{ color: '#15803d' }}>-₹ {formatIndianCurrency(discountAmount)}</span>
                   </div>
                 )}
                 <div className="summary-preview-item" style={{ gridColumn: '1 / -1', background: 'var(--primary-50)', padding: '0.55rem 0.75rem', borderRadius: '6px' }}>
@@ -2331,17 +2503,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           </div>
         )}
 
-        {/* Mobile Round Action Button (Down Right Side) */}
-        <button
-          type="button"
-          className="calc-mobile-fab-actions no-print"
-          onClick={() => setIsActionsModalOpen(true)}
-          title="Sheet Actions Menu: Save, Invoice, PDF, Print, CSV"
-          aria-label="Actions Menu"
-        >
-          <SlidersHorizontal size={20} />
-        </button>
-
         {/* Mobile Sticky Step Dock Bar (Always visible on mobile screen without scrolling) */}
         <div className="calc-mobile-docked-nav no-print">
           {currentStep > 1 && (
@@ -2349,15 +2510,35 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               type="button"
               className="btn btn-secondary calc-dock-btn calc-dock-prev"
               onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6)}
+              style={{ flex: '0 0 auto', padding: '0.45rem 0.65rem' }}
             >
               <ArrowLeft size={15} /> Back
             </button>
           )}
 
+          <button
+            type="button"
+            className="btn btn-secondary calc-dock-btn"
+            onClick={() => setIsActionsModalOpen(true)}
+            style={{
+              flex: '0 0 auto',
+              padding: '0.45rem 0.65rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              fontWeight: 700
+            }}
+            title="Sheet Actions Menu: Save, Invoice, PDF, Print, CSV"
+          >
+            <SlidersHorizontal size={14} color="var(--primary-700)" />
+            <span>Actions</span>
+          </button>
+
           {currentStep < 6 ? (
             <button
               type="button"
               className="btn btn-primary calc-dock-btn calc-dock-next"
+              style={{ flex: 1 }}
               onClick={() => {
                 if (currentStep === 1) persistCurrentCustomer();
                 setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6);
@@ -2376,7 +2557,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               type="button"
               className="btn btn-primary calc-dock-btn calc-dock-next"
               onClick={handleShareWhatsApp}
-              style={{ backgroundColor: '#25D366' }}
+              style={{ flex: 1, backgroundColor: '#25D366' }}
             >
               <MessageCircle size={16} />
               <span>Share to WhatsApp</span>
@@ -2450,8 +2631,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
                 <button
                   type="button"
-                  className="action-menu-item"/*  */
                   onClick={handleSave}
+                  className="action-menu-item"/*  */
                   disabled={saveStatus === 'saving'}
                 >
                   <Save size={18} />
@@ -2554,6 +2735,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             carpentry: carpentryCharges,
             transportation: transportationCharges,
             planing: planingCharges,
+            planingRatePerCft,
             sawing: sawingCharges,
             other: otherCharges,
             otherLabel: otherChargesLabel

@@ -348,14 +348,81 @@
 
 .p-item-row td {
   padding: 2.5px 4px;
-  border-right: 1px solid #222222;
-  border-bottom: none;
+  border-right: 1px solid #222222 !important;
+  border-left: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
   vertical-align: middle;
   line-height: 1.25;
 }
 
+.p-item-row td:first-child {
+  border-left: 1px solid #222222 !important;
+}
+
 .p-item-row td:last-child {
-  border-right: none;
+  border-right: 1px solid #222222 !important;
+}
+
+/* Zebra Striping on Item Rows: First entry starts with dark background */
+.p-item-row.zebra-even {
+  background-color: #f3f4f6 !important;
+}
+
+.p-item-row.zebra-odd {
+  background-color: #ffffff !important;
+}
+
+/* Dimension & Decimal Fine Typography */
+.p-dim-num {
+  font-weight: 800;
+  font-size: 1.16em;
+  letter-spacing: 0.02em;
+}
+
+.p-dim-mul {
+  font-size: 0.76em;
+  padding: 0 2px;
+  opacity: 0.7;
+  font-weight: 600;
+  vertical-align: 0.5px;
+  display: inline-block;
+}
+
+.p-dec-small {
+  font-size: 0.76em;
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+/* Wood Species Heading Row (Line above, no line below, continuous vertical borders across all columns) */
+.p-wood-heading-row td {
+  border-top: 1px solid #222222 !important;
+  border-bottom: none !important;
+  border-right: 1px solid #222222 !important;
+  border-left: none !important;
+  padding: 3.5px 4px;
+  background: transparent !important;
+  vertical-align: middle;
+}
+
+.p-wood-heading-row td:first-child {
+  border-left: 1px solid #222222 !important;
+}
+
+.p-wood-heading-row td:last-child {
+  border-right: 1px solid #222222 !important;
+}
+
+.p-wood-heading-desc {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #000000;
+  font-size: 8.8px;
+  text-align: left !important;
+  padding-left: 8px !important;
+  padding: 3.5px 4px !important;
 }
 
 .p-item-desc {
@@ -371,17 +438,55 @@
   font-size: 9px;
 }
 
+/* Total Wood Amount Row */
+.p-total-wood-row td {
+  border-top: 1.5px solid #222222 !important;
+  border-bottom: 1.5px solid #222222 !important;
+  border-right: 1px solid #222222 !important;
+  border-left: none !important;
+  padding: 4px 4px;
+  background-color: #e5e7eb !important;
+  font-weight: 800;
+}
+
+.p-total-wood-row td:first-child {
+  border-left: 1px solid #222222 !important;
+}
+
+.p-total-wood-row td:last-child {
+  border-right: 1px solid #222222 !important;
+}
+
+/* Explicit line under Total Wood Amount row */
+.p-total-wood-row + tr td {
+  border-top: 1.5px solid #222222 !important;
+}
+
 /* Total Row */
 .p-total-row td {
-  border-top: 1.5px solid #222222;
-  border-bottom: 1.5px solid #222222;
-  border-right: 1px solid #222222;
+  border-top: 1.5px solid #222222 !important;
+  border-bottom: 1.5px solid #222222 !important;
+  border-right: 1px solid #222222 !important;
+  border-left: none !important;
   padding: 4px 4px;
   background-color: #f6f7f6;
 }
 
+.p-total-row td:first-child {
+  border-left: 1px solid #222222 !important;
+}
+
 .p-total-row td:last-child {
-  border-right: none;
+  border-right: 1px solid #222222 !important;
+}
+
+/* Final Total Price Highlight (bolded and clear, standard row size) */
+.p-final-total-highlight {
+  color: #000000 !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  padding-right: 8px !important;
+  letter-spacing: 0.01em;
 }
 
 /* Words Bar */
