@@ -486,7 +486,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       if (l > 0 && w > 0 && t > 0 && p > 0) {
         const rowCft = it.cft > 0 ? it.cft : (l * w * t * p) / 2304;
         const rowSqft = it.sqft > 0 ? it.sqft : (rowCft * 12);
-        const isSqft = w >= 7 && it.rateUnit === 'SQFT';
+        const isSqft = w >= 7 && it.rateUnit !== 'CFT';
         const defaultRowRate = isSqft ? 120 : ratePerCft;
         const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
         const mult = isSqft ? rowSqft : rowCft;
@@ -785,7 +785,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)
       .map((it, idx) => {
         const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
-        const isSqftBilled = w >= 7 && it.rateUnit === 'SQFT';
+        const isSqftBilled = w >= 7 && it.rateUnit !== 'CFT';
         const defaultRowRate = isSqftBilled ? 120 : ratePerCft;
         const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
         const mult = isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft;
@@ -864,7 +864,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)
       .map((it, idx) => {
         const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
-        const isSqftBilled = w >= 7 && it.rateUnit === 'SQFT';
+        const isSqftBilled = w >= 7 && it.rateUnit !== 'CFT';
         const defaultRowRate = isSqftBilled ? 120 : ratePerCft;
         const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
         const mult = isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft;
@@ -2136,7 +2136,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         </thead>
                         <tbody>
                           {group.items.map((it, idx) => {
-                            const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT';
+                            const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
                             return (
                               <tr
                                 key={it.id || idx}

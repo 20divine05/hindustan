@@ -238,7 +238,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
         const l = it.lengthFeet;
         const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
         const t = it.thicknessInches;
-        const isSqftBilled = w >= 7 && it.rateUnit === 'SQFT';
+        const isSqftBilled = (typeof w === 'number' ? w : 0) >= 7 && it.rateUnit !== 'CFT';
         const defaultItemRate = isSqftBilled ? 120 : globalRate;
         const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultItemRate;
         const rate = customRates[idx] ?? itemRate;
@@ -283,7 +283,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
       sqftSum += (it.sqft || (it.cft * 12));
       pcsSum += it.pieces;
       amtSum += it.amount;
-      if (it.rateUnit === 'SQFT' && (it.widthInches || 0) >= 7) {
+      if (it.rateUnit !== 'CFT' && (it.widthInches || 0) >= 7) {
         sqftBilled += (it.sqft || (it.cft * 12));
       } else {
         cftBilled += it.cft;
@@ -803,7 +803,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                       {group.items.map((item, itemIdx) => {
                         const dimOnly = item.description.split(/\s+/)[0] || item.description;
                         const originalIdx = item.slNo - 1;
-                        const isSqftBilled = item.rateUnit === 'SQFT' && (item.widthInches || 0) >= 7;
+                        const isSqftBilled = item.rateUnit !== 'CFT' && (item.widthInches || 0) >= 7;
                         const slStr = item.slNo < 10 ? `0${item.slNo}` : item.slNo;
                         return (
                           <tr key={item.slNo} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>

@@ -59,7 +59,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const wVal = parseFloat(quickWidth) || 0;
   const tVal = parseFloat(quickThickness) || 0;
   const pVal = parseFloat(quickPieces) || 0;
-  const isQuickSqft = wVal >= 7 && quickRateUnit === 'SQFT';
+  const isQuickSqft = wVal >= 7 && quickRateUnit !== 'CFT';
   const liveCft = lVal > 0 && wVal > 0 && tVal > 0 && pVal > 0 ? (lVal * wVal * tVal * pVal) / 144 : 0;
   const liveSqft = liveCft * 12;
   const currentRateVal = isQuickSqft
@@ -97,14 +97,21 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       target.sqft = calc.sqft;
 
       const wNum = typeof target.widthInches === 'number' ? target.widthInches : 0;
-      if (field === 'widthInches' && wNum >= 7 && !target.rateUnit) {
-        setModalRateUnit('SQFT');
-        setModalRateSqft('120');
-        setModalRateCft(typeof target.rate === 'number' && target.rate > 0 ? target.rate.toString() : defaultRate.toString());
-        setWidthModalRowIndex(index);
+      if (field === 'widthInches') {
+        if (wNum >= 7 && target.rateUnit !== 'CFT') {
+          target.rateUnit = 'SQFT';
+          if (!target.rate || target.rate === defaultRate) {
+            target.rate = 120;
+          }
+        } else if (wNum > 0 && wNum < 7) {
+          target.rateUnit = 'CFT';
+          if (target.rate === 120) {
+            target.rate = defaultRate;
+          }
+        }
       }
 
-      const isSqft = wNum >= 7 && target.rateUnit === 'SQFT';
+      const isSqft = wNum >= 7 && target.rateUnit !== 'CFT';
       const defaultRowRate = isSqft ? 120 : defaultRate;
       const rowRate = typeof target.rate === 'number' && target.rate > 0 ? target.rate : defaultRowRate;
       const multiplier = isSqft ? calc.sqft : calc.cft;
@@ -188,16 +195,18 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     let itemRate = defaultRate;
 
     if (isWide) {
-      if (quickRateUnit === 'SQFT') {
-        finalRateUnit = 'SQFT';
-        const parsedSqftRate = parseFloat(quickRateSqft);
-        itemRate = !isNaN(parsedSqftRate) && parsedSqftRate > 0 ? parsedSqftRate : 120;
-      } else {
+      if (quickRateUnit === 'CFT') {
         finalRateUnit = 'CFT';
         const parsedCftRate = parseFloat(quickRateCft) || parseFloat(quickRate);
         itemRate = !isNaN(parsedCftRate) && parsedCftRate > 0 ? parsedCftRate : defaultRate;
+      } else {
+        // Width >= 7 directly defaults to SQFT
+        finalRateUnit = 'SQFT';
+        const parsedSqftRate = parseFloat(quickRateSqft);
+        itemRate = !isNaN(parsedSqftRate) && parsedSqftRate > 0 ? parsedSqftRate : 120;
       }
     } else {
+      finalRateUnit = 'CFT';
       const parsedRate = parseFloat(quickRate);
       itemRate = !isNaN(parsedRate) && parsedRate > 0 ? parsedRate : defaultRate;
     }
@@ -271,7 +280,16 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               placeholder="e.g. 5"
               className="calc-input"
               value={quickWidth}
-              onChange={(e) => setQuickWidth(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setQuickWidth(val);
+                const w = parseFloat(val);
+                if (!isNaN(w) && w >= 7) {
+                  setQuickRateUnit('SQFT');
+                } else if (!isNaN(w) && w > 0 && w < 7) {
+                  setQuickRateUnit('CFT');
+                }
+              }}
               required
             />
           </div>
@@ -533,7 +551,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                 const t = typeof item.thicknessInches === 'number' ? item.thicknessInches : 0;
                 const p = typeof item.pieces === 'number' ? item.pieces : 0;
                 const isRowValid = l > 0 && w > 0 && t > 0 && p > 0;
-                const isSqft = w >= 7 && item.rateUnit === 'SQFT';
+                const isSqft = w >= 7 && item.rateUnit !== 'CFT';
                 const defaultRowRate = isSqft ? 120 : defaultRate;
                 const rowRate = typeof item.rate === 'number' && item.rate > 0 ? item.rate : (parseFloat(quickRate) || defaultRowRate);
                 const multiplier = isSqft ? item.sqft : item.cft;
@@ -618,30 +636,35 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                           type="number"
                           step="any"
                           min="0"
-                          placeholder={isSqft ? '120' : '1200'}
+                          placeholder={isSqft ? '120' : `${defaultRate}`}
                           className="calc-input"
-                          value={item.rate ?? ''}
+                          value={(item.rate as any) === '' ? '' : (typeof item.rate === 'number' && item.rate > 0 ? item.rate : defaultRowRate)}
                           onChange={(e) => handleUpdateItem(index, 'rate', e.target.value)}
+                          onBlur={() => {
+                            if ((item.rate as any) === '' || item.rate === undefined || item.rate === null) {
+                              handleUpdateItem(index, 'rate', defaultRowRate.toString());
+                            }
+                          }}
                           style={{ textAlign: 'right', fontWeight: 600, color: 'var(--primary-800)', width: '75px' }}
                         />
                         {w >= 7 ? (
                           <button
                             type="button"
                             onClick={() => {
-                              setModalRateUnit(item.rateUnit === 'SQFT' ? 'SQFT' : 'CFT');
-                              if (item.rateUnit === 'SQFT') {
-                                setModalRateSqft(item.rate ? item.rate.toString() : '120');
-                                setModalRateCft('');
-                              } else {
+                              setModalRateUnit(item.rateUnit === 'CFT' ? 'CFT' : 'SQFT');
+                              if (item.rateUnit === 'CFT') {
                                 setModalRateCft(item.rate ? item.rate.toString() : defaultRate.toString());
-                                setModalRateSqft('');
+                                setModalRateSqft('120');
+                              } else {
+                                setModalRateSqft(item.rate ? item.rate.toString() : '120');
+                                setModalRateCft(defaultRate.toString());
                               }
                               setWidthModalRowIndex(index);
                             }}
                             title="Width is ≥ 7in: Click to switch Rate in CFT or SQFT"
                             style={{
                               border: '1px solid var(--primary-400)',
-                              backgroundColor: item.rateUnit === 'SQFT' ? 'var(--primary-100)' : 'var(--bg-subtle)',
+                              backgroundColor: item.rateUnit === 'CFT' ? 'var(--bg-subtle)' : 'var(--primary-100)',
                               color: 'var(--primary-900)',
                               fontSize: '0.68rem',
                               fontWeight: 800,
@@ -651,7 +674,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                               whiteSpace: 'nowrap'
                             }}
                           >
-                            {item.rateUnit === 'SQFT' ? 'SQFT' : 'CFT'} ⚡
+                            {item.rateUnit === 'CFT' ? 'CFT' : 'SQFT'} ⚡
                           </button>
                         ) : (
                           <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700 }}>CFT</span>
@@ -741,7 +764,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           <div className="mobile-tally-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {items.map((item, index) => {
               const w = typeof item.widthInches === 'number' ? item.widthInches : 0;
-              const isSqft = w >= 7 && item.rateUnit === 'SQFT';
+              const isSqft = w >= 7 && item.rateUnit !== 'CFT';
               const defaultRowRate = isSqft ? 120 : defaultRate;
               const rowRate = typeof item.rate === 'number' && item.rate > 0 ? item.rate : (parseFloat(quickRate) || defaultRowRate);
               const multiplier = isSqft ? item.sqft : item.cft;
@@ -894,28 +917,33 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       Rate: ₹
                       <input
                         type="number"
-                        value={item.rate || ''}
+                        value={(item.rate as any) === '' ? '' : (typeof item.rate === 'number' && item.rate > 0 ? item.rate : defaultRowRate)}
                         onChange={(e) => handleUpdateItem(index, 'rate', e.target.value)}
+                        onBlur={() => {
+                          if ((item.rate as any) === '' || item.rate === undefined || item.rate === null) {
+                            handleUpdateItem(index, 'rate', defaultRowRate.toString());
+                          }
+                        }}
                         placeholder={isSqft ? '120' : `${defaultRate}`}
-                        style={{ width: '55px', fontSize: '0.78rem', fontWeight: 700, padding: '1px 3px', textAlign: 'right' }}
+                        style={{ width: '60px', fontSize: '0.82rem', fontWeight: 700, padding: '2px 4px', textAlign: 'right' }}
                       />
                       {w >= 7 ? (
                         <button
                           type="button"
                           onClick={() => {
-                            setModalRateUnit(item.rateUnit === 'SQFT' ? 'SQFT' : 'CFT');
-                            if (item.rateUnit === 'SQFT') {
-                              setModalRateSqft(item.rate ? item.rate.toString() : '120');
-                              setModalRateCft('');
-                            } else {
+                            setModalRateUnit(item.rateUnit === 'CFT' ? 'CFT' : 'SQFT');
+                            if (item.rateUnit === 'CFT') {
                               setModalRateCft(item.rate ? item.rate.toString() : defaultRate.toString());
-                              setModalRateSqft('');
+                              setModalRateSqft('120');
+                            } else {
+                              setModalRateSqft(item.rate ? item.rate.toString() : '120');
+                              setModalRateCft(defaultRate.toString());
                             }
                             setWidthModalRowIndex(index);
                           }}
                           style={{
                             border: '1px solid var(--primary-400)',
-                            backgroundColor: item.rateUnit === 'SQFT' ? 'var(--primary-100)' : 'var(--bg-subtle)',
+                            backgroundColor: item.rateUnit === 'CFT' ? 'var(--bg-subtle)' : 'var(--primary-100)',
                             color: 'var(--primary-900)',
                             fontSize: '0.65rem',
                             fontWeight: 800,
@@ -923,8 +951,9 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                             padding: '1px 4px',
                             cursor: 'pointer'
                           }}
+                          title="Width is ≥ 7in: Click to switch between SQFT and CFT pricing"
                         >
-                          {item.rateUnit === 'SQFT' ? 'SQFT' : 'CFT'} ⚡
+                          {item.rateUnit === 'CFT' ? 'CFT' : 'SQFT'} ⚡
                         </button>
                       ) : (
                         <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700 }}>CFT</span>

@@ -28,7 +28,7 @@ export function sanitizeAndComputeSheet(
 
     const calc = calculateRow(l, w, t, p);
 
-    const isSqftBilled = typeof w === 'number' && w >= 7 && item.rateUnit === 'SQFT';
+    const isSqftBilled = typeof w === 'number' && w >= 7 && item.rateUnit !== 'CFT';
     const rateUnit: 'CFT' | 'SQFT' = isSqftBilled ? 'SQFT' : 'CFT';
     const r = typeof item.rate === 'number' ? item.rate : (typeof item.rate === 'string' && item.rate !== '' ? parseFloat(item.rate) : '');
     const defaultRowRate = isSqftBilled ? 120 : 1200;
@@ -45,7 +45,7 @@ export function sanitizeAndComputeSheet(
       pieces: p,
       cft: calc.cft,
       sqft: calc.sqft,
-      rate: r,
+      rate: rateNum,
       rateUnit,
       amount,
       woodType: item.woodType || '',

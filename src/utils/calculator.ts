@@ -154,7 +154,7 @@ export function calculateTotals(
       totalCft += rowCft;
       totalSqft += rowSqft;
 
-      const isSqftBilled = w >= 7 && item.rateUnit === 'SQFT';
+      const isSqftBilled = w >= 7 && item.rateUnit !== 'CFT';
       const multiplier = isSqftBilled ? (item.sqft || rowSqft) : rowCft;
       const defaultRowRate = isSqftBilled ? 120 : defaultRate;
       const rateNum = typeof item.rate === 'number' && item.rate > 0 ? item.rate : defaultRowRate;
@@ -220,7 +220,17 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
     const l = typeof it.lengthFeet === 'number' ? it.lengthFeet : parseFloat(String(it.lengthFeet));
     const w = typeof it.widthInches === 'number' ? it.widthInches : parseFloat(String(it.widthInches));
     if (!isNaN(l) && l > 0 && !isNaN(w) && w > 0) {
-      validItems.push(it);
+      // Ensure width >= 7 defaults directly to SQFT if rateUnit is not explicitly set to CFT
+      const isWide = w >= 7;
+      const resolvedUnit = isWide ? (it.rateUnit === 'CFT' ? 'CFT' : 'SQFT') : 'CFT';
+      const defaultRateVal = resolvedUnit === 'SQFT' ? 120 : 1200;
+      const resolvedRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRateVal;
+
+      validItems.push({
+        ...it,
+        rateUnit: resolvedUnit,
+        rate: resolvedRate
+      });
     } else {
       blankItems.push(it);
     }

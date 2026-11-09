@@ -198,15 +198,15 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
   const totalPieces = validItems.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
 
   const totalSqftBilled = validItems
-    .filter((it) => (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT')
+    .filter((it) => (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT')
     .reduce((acc, it) => acc + (typeof it.sqft === 'number' ? it.sqft : 0), 0);
 
   const totalCftBilled = validItems
-    .filter((it) => !((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT'))
+    .filter((it) => !((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT'))
     .reduce((acc, it) => acc + (typeof it.cft === 'number' ? it.cft : 0), 0);
 
   const timberTotalAmount = validItems.reduce((acc, it) => {
-    const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT';
+    const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
     const defaultRowRate = isSqft ? 120 : ratePerCft;
     const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
     const mult = isSqft ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft;
@@ -409,10 +409,10 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                   .filter((it) => (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT')
                   .reduce((acc, it) => acc + (typeof it.sqft === 'number' ? it.sqft : 0), 0);
                 const groupCftBilled = group.items
-                  .filter((it) => !((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT'))
+                  .filter((it) => !((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT'))
                   .reduce((acc, it) => acc + (typeof it.cft === 'number' ? it.cft : 0), 0);
                 const groupAmount = group.items.reduce((acc, it) => {
-                  const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT';
+                  const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
                   const defaultRowRate = isSqft ? 120 : ratePerCft;
                   const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
                   const mult = isSqft ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft;
@@ -440,7 +440,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                     {group.items.map((it, itemIdx) => {
                       const currentSl = runningSl++;
                       const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
-                      const isSqftBilled = w >= 7 && it.rateUnit === 'SQFT';
+                      const isSqftBilled = w >= 7 && it.rateUnit !== 'CFT';
                       const defaultRowRate = isSqftBilled ? 120 : ratePerCft;
                       const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
                       const mult = isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft;

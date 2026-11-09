@@ -139,7 +139,7 @@ export function createProformaInvoiceDoc(
         const cft = it.cft;
         const sqft = it.sqft;
         const pcs = typeof it.pieces === 'number' ? it.pieces : 0;
-        const isSqftBilled = (typeof w === 'number' ? w : 0) >= 7 && it.rateUnit === 'SQFT';
+        const isSqftBilled = (typeof w === 'number' ? w : 0) >= 7 && it.rateUnit !== 'CFT';
         const defaultRowRate = isSqftBilled ? 120 : defaultRate;
         const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
         const mult = isSqftBilled ? (typeof sqft === 'number' ? sqft : 0) : cft;
