@@ -34,7 +34,7 @@ import { MeasurementTable } from '../components/MeasurementTable';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ProformaInvoiceModal } from '../components/ProformaInvoiceModal';
 import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice';
-import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWidth } from '../utils/calculator';
+import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood } from '../utils/calculator';
 import { formatIndianCurrency, numberToIndianCurrencyWords } from '../utils/indianNumberWords';
 import { exportSheetToCsv } from '../utils/exportCsv';
 import { exportSheetToPdf, getProformaInvoicePdfBlob, type ProformaInvoiceExportData } from '../utils/exportPdf';
@@ -184,7 +184,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
   // Step 2: Timber Items & Rate
   const [items, setItems] = useState<MeasurementItem[]>(
-    sheetToEdit?.items && sheetToEdit.items.length > 0 ? sheetToEdit.items : []
+    sheetToEdit?.items && sheetToEdit.items.length > 0 ? sortTimberEntries(sheetToEdit.items) : []
   );
   const [ratePerCft] = useState<number>(businessSettings?.ratePerCft || 1200);
 
@@ -266,7 +266,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       setReferenceNumber(sheetToEdit.referenceNumber || `REF-${Math.floor(100000 + Math.random() * 900000)}`);
       setMeasurementDate(sheetToEdit.measurementDate || new Date().toISOString().split('T')[0]);
       setNotes(sheetToEdit.notes || '');
-      setItems(sheetToEdit.items || []);
+      setItems(sortTimberEntries(sheetToEdit.items || []));
       setCarpentryCharges((sheetToEdit.additionalCharges?.carpentry || 0) + (sheetToEdit.additionalCharges?.sawing || 0));
       setTransportationCharges(sheetToEdit.additionalCharges?.transportation || 0);
       setPlaningCharges(sheetToEdit.additionalCharges?.planing || 0);
@@ -525,9 +525,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const taxableAmount = gstTaxableBase;
 
   // Sorted timber entries according to strict sawmill specifications:
-  // Width (IN) - Ascending, Length (FT) - Descending within each width group, Grouping by width
+  // Wood Species Grouping -> Width (IN) Ascending -> Length (FT) Descending -> Thickness (IN) Descending
   const sortedItems = useMemo(() => sortTimberEntries(items), [items]);
-  const timberWidthGroups = useMemo(() => groupTimberByWidth(items), [items]);
+  const timberWoodGroups = useMemo(() => groupTimberByWood(items), [items]);
 
   // Construct current full sheet object
   const getCurrentSheetObject = (): MeasurementSheet => {
@@ -545,7 +545,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       referenceNumber,
       measurementDate,
       notes,
-      items,
+      items: sortTimberEntries(items),
       additionalCharges: {
         carpentry: carpentryCharges,
         transportation: transportationCharges,
@@ -778,9 +778,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const handleExportPdf = () => {
     persistCurrentCustomer();
     const current = getCurrentSheetObject();
+    const sortedCurrentItems = sortTimberEntries(current.items);
 
     // Map items including additional charges as line items if present
-    const invoiceItems = current.items
+    const invoiceItems = sortedCurrentItems
       .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)
       .map((it, idx) => {
         const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
@@ -858,7 +859,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const targetPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : (cleanPhone.length > 10 ? cleanPhone : '');
 
     const current = getCurrentSheetObject();
-    const invoiceItems = current.items
+    const sortedCurrentItems = sortTimberEntries(current.items);
+    const invoiceItems = sortedCurrentItems
       .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)
       .map((it, idx) => {
         const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
@@ -2061,10 +2063,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           <div className="card calc-step-card">
             <div className="calc-step-header">
               <h3 className="calc-step-title">
-                <Layers size={17} color="var(--primary-600)" /> Timber Order &amp; Width Group Sorting
+                <Layers size={17} color="var(--primary-600)" /> Timber Species &amp; Mill Dimension Sorting
               </h3>
               <p className="calc-step-desc">
-                Entries sorted strictly by <strong>Width Ascending</strong> and <strong>Length Descending</strong> for industrial saw mill tally
+                Entries grouped by <strong>Wood Species</strong>, then sorted strictly by <strong>Width Ascending</strong> and <strong>Length Descending</strong> for saw mill tally
               </p>
             </div>
 
@@ -2081,10 +2083,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                {timberWidthGroups.map((group) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {timberWoodGroups.map((group) => (
                   <div
-                    key={group.widthInches}
+                    key={group.woodType}
                     style={{
                       border: '1px solid var(--border-medium)',
                       borderRadius: '6px',
@@ -2092,12 +2094,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       backgroundColor: 'var(--bg-card)'
                     }}
                   >
-                    {/* Width Group Header */}
+                    {/* Wood Species Group Header */}
                     <div
                       style={{
                         backgroundColor: 'var(--primary-50, #fcf7ee)',
                         borderBottom: '1px solid var(--border-medium)',
-                        padding: '0.45rem 0.65rem',
+                        padding: '0.5rem 0.75rem',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
@@ -2105,15 +2107,15 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         gap: '0.35rem'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <span style={{ backgroundColor: 'var(--primary-600)', color: '#fff', fontSize: '0.76rem', fontWeight: 800, padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
-                          Width: {group.widthInches}&Prime;
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <span style={{ backgroundColor: 'var(--primary-700)', color: '#fff', fontSize: '0.8rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '4px', letterSpacing: '0.04em' }}>
+                          {group.woodType}
                         </span>
                         <strong style={{ fontSize: '0.82rem', color: 'var(--text-main)' }}>
                           {group.totalPieces} Pcs &bull; {formatValue(group.totalCft, 3)} CFT
                         </strong>
                       </div>
-                      <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--primary-800)' }}>
+                      <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--primary-800)' }}>
                         ₹ {formatIndianCurrency(group.totalAmount)}
                       </span>
                     </div>
@@ -2124,32 +2126,37 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         <thead>
                           <tr style={{ backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', textAlign: 'left', color: 'var(--text-muted)' }}>
                             <th style={{ padding: '0.3rem 0.45rem' }}>#</th>
-                            <th style={{ padding: '0.3rem 0.45rem' }}>Species / Type</th>
+                            <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Width (IN) &uarr;</th>
                             <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Length (FT) &darr;</th>
                             <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Thick (IN)</th>
                             <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Pieces</th>
-                            <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>CFT</th>
+                            <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>CFT / SQFT</th>
                             <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Amount (₹)</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {group.items.map((it, idx) => (
-                            <tr
-                              key={it.id || idx}
-                              style={{
-                                borderBottom: idx < group.items.length - 1 ? '1px solid var(--border-light)' : 'none',
-                                backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)'
-                              }}
-                            >
-                              <td style={{ padding: '0.35rem 0.45rem', color: 'var(--text-muted)' }}>{idx + 1}</td>
-                              <td style={{ padding: '0.35rem 0.45rem', fontWeight: 700 }}>{(it.woodType || 'MAHAGONY').toUpperCase()}</td>
-                              <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 800, color: 'var(--primary-700)' }}>{it.lengthFeet} ft</td>
-                              <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right' }}>{it.thicknessInches}&Prime;</td>
-                              <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 700 }}>{it.pieces}</td>
-                              <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 700 }}>{formatValue(it.cft, 3)}</td>
-                              <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 800 }}>₹{formatIndianCurrency(it.amount || 0)}</td>
-                            </tr>
-                          ))}
+                          {group.items.map((it, idx) => {
+                            const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT';
+                            return (
+                              <tr
+                                key={it.id || idx}
+                                style={{
+                                  borderBottom: idx < group.items.length - 1 ? '1px solid var(--border-light)' : 'none',
+                                  backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)'
+                                }}
+                              >
+                                <td style={{ padding: '0.35rem 0.45rem', color: 'var(--text-muted)' }}>{it.serialNumber || idx + 1}</td>
+                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 800, color: 'var(--primary-700)' }}>{it.widthInches}&Prime;</td>
+                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 700 }}>{it.lengthFeet} ft</td>
+                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right' }}>{it.thicknessInches}&Prime;</td>
+                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 700 }}>{it.pieces}</td>
+                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 700 }}>
+                                  {isSqft ? `${formatValue(it.sqft, 2)} SQFT` : `${formatValue(it.cft, 3)} CFT`}
+                                </td>
+                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 800 }}>₹{formatIndianCurrency(it.amount || 0)}</td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

@@ -173,6 +173,27 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
     woodMap.get(wood)!.push(it);
   }
 
+  // Ensure items within each wood species group are sorted strictly by mill specification: Width Asc -> Length Desc -> Thickness Desc
+  for (const group of woodGroups) {
+    group.items.sort((a, b) => {
+      const wA = typeof a.widthInches === 'number' ? a.widthInches : parseFloat(String(a.widthInches)) || 0;
+      const wB = typeof b.widthInches === 'number' ? b.widthInches : parseFloat(String(b.widthInches)) || 0;
+      if (wA !== wB) return wA - wB;
+
+      const lA = typeof a.lengthFeet === 'number' ? a.lengthFeet : parseFloat(String(a.lengthFeet)) || 0;
+      const lB = typeof b.lengthFeet === 'number' ? b.lengthFeet : parseFloat(String(b.lengthFeet)) || 0;
+      if (lA !== lB) return lB - lA;
+
+      const tA = typeof a.thicknessInches === 'number' ? a.thicknessInches : parseFloat(String(a.thicknessInches)) || 0;
+      const tB = typeof b.thicknessInches === 'number' ? b.thicknessInches : parseFloat(String(b.thicknessInches)) || 0;
+      if (tA !== tB) return tB - tA;
+
+      const pA = typeof a.pieces === 'number' ? a.pieces : parseFloat(String(a.pieces)) || 0;
+      const pB = typeof b.pieces === 'number' ? b.pieces : parseFloat(String(b.pieces)) || 0;
+      return pB - pA;
+    });
+  }
+
   const totalCft = validItems.reduce((acc, it) => acc + (typeof it.cft === 'number' ? it.cft : 0), 0);
   const totalPieces = validItems.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
 

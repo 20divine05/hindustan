@@ -201,36 +201,115 @@ export function formatCompact(value: number): string {
 
 /**
  * Sorts timber entries according to standard mill order:
- * 1. Width (IN) - Ascending: Smallest width to largest width.
- * 2. Length (FT) - Descending: Longest to shortest within each width.
- * 3. Grouping: Keeps all entries with the same width together.
+ * 1. Wood Species Grouping: Keeps all entries of the same wood species together,
+ *    preserving the initial sequence in which each wood species was introduced in the sheet.
+ * 2. Width (IN) - Ascending: Smallest width to largest width within each wood species.
+ * 3. Length (FT) - Descending: Longest to shortest within each width group.
+ * 4. Thickness (IN) - Descending: Thickest to thinnest within each length group.
+ * 5. Serial Number: Sequential 1, 2, 3... across the entire sheet.
  * Preserves all existing calculations, rates, quantities, and properties.
  */
 export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
-  return [...items].sort((a, b) => {
-    const wA = typeof a.widthInches === 'number' ? a.widthInches : 0;
-    const wB = typeof b.widthInches === 'number' ? b.widthInches : 0;
-    // 1. Width ascending
-    if (wA !== wB) {
-      return wA - wB;
+  if (!items || items.length === 0) return [];
+
+  // Separate valid dimension items from completely blank/draft rows
+  const validItems: MeasurementItem[] = [];
+  const blankItems: MeasurementItem[] = [];
+
+  for (const it of items) {
+    const l = typeof it.lengthFeet === 'number' ? it.lengthFeet : parseFloat(String(it.lengthFeet));
+    const w = typeof it.widthInches === 'number' ? it.widthInches : parseFloat(String(it.widthInches));
+    if (!isNaN(l) && l > 0 && !isNaN(w) && w > 0) {
+      validItems.push(it);
+    } else {
+      blankItems.push(it);
     }
-    // 2. Length descending within same width group
-    const lA = typeof a.lengthFeet === 'number' ? a.lengthFeet : 0;
-    const lB = typeof b.lengthFeet === 'number' ? b.lengthFeet : 0;
-    if (lA !== lB) {
-      return lB - lA;
+  }
+
+  // Preserve the initial order of wood species as they first appeared
+  const woodOrder: string[] = [];
+  const woodMap = new Map<string, MeasurementItem[]>();
+
+  for (const it of validItems) {
+    const woodKey = (it.woodType || 'MAHAGONY').trim().toUpperCase();
+    if (!woodMap.has(woodKey)) {
+      woodOrder.push(woodKey);
+      woodMap.set(woodKey, []);
     }
-    // 3. Thickness descending
-    const tA = typeof a.thicknessInches === 'number' ? a.thicknessInches : 0;
-    const tB = typeof b.thicknessInches === 'number' ? b.thicknessInches : 0;
-    if (tA !== tB) {
-      return tB - tA;
-    }
-    return 0;
-  }).map((it, idx) => ({
+    woodMap.get(woodKey)!.push(it);
+  }
+
+  // Sort items within each wood group by Width Asc -> Length Desc -> Thickness Desc -> Pieces Desc
+  const sortedValid: MeasurementItem[] = [];
+  for (const woodKey of woodOrder) {
+    const groupItems = woodMap.get(woodKey) || [];
+    groupItems.sort((a, b) => {
+      const wA = typeof a.widthInches === 'number' ? a.widthInches : parseFloat(String(a.widthInches)) || 0;
+      const wB = typeof b.widthInches === 'number' ? b.widthInches : parseFloat(String(b.widthInches)) || 0;
+      if (wA !== wB) return wA - wB;
+
+      const lA = typeof a.lengthFeet === 'number' ? a.lengthFeet : parseFloat(String(a.lengthFeet)) || 0;
+      const lB = typeof b.lengthFeet === 'number' ? b.lengthFeet : parseFloat(String(b.lengthFeet)) || 0;
+      if (lA !== lB) return lB - lA;
+
+      const tA = typeof a.thicknessInches === 'number' ? a.thicknessInches : parseFloat(String(a.thicknessInches)) || 0;
+      const tB = typeof b.thicknessInches === 'number' ? b.thicknessInches : parseFloat(String(b.thicknessInches)) || 0;
+      if (tA !== tB) return tB - tA;
+
+      const pA = typeof a.pieces === 'number' ? a.pieces : parseFloat(String(a.pieces)) || 0;
+      const pB = typeof b.pieces === 'number' ? b.pieces : parseFloat(String(b.pieces)) || 0;
+      if (pA !== pB) return pB - pA;
+
+      return 0;
+    });
+    sortedValid.push(...groupItems);
+  }
+
+  // Combine sorted items with any trailing blank rows and re-index sequentially
+  return [...sortedValid, ...blankItems].map((it, idx) => ({
     ...it,
     serialNumber: idx + 1
   }));
+}
+
+export interface TimberWoodGroup {
+  woodType: string;
+  items: MeasurementItem[];
+  totalPieces: number;
+  totalCft: number;
+  totalAmount: number;
+}
+
+/**
+ * Groups sorted timber entries by Wood Species for clear display & order review
+ */
+export function groupTimberByWood(items: MeasurementItem[]): TimberWoodGroup[] {
+  const sorted = sortTimberEntries(items);
+  const groupsMap = new Map<string, MeasurementItem[]>();
+  const woodOrder: string[] = [];
+
+  for (const it of sorted) {
+    const wood = (it.woodType || 'MAHAGONY').trim().toUpperCase();
+    if (!groupsMap.has(wood)) {
+      woodOrder.push(wood);
+      groupsMap.set(wood, []);
+    }
+    groupsMap.get(wood)!.push(it);
+  }
+
+  return woodOrder.map((wood) => {
+    const groupItems = groupsMap.get(wood) || [];
+    const totalPieces = groupItems.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
+    const totalCft = groupItems.reduce((acc, it) => acc + (it.cft || 0), 0);
+    const totalAmount = groupItems.reduce((acc, it) => acc + (it.amount || 0), 0);
+    return {
+      woodType: wood,
+      items: groupItems,
+      totalPieces,
+      totalCft,
+      totalAmount
+    };
+  });
 }
 
 export interface TimberWidthGroup {

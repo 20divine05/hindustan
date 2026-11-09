@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Trash2, Copy, AlertCircle, CornerDownLeft, X } from 'lucide-react';
+import { Plus, Trash2, Copy, AlertCircle, CornerDownLeft, X, ArrowUpDown } from 'lucide-react';
 import type { MeasurementItem } from '../types';
-import { calculateRow, calculateTotals, formatValue } from '../utils/calculator';
+import { calculateRow, calculateTotals, formatValue, sortTimberEntries } from '../utils/calculator';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
 import { generateId } from '../services/db';
 
@@ -125,9 +125,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     };
 
     const updated = [...items.slice(0, index + 1), duplicate, ...items.slice(index + 1)];
-    // Re-index serial numbers
-    const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
-    onChange(reindexed);
+    const sorted = sortTimberEntries(updated);
+    onChange(sorted);
   };
 
   // Delete a row
@@ -225,7 +224,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       woodType: finalWood
     };
 
-    onChange([...items, newItem]);
+    const updated = sortTimberEntries([...items, newItem]);
+    onChange(updated);
 
     // Keep thickness, width and rate for rapid consecutive tallying, clear length & pieces
     setQuickLength('');
@@ -473,6 +473,16 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             >
               Blank Row
             </button>
+            {items.length > 1 && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => onChange(sortTimberEntries(items))}
+                title="Sort all rows strictly by Wood Species & Standard Mill Dimensions"
+              >
+                <ArrowUpDown size={14} /> Sort Order
+              </button>
+            )}
           </div>
         </div>
       </form>

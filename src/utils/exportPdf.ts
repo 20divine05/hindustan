@@ -4,6 +4,7 @@ import type { BusinessSettings, MeasurementSheet } from '../types';
 import { LOGO_ICON_BASE64 } from './logoBase64';
 import { PAYMENT_QR_BASE64 } from './paymentQrBase64';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from './indianNumberWords';
+import { sortTimberEntries } from './calculator';
 
 export interface ProformaInvoiceExportData {
   invoiceNo?: string;
@@ -125,7 +126,8 @@ export function createProformaInvoiceDoc(
   // Build items list
   let items = invoiceData?.items;
   if (!items || items.length === 0) {
-    const sourceItems = sheet.items && sheet.items.length > 0 ? sheet.items : [];
+    const rawItems = sheet.items && sheet.items.length > 0 ? sheet.items : [];
+    const sourceItems = sortTimberEntries(rawItems);
     items = sourceItems
       .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)
       .map((it, idx) => {
@@ -374,6 +376,32 @@ export function createProformaInvoiceDoc(
   let slCounter = 1;
 
   for (const group of woodGroups) {
+    // Sort items within this wood group strictly by sawmill specification: Width Asc -> Length Desc -> Thickness Desc
+    group.items.sort((a, b) => {
+      const parseDims = (item: any) => {
+        let w = typeof item.widthInches === 'number' ? item.widthInches : 0;
+        let l = 0;
+        let t = 0;
+        if (item.description) {
+          const match = item.description.match(/^([\d.]+)[X|x]([\d.]+)[X|x]([\d.]+)/);
+          if (match) {
+            l = parseFloat(match[1]) || 0;
+            if (!w) w = parseFloat(match[2]) || 0;
+            t = parseFloat(match[3]) || 0;
+          }
+        }
+        return { w, l, t };
+      };
+      const dA = parseDims(a);
+      const dB = parseDims(b);
+      if (dA.w !== dB.w) return dA.w - dB.w;
+      if (dA.l !== dB.l) return dB.l - dA.l;
+      if (dA.t !== dB.t) return dB.t - dA.t;
+      const pA = typeof a.pieces === 'number' ? a.pieces : 0;
+      const pB = typeof b.pieces === 'number' ? b.pieces : 0;
+      return pB - pA;
+    });
+
     // 1. Wood Species Heading Row (Line above wood name, no line below, continuous vertical lines across all columns, left-aligned)
     const headingBorder = { top: 0.2, bottom: 0, left: 0.2, right: 0.2 };
     tableBody.push([
