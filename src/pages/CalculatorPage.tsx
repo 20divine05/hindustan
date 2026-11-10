@@ -2126,8 +2126,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         <thead>
                           <tr style={{ backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', textAlign: 'left', color: 'var(--text-muted)' }}>
                             <th style={{ padding: '0.3rem 0.45rem' }}>#</th>
-                            <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Width (IN) &uarr;</th>
-                            <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Length (FT) &darr;</th>
+                            <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Length (FT)</th>
+                            <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Width (IN)</th>
                             <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Thick (IN)</th>
                             <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Pieces</th>
                             <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>CFT / SQFT</th>
@@ -2146,8 +2146,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                                 }}
                               >
                                 <td style={{ padding: '0.35rem 0.45rem', color: 'var(--text-muted)' }}>{it.serialNumber || idx + 1}</td>
-                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 800, color: 'var(--primary-700)' }}>{it.widthInches}&Prime;</td>
                                 <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 700 }}>{it.lengthFeet} ft</td>
+                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 800, color: 'var(--primary-700)' }}>{it.widthInches}&Prime;</td>
                                 <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right' }}>{it.thicknessInches}&Prime;</td>
                                 <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 700 }}>{it.pieces}</td>
                                 <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 700 }}>
