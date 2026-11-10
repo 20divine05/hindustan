@@ -249,11 +249,46 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
     woodMap.get(woodKey)!.push(it);
   }
 
-  // Sort items within each wood group by Width Asc -> Length Desc -> Thickness Desc -> Pieces Desc
+  // Consolidate identical measurements within each wood group, then sort
   const sortedValid: MeasurementItem[] = [];
   for (const woodKey of woodOrder) {
     const groupItems = woodMap.get(woodKey) || [];
-    groupItems.sort((a, b) => {
+
+    // Combine rows with exact same dimensions (Length, Width, Thick) and Rate + RateUnit
+    const consolidatedMap = new Map<string, MeasurementItem>();
+    const consolidatedList: MeasurementItem[] = [];
+
+    for (const it of groupItems) {
+      const l = typeof it.lengthFeet === 'number' ? it.lengthFeet : parseFloat(String(it.lengthFeet)) || 0;
+      const w = typeof it.widthInches === 'number' ? it.widthInches : parseFloat(String(it.widthInches)) || 0;
+      const t = typeof it.thicknessInches === 'number' ? it.thicknessInches : parseFloat(String(it.thicknessInches)) || 0;
+      const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : (w >= 7 ? 120 : 1200);
+      const unit = it.rateUnit || (w >= 7 ? 'SQFT' : 'CFT');
+      const key = `${l}_${w}_${t}_${r}_${unit}`;
+
+      if (consolidatedMap.has(key)) {
+        const existing = consolidatedMap.get(key)!;
+        const oldPieces = typeof existing.pieces === 'number' ? existing.pieces : parseFloat(String(existing.pieces)) || 0;
+        const addPieces = typeof it.pieces === 'number' ? it.pieces : parseFloat(String(it.pieces)) || 0;
+        const newPieces = oldPieces + addPieces;
+
+        const calc = calculateRow(l, w, t, newPieces);
+        const isSqft = w >= 7 && unit !== 'CFT';
+        const mult = isSqft ? calc.sqft : calc.cft;
+        const newAmount = Math.round(mult * r * 100) / 100;
+
+        existing.pieces = newPieces;
+        existing.cft = calc.cft;
+        existing.sqft = calc.sqft;
+        existing.amount = newAmount;
+      } else {
+        const clone = { ...it };
+        consolidatedMap.set(key, clone);
+        consolidatedList.push(clone);
+      }
+    }
+
+    consolidatedList.sort((a, b) => {
       const wA = typeof a.widthInches === 'number' ? a.widthInches : parseFloat(String(a.widthInches)) || 0;
       const wB = typeof b.widthInches === 'number' ? b.widthInches : parseFloat(String(b.widthInches)) || 0;
       if (wA !== wB) return wA - wB;
@@ -266,13 +301,17 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
       const tB = typeof b.thicknessInches === 'number' ? b.thicknessInches : parseFloat(String(b.thicknessInches)) || 0;
       if (tA !== tB) return tB - tA;
 
+      const rA = typeof a.rate === 'number' ? a.rate : 0;
+      const rB = typeof b.rate === 'number' ? b.rate : 0;
+      if (rA !== rB) return rA - rB;
+
       const pA = typeof a.pieces === 'number' ? a.pieces : parseFloat(String(a.pieces)) || 0;
       const pB = typeof b.pieces === 'number' ? b.pieces : parseFloat(String(b.pieces)) || 0;
       if (pA !== pB) return pB - pA;
 
       return 0;
     });
-    sortedValid.push(...groupItems);
+    sortedValid.push(...consolidatedList);
   }
 
   // Combine sorted items with any trailing blank rows and re-index sequentially
