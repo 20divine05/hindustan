@@ -156,8 +156,17 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 }) => {
   const { user } = useAuth();
 
-  // 6-Step Wizard State (1: Customer Details, 2: Calculator, 3: Additional Charges, 4: GST & Discounts, 5: Timber Order / Sorting, 6: Final Review & Sharing)
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+  // 9-Step Linear Workflow State:
+  // 1: Customer Type (B2B vs B2C)
+  // 2: Customer / Business Details
+  // 3: Timber Calculator
+  // 4: Carpentry Charges (with image)
+  // 5: Transportation Charges (with image)
+  // 6: Planing Charges (with image)
+  // 7: GST & Other Charges
+  // 8: Timber Order / Sorting
+  // 9: Final Invoice & Share
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9>(1);
 
   // Sheet Metadata State
   const [sheetId, setSheetId] = useState<string>(sheetToEdit?.id || generateId());
@@ -1037,7 +1046,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           </div>
         </div>
 
-        {/* 2. Step-by-Step 6-Phase Wizard Navigation Bar (Optimized for Phones & Large Touch) */}
+        {/* 2. Step-by-Step 9-Phase Wizard Navigation Bar (Optimized for Phones & Large Touch) */}
         <div className="calc-steps-nav">
           <button
             type="button"
@@ -1045,8 +1054,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             onClick={() => setCurrentStep(1)}
           >
             <span className="step-num">1</span>
-            <span className="step-label">Customer</span>
-            {customerName && <span className="step-badge ok">✓</span>}
+            <span className="step-label">Type</span>
           </button>
 
           <span className="step-arrow">&rarr;</span>
@@ -1057,8 +1065,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             onClick={() => setCurrentStep(2)}
           >
             <span className="step-num">2</span>
-            <span className="step-label">Calculator</span>
-            {items.length > 0 && <span className="step-badge">{items.length}</span>}
+            <span className="step-label">Details</span>
+            {customerName && <span className="step-badge ok">✓</span>}
           </button>
 
           <span className="step-arrow">&rarr;</span>
@@ -1069,8 +1077,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             onClick={() => setCurrentStep(3)}
           >
             <span className="step-num">3</span>
-            <span className="step-label">Charges</span>
-            {additionalChargesTotal > 0 && <span className="step-badge">₹{additionalChargesTotal}</span>}
+            <span className="step-label">Calculator</span>
+            {items.length > 0 && <span className="step-badge">{items.length}</span>}
           </button>
 
           <span className="step-arrow">&rarr;</span>
@@ -1081,8 +1089,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             onClick={() => setCurrentStep(4)}
           >
             <span className="step-num">4</span>
-            <span className="step-label">GST &amp; Disc</span>
-            {gstPercent > 0 && <span className="step-badge">{gstPercent}%</span>}
+            <span className="step-label">Carpentry</span>
+            {carpentryCharges > 0 && <span className="step-badge">₹{carpentryCharges}</span>}
           </button>
 
           <span className="step-arrow">&rarr;</span>
@@ -1093,7 +1101,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             onClick={() => setCurrentStep(5)}
           >
             <span className="step-num">5</span>
-            <span className="step-label">Order</span>
+            <span className="step-label">Transport</span>
+            {transportationCharges > 0 && <span className="step-badge">₹{transportationCharges}</span>}
           </button>
 
           <span className="step-arrow">&rarr;</span>
@@ -1104,6 +1113,41 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             onClick={() => setCurrentStep(6)}
           >
             <span className="step-num">6</span>
+            <span className="step-label">Planing</span>
+            {planingCharges > 0 && <span className="step-badge">₹{planingCharges}</span>}
+          </button>
+
+          <span className="step-arrow">&rarr;</span>
+
+          <button
+            type="button"
+            className={`calc-step-tab ${currentStep === 7 ? 'active' : ''}`}
+            onClick={() => setCurrentStep(7)}
+          >
+            <span className="step-num">7</span>
+            <span className="step-label">GST &amp; Other</span>
+            {gstPercent > 0 && <span className="step-badge">{gstPercent}%</span>}
+          </button>
+
+          <span className="step-arrow">&rarr;</span>
+
+          <button
+            type="button"
+            className={`calc-step-tab ${currentStep === 8 ? 'active' : ''}`}
+            onClick={() => setCurrentStep(8)}
+          >
+            <span className="step-num">8</span>
+            <span className="step-label">Order</span>
+          </button>
+
+          <span className="step-arrow">&rarr;</span>
+
+          <button
+            type="button"
+            className={`calc-step-tab ${currentStep === 9 ? 'active' : ''}`}
+            onClick={() => setCurrentStep(9)}
+          >
+            <span className="step-num">9</span>
             <span className="step-label">Invoice</span>
           </button>
 
@@ -1139,46 +1183,138 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 1: CUSTOMER DETAILS (B2B vs B2C Selection & GST Search)
+            STEP 1: SELECT CUSTOMER TYPE (B2B vs B2C Selection Only)
             ========================================================================= */}
         {currentStep === 1 && (
           <div className="card calc-step-card">
-            <div className="calc-step-header">
-              <h3 className="calc-step-title">
-                <User size={15} color="var(--primary-600)" /> Customer Details
+            <div className="calc-step-header" style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
+              <h3 className="calc-step-title" style={{ justifyContent: 'center', fontSize: '1.15rem' }}>
+                <User size={18} color="var(--primary-600)" /> Select Customer Type
               </h3>
               <p className="calc-step-desc">
-                Select customer type to enter billing contact and GST credentials
+                Choose the transaction type to proceed with customer details &amp; billing
               </p>
             </div>
 
-            {/* Sleek Compact Customer Type Pill Toggle */}
-            <div className="calc-cust-type-wrap">
-              <span className="calc-cust-type-label">Customer Type:</span>
-              <div className="calc-cust-type-toggle">
+            <div className="calc-type-choice-grid">
+              {/* 1. Retail / Cash (B2C) Card */}
+              <div
+                className={`calc-type-card ${customerType === 'b2c' ? 'selected' : ''}`}
+                onClick={() => {
+                  setCustomerType('b2c');
+                  setCurrentStep(2);
+                }}
+              >
+                <div className="calc-type-card-icon">
+                  <User size={28} />
+                </div>
+                <div className="calc-type-card-content">
+                  <h4>Retail / Cash (B2C)</h4>
+                  <p>Direct consumer, contractor or walk-in buyer without mandatory GST tax invoicing</p>
+                </div>
+                <span className="calc-type-card-arrow">
+                  Select Retail (B2C) &rarr;
+                </span>
+              </div>
+
+              {/* 2. Business GST (B2B) Card */}
+              <div
+                className={`calc-type-card ${customerType === 'b2b' ? 'selected' : ''}`}
+                onClick={() => {
+                  setCustomerType('b2b');
+                  setCurrentStep(2);
+                }}
+              >
+                <div className="calc-type-card-icon">
+                  <Building size={28} />
+                </div>
+                <div className="calc-type-card-content">
+                  <h4>Business GST (B2B)</h4>
+                  <p>Registered enterprise or timber trader with 15-digit GSTIN lookup and tax invoice</p>
+                </div>
+                <span className="calc-type-card-arrow">
+                  Select Business (B2B) &rarr;
+                </span>
+              </div>
+            </div>
+
+            {/* Step 1 Footer CTA */}
+            <div className="step-footer-cta">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setCurrentStep(2)}
+                style={{ width: '100%', maxWidth: '380px', justifyContent: 'center', fontWeight: 800, padding: '0.65rem 1rem', fontSize: '0.9rem' }}
+              >
+                Continue as {customerType === 'b2b' ? 'Business GST (B2B)' : 'Retail / Cash (B2C)'} &rarr;
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            STEP 2: CUSTOMER / BUSINESS DETAILS (DYNAMIC B2C vs B2B)
+            ========================================================================= */}
+        {currentStep === 2 && (
+          <div className="card calc-step-card">
+            <div className="calc-step-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 className="calc-step-title">
+                  {customerType === 'b2b' ? (
+                    <>
+                      <Building size={16} color="var(--primary-600)" /> Business GST Details (B2B)
+                    </>
+                  ) : (
+                    <>
+                      <User size={16} color="var(--primary-600)" /> Customer Details (Retail / B2C)
+                    </>
+                  )}
+                </h3>
+                <p className="calc-step-desc">
+                  {customerType === 'b2b'
+                    ? 'Enter 15-digit GST number to fetch verified company credentials'
+                    : 'Enter customer name, phone, delivery site and billing details'}
+                </p>
+              </div>
+
+              {/* Pill to switch customer type if needed */}
+              <div style={{ display: 'inline-flex', gap: '3px', background: 'var(--bg-subtle, #f5eedf)', padding: '2px 4px', borderRadius: '20px', border: '1px solid var(--border-medium)', fontSize: '0.72rem' }}>
                 <button
                   type="button"
                   onClick={() => setCustomerType('b2c')}
-                  className={`calc-cust-toggle-btn ${customerType === 'b2c' ? 'active' : ''}`}
+                  style={{
+                    border: 'none',
+                    background: customerType === 'b2c' ? 'var(--primary-700)' : 'transparent',
+                    color: customerType === 'b2c' ? '#fff' : 'var(--text-muted)',
+                    padding: '2px 8px',
+                    borderRadius: '15px',
+                    fontWeight: customerType === 'b2c' ? 800 : 600,
+                    cursor: 'pointer'
+                  }}
                 >
-                  <User size={13} />
-                  <span>Retail / Cash (B2C)</span>
+                  Retail (B2C)
                 </button>
-
                 <button
                   type="button"
                   onClick={() => setCustomerType('b2b')}
-                  className={`calc-cust-toggle-btn ${customerType === 'b2b' ? 'active' : ''}`}
+                  style={{
+                    border: 'none',
+                    background: customerType === 'b2b' ? 'var(--primary-700)' : 'transparent',
+                    color: customerType === 'b2b' ? '#fff' : 'var(--text-muted)',
+                    padding: '2px 8px',
+                    borderRadius: '15px',
+                    fontWeight: customerType === 'b2b' ? 800 : 600,
+                    cursor: 'pointer'
+                  }}
                 >
-                  <Building size={13} />
-                  <span>Business GST (B2B)</span>
+                  Business (B2B)
                 </button>
               </div>
             </div>
 
-            {/* B2B GSTIN Search Box */}
+            {/* If B2B: Show Live GSTIN Search Box */}
             {customerType === 'b2b' && (
-              <div className="calc-gst-search-box">
+              <div className="calc-gst-search-box" style={{ marginBottom: '0.75rem' }}>
                 <div className="calc-gst-search-header">
                   <label className="calc-gst-search-label">
                     <ShieldCheck size={15} color="var(--primary-600)" /> 15-Digit GST Number:
@@ -1399,27 +1535,35 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
 
-            {/* Step 1 Footer CTA: Proceed to Step 2 Calculator */}
-            <div className="step-footer-cta">
+            {/* Step 2 Bottom Navigation */}
+            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '1rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setCurrentStep(1)}
+                style={{ fontWeight: 600, padding: '0.55rem 0.9rem', fontSize: '0.84rem' }}
+              >
+                <ArrowLeft size={15} /> Previous: Type
+              </button>
+
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={() => {
                   persistCurrentCustomer();
-                  setCurrentStep(2);
+                  setCurrentStep(3);
                 }}
-                style={{ width: '100%', maxWidth: '380px', justifyContent: 'center', fontWeight: 800, padding: '0.65rem 1rem', fontSize: '0.9rem' }}
+                style={{ fontWeight: 800, padding: '0.55rem 1rem', fontSize: '0.85rem' }}
               >
                 Next: Timber Calculator &rarr;
               </button>
             </div>
           </div>
         )}
-
         {/* =========================================================================
-            STEP 2: TIMBER CALCULATOR (MEASUREMENTS, WOOD DROPDOWN & TALLY)
+            STEP 3: TIMBER CALCULATOR (MEASUREMENTS, WOOD DROPDOWN & TALLY)
             ========================================================================= */}
-        {currentStep === 2 && (
+        {currentStep === 3 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="card calc-table-card" style={{ padding: '0.85rem' }}>
               <div className="calc-step2-top-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
@@ -1460,24 +1604,24 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 defaultRate={ratePerCft}
               />
 
-              {/* Step 2 Bottom Navigation */}
+              {/* Step 3 Bottom Navigation */}
               <div className="step-footer-nav" style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => setCurrentStep(1)}
+                  onClick={() => setCurrentStep(2)}
                   style={{ fontWeight: 600, padding: '0.75rem 1.25rem' }}
                 >
-                  <ArrowLeft size={16} /> Previous: Customer
+                  <ArrowLeft size={16} /> Previous: Details
                 </button>
 
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={() => setCurrentStep(3)}
+                  onClick={() => setCurrentStep(4)}
                   style={{ fontWeight: 800, padding: '0.75rem 1.4rem' }}
                 >
-                  Next: Additional Charges &rarr;
+                  Next: Carpentry Charges &rarr;
                 </button>
               </div>
             </div>
@@ -1485,252 +1629,92 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 3: ADDITIONAL CHARGES (CARPENTRY, TRANSPORTATION, PLANING, SAWING)
+            STEP 4: CARPENTRY CHARGES (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 3 && (
+        {currentStep === 4 && (
           <div className="card calc-step-card">
+            {/* Visual Service Banner */}
+            <div className="calc-service-banner">
+              <img
+                src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80"
+                alt="Carpentry Works"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+              <div className="calc-service-banner-overlay">
+                <span className="calc-service-banner-tag">
+                  <Scissors size={12} /> Carpentry &amp; Woodcraft
+                </span>
+                <h3 className="calc-service-banner-title">Carpentry &amp; Woodworking</h3>
+              </div>
+            </div>
+
             <div className="calc-step-header">
               <h3 className="calc-step-title">
-                <Truck size={17} color="var(--primary-600)" /> Additional Services &amp; Charges
+                <Scissors size={17} color="var(--primary-600)" /> Carpentry Charges (₹)
               </h3>
               <p className="calc-step-desc">
-                Add extra milling costs such as carpentry works, transportation, and planing
+                Add labour or fabrication charges for carpentry, joinery, and custom sizing
               </p>
             </div>
 
-            {/* Charges Input Cards */}
-            <div className="calc-charges-grid">
-
-              {/* 1. Carpentry Works */}
-              <div className="calc-charge-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Scissors size={14} color="var(--primary-600)" /> Carpentry Works (₹)
-                  </label>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-700)' }}>
-                    ₹ {formatIndianCurrency(carpentryCharges)}
-                  </span>
-                </div>
-                <input
-                  type="number"
-                  value={carpentryCharges === 0 ? '' : carpentryCharges}
-                  onChange={(e) => setCarpentryCharges(Math.max(0, Number(e.target.value) || 0))}
-                  placeholder="0"
-                  style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, padding: '0.4rem 0.55rem' }}
-                />
-                <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.25rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
-                  {[500, 1000, 2000, 5000].map(amt => (
-                    <button
-                      key={amt}
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setCarpentryCharges(amt)}
-                      style={{ fontSize: '0.7rem', padding: '0.18rem 0.45rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)' }}
-                    >
-                      +₹{amt}
-                    </button>
-                  ))}
-                  {carpentryCharges > 0 && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setCarpentryCharges(0)}
-                      style={{ fontSize: '0.7rem', padding: '0.18rem 0.35rem', color: 'var(--danger-400)' }}
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
+            {/* Input Card */}
+            <div className="calc-charge-card" style={{ maxWidth: '480px', margin: '0 auto 1rem auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <Scissors size={14} color="var(--primary-600)" /> Carpentry Amount (₹):
+                </label>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                  ₹ {formatIndianCurrency(carpentryCharges)}
+                </span>
               </div>
-
-              {/* 2. Transportation Charges */}
-              <div className="calc-charge-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Truck size={14} color="var(--primary-600)" /> Transportation Charges (₹)
-                  </label>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-700)' }}>
-                    ₹ {formatIndianCurrency(transportationCharges)}
-                  </span>
-                </div>
-                <input
-                  type="number"
-                  value={transportationCharges === 0 ? '' : transportationCharges}
-                  onChange={(e) => setTransportationCharges(Math.max(0, Number(e.target.value) || 0))}
-                  placeholder="0"
-                  style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, padding: '0.4rem 0.55rem' }}
-                />
-                <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.25rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
-                  {[1000, 2000, 3500, 5000].map(amt => (
-                    <button
-                      key={amt}
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setTransportationCharges(amt)}
-                      style={{ fontSize: '0.7rem', padding: '0.18rem 0.45rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)' }}
-                    >
-                      +₹{amt}
-                    </button>
-                  ))}
-                  {transportationCharges > 0 && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setTransportationCharges(0)}
-                      style={{ fontSize: '0.7rem', padding: '0.18rem 0.35rem', color: 'var(--danger-400)' }}
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* 3. Planing Charges */}
-              <div className="calc-charge-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Sparkles size={14} color="var(--primary-600)" /> Planing Charges (₹)
-                  </label>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-700)' }}>
-                    ₹ {formatIndianCurrency(planingCharges)}
-                  </span>
-                </div>
-                <input
-                  type="number"
-                  value={planingCharges === 0 ? '' : planingCharges}
-                  onChange={(e) => {
-                    const val = Math.max(0, Number(e.target.value) || 0);
-                    setPlaningCharges(val);
-                    if (totals.totalCft > 0 && val > 0) {
-                      setPlaningRatePerCft(Math.round((val / totals.totalCft) * 100) / 100);
-                    } else if (val === 0) {
-                      setPlaningRatePerCft(0);
-                    }
-                  }}
-                  placeholder="0"
-                  style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, padding: '0.4rem 0.55rem' }}
-                />
-
-                {/* Desktop-only extended details for Planing */}
-                <div className="calc-planing-desktop-details">
-                  {/* Display Total CFT */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'var(--primary-50, #f8f6f0)', border: '1px solid var(--border-light)', borderRadius: '6px', padding: '0.35rem 0.6rem', marginTop: '0.45rem', marginBottom: '0.45rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        Total Timber Volume:
-                      </span>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 800, fontFamily: 'var(--font-mono, monospace)', color: 'var(--primary-800)' }}>
-                        {totals.totalCft > 0 ? totals.totalCft.toFixed(4) : '0.0000'} CFT
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Input: Planing Rate per CFT */}
-                  <div style={{ marginBottom: '0.35rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                        Or Enter Rate (₹ / CFT):
-                      </label>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                      <div style={{ position: 'relative', flex: 1 }}>
-                        <span style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                          ₹
-                        </span>
-                        <input
-                          type="number"
-                          step="any"
-                          value={planingRatePerCft === 0 ? '' : planingRatePerCft}
-                          onChange={(e) => {
-                            const rate = Math.max(0, parseFloat(e.target.value) || 0);
-                            setPlaningRatePerCft(rate);
-                            const calculated = Math.round(totals.totalCft * rate * 100) / 100;
-                            setPlaningCharges(calculated);
-                          }}
-                          placeholder="e.g. 15 or 20"
-                          style={{ width: '100%', fontSize: '0.85rem', fontWeight: 800, padding: '0.32rem 0.5rem 0.32rem 1.6rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
-                        />
-                      </div>
-                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                        / CFT
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Quick Rate Buttons */}
-                  <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                    {[10, 15, 20, 25, 30].map(r => (
-                      <button
-                        key={r}
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => {
-                          setPlaningRatePerCft(r);
-                          const calculated = Math.round(totals.totalCft * r * 100) / 100;
-                          setPlaningCharges(calculated);
-                        }}
-                        style={{
-                          fontSize: '0.7rem',
-                          padding: '0.18rem 0.45rem',
-                          background: planingRatePerCft === r ? 'var(--primary-100, #eedfc8)' : 'var(--bg-card)',
-                          borderColor: planingRatePerCft === r ? 'var(--primary-600)' : 'var(--border-medium)',
-                          fontWeight: planingRatePerCft === r ? 800 : 600
-                        }}
-                      >
-                        ₹{r}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Other Miscellaneous Charges */}
-              <div className="calc-charge-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Layers size={14} color="var(--primary-600)" /> Other Charges (₹)
-                  </label>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-700)' }}>
-                    ₹ {formatIndianCurrency(otherCharges)}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                  <input
-                    type="number"
-                    value={otherCharges === 0 ? '' : otherCharges}
-                    onChange={(e) => setOtherCharges(Math.max(0, Number(e.target.value) || 0))}
-                    placeholder="0"
-                    style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, padding: '0.4rem 0.55rem' }}
-                  />
-                  <input
-                    type="text"
-                    value={otherChargesLabel}
-                    onChange={(e) => setOtherChargesLabel(e.target.value)}
-                    placeholder="Label (e.g. Loading / Seasoning)"
-                    style={{ width: '100%', fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.45rem' }}
-                  />
-                </div>
-              </div>
-
-            </div>
-
-            {/* Charges Summary Banner */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <div>
-                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block' }}>Timber: ₹{formatIndianCurrency(timberSubtotal)} + Charges: ₹{formatIndianCurrency(additionalChargesTotal)}</span>
-                <strong style={{ fontSize: '0.98rem', color: 'var(--primary-800)' }}>Subtotal: ₹{formatIndianCurrency(subtotalWithCharges)}</strong>
-              </div>
-              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                Extra Charges: <span style={{ color: 'var(--primary-700)' }}>₹ {formatIndianCurrency(additionalChargesTotal)}</span>
+              <input
+                type="number"
+                value={carpentryCharges === 0 ? '' : carpentryCharges}
+                onChange={(e) => setCarpentryCharges(Math.max(0, Number(e.target.value) || 0))}
+                placeholder="0"
+                style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.5rem 0.65rem' }}
+              />
+              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.3rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                {[500, 1000, 2000, 5000].map(amt => (
+                  <button
+                    key={amt}
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setCarpentryCharges(amt)}
+                    style={{ fontSize: '0.74rem', padding: '0.22rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)' }}
+                  >
+                    +₹{amt}
+                  </button>
+                ))}
+                {carpentryCharges > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setCarpentryCharges(0)}
+                    style={{ fontSize: '0.74rem', padding: '0.22rem 0.45rem', color: 'var(--danger-400)' }}
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Step 3 Bottom Navigation */}
-            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+            {/* Quick Running Total Banner */}
+            <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '480px', margin: '0 auto' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Timber Subtotal: <strong>₹{formatIndianCurrency(timberSubtotal)}</strong>
+              </span>
+              <strong style={{ fontSize: '0.9rem', color: 'var(--primary-800)' }}>
+                Carpentry: ₹{formatIndianCurrency(carpentryCharges)}
+              </strong>
+            </div>
+
+            {/* Step 4 Bottom Navigation */}
+            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '1.25rem' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => setCurrentStep(2)}
+                onClick={() => setCurrentStep(3)}
                 style={{ fontWeight: 600, padding: '0.55rem 0.9rem', fontSize: '0.84rem' }}
               >
                 <ArrowLeft size={15} /> Previous: Calculator
@@ -1739,44 +1723,333 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => setCurrentStep(4)}
+                onClick={() => setCurrentStep(5)}
                 style={{ fontWeight: 800, padding: '0.55rem 1rem', fontSize: '0.85rem' }}
               >
-                Next: GST &amp; Disc &rarr;
+                Next: Transportation &rarr;
               </button>
             </div>
           </div>
         )}
 
         {/* =========================================================================
-            STEP 4: GST & DISCOUNT (DISCOUNT IN PRICE OR %, GST SELECTION & GRAND TOTAL)
+            STEP 5: TRANSPORTATION CHARGES (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 4 && (
+        {currentStep === 5 && (
+          <div className="card calc-step-card">
+            {/* Visual Service Banner */}
+            <div className="calc-service-banner">
+              <img
+                src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=800&q=80"
+                alt="Transportation & Delivery"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+              <div className="calc-service-banner-overlay">
+                <span className="calc-service-banner-tag">
+                  <Truck size={12} /> Logistics &amp; Transport
+                </span>
+                <h3 className="calc-service-banner-title">Transportation &amp; Delivery</h3>
+              </div>
+            </div>
+
+            <div className="calc-step-header">
+              <h3 className="calc-step-title">
+                <Truck size={17} color="var(--primary-600)" /> Transportation Charges (₹)
+              </h3>
+              <p className="calc-step-desc">
+                Add freight, truck transit, and site delivery charges for timber cargo
+              </p>
+            </div>
+
+            {/* Input Card */}
+            <div className="calc-charge-card" style={{ maxWidth: '480px', margin: '0 auto 1rem auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <Truck size={14} color="var(--primary-600)" /> Transportation Amount (₹):
+                </label>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                  ₹ {formatIndianCurrency(transportationCharges)}
+                </span>
+              </div>
+              <input
+                type="number"
+                value={transportationCharges === 0 ? '' : transportationCharges}
+                onChange={(e) => setTransportationCharges(Math.max(0, Number(e.target.value) || 0))}
+                placeholder="0"
+                style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.5rem 0.65rem' }}
+              />
+              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.3rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                {[1000, 2000, 3500, 5000].map(amt => (
+                  <button
+                    key={amt}
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setTransportationCharges(amt)}
+                    style={{ fontSize: '0.74rem', padding: '0.22rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)' }}
+                  >
+                    +₹{amt}
+                  </button>
+                ))}
+                {transportationCharges > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setTransportationCharges(0)}
+                    style={{ fontSize: '0.74rem', padding: '0.22rem 0.45rem', color: 'var(--danger-400)' }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Running Total Banner */}
+            <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '480px', margin: '0 auto' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Carpentry: <strong>₹{formatIndianCurrency(carpentryCharges)}</strong>
+              </span>
+              <strong style={{ fontSize: '0.9rem', color: 'var(--primary-800)' }}>
+                Transport: ₹{formatIndianCurrency(transportationCharges)}
+              </strong>
+            </div>
+
+            {/* Step 5 Bottom Navigation */}
+            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '1.25rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setCurrentStep(4)}
+                style={{ fontWeight: 600, padding: '0.55rem 0.9rem', fontSize: '0.84rem' }}
+              >
+                <ArrowLeft size={15} /> Previous: Carpentry
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setCurrentStep(6)}
+                style={{ fontWeight: 800, padding: '0.55rem 1rem', fontSize: '0.85rem' }}
+              >
+                Next: Planing &rarr;
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            STEP 6: PLANING CHARGES (WITH IMAGE)
+            ========================================================================= */}
+        {currentStep === 6 && (
+          <div className="card calc-step-card">
+            {/* Visual Service Banner */}
+            <div className="calc-service-banner">
+              <img
+                src="https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=800&q=80"
+                alt="Planing & Surface Milling"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+              <div className="calc-service-banner-overlay">
+                <span className="calc-service-banner-tag">
+                  <Sparkles size={12} /> Surface Finishing
+                </span>
+                <h3 className="calc-service-banner-title">Planing &amp; Milling Works</h3>
+              </div>
+            </div>
+
+            <div className="calc-step-header">
+              <h3 className="calc-step-title">
+                <Sparkles size={17} color="var(--primary-600)" /> Planing Charges (₹)
+              </h3>
+              <p className="calc-step-desc">
+                Add surface planing and thickness dressing charges based on total CFT or flat fee
+              </p>
+            </div>
+
+            {/* Input Card */}
+            <div className="calc-charge-card" style={{ maxWidth: '480px', margin: '0 auto 1rem auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <Sparkles size={14} color="var(--primary-600)" /> Planing Amount (₹):
+                </label>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                  ₹ {formatIndianCurrency(planingCharges)}
+                </span>
+              </div>
+              <input
+                type="number"
+                value={planingCharges === 0 ? '' : planingCharges}
+                onChange={(e) => {
+                  const val = Math.max(0, Number(e.target.value) || 0);
+                  setPlaningCharges(val);
+                  if (totals.totalCft > 0 && val > 0) {
+                    setPlaningRatePerCft(Math.round((val / totals.totalCft) * 100) / 100);
+                  } else if (val === 0) {
+                    setPlaningRatePerCft(0);
+                  }
+                }}
+                placeholder="0"
+                style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.5rem 0.65rem' }}
+              />
+
+              {/* Extended details for Planing */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', background: 'var(--primary-50, #f8f6f0)', border: '1px solid var(--border-light)', borderRadius: '6px', padding: '0.45rem 0.75rem', marginTop: '0.65rem', marginBottom: '0.65rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Total Timber Volume:
+                  </span>
+                  <span style={{ fontSize: '0.86rem', fontWeight: 800, fontFamily: 'var(--font-mono, monospace)', color: 'var(--primary-800)' }}>
+                    {totals.totalCft > 0 ? totals.totalCft.toFixed(4) : '0.0000'} CFT
+                  </span>
+                </div>
+              </div>
+
+              {/* Input: Planing Rate per CFT */}
+              <div style={{ marginBottom: '0.45rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                    Or Enter Rate (₹ / CFT):
+                  </label>
+                </div>
+                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <span style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      step="any"
+                      value={planingRatePerCft === 0 ? '' : planingRatePerCft}
+                      onChange={(e) => {
+                        const rate = Math.max(0, parseFloat(e.target.value) || 0);
+                        setPlaningRatePerCft(rate);
+                        const calculated = Math.round(totals.totalCft * rate * 100) / 100;
+                        setPlaningCharges(calculated);
+                      }}
+                      placeholder="e.g. 15 or 20"
+                      style={{ width: '100%', fontSize: '0.88rem', fontWeight: 800, padding: '0.38rem 0.55rem 0.38rem 1.6rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
+                    />
+                  </div>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                    / CFT
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick Rate Buttons */}
+              <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                {[10, 15, 20, 25, 30].map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      setPlaningRatePerCft(r);
+                      const calculated = Math.round(totals.totalCft * r * 100) / 100;
+                      setPlaningCharges(calculated);
+                    }}
+                    style={{
+                      fontSize: '0.74rem',
+                      padding: '0.2rem 0.5rem',
+                      background: planingRatePerCft === r ? 'var(--primary-100, #eedfc8)' : 'var(--bg-card)',
+                      borderColor: planingRatePerCft === r ? 'var(--primary-600)' : 'var(--border-medium)',
+                      fontWeight: planingRatePerCft === r ? 800 : 600
+                    }}
+                  >
+                    ₹{r}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Running Total Banner */}
+            <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '480px', margin: '0 auto' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Timber + Extra Services
+              </span>
+              <strong style={{ fontSize: '0.9rem', color: 'var(--primary-800)' }}>
+                Planing: ₹{formatIndianCurrency(planingCharges)}
+              </strong>
+            </div>
+
+            {/* Step 6 Bottom Navigation */}
+            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '1.25rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setCurrentStep(5)}
+                style={{ fontWeight: 600, padding: '0.55rem 0.9rem', fontSize: '0.84rem' }}
+              >
+                <ArrowLeft size={15} /> Previous: Transportation
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setCurrentStep(7)}
+                style={{ fontWeight: 800, padding: '0.55rem 1rem', fontSize: '0.85rem' }}
+              >
+                Next: GST &amp; Other Charges &rarr;
+              </button>
+            </div>
+          </div>
+        )}
+        {/* =========================================================================
+            STEP 7: GST & OTHER CHARGES (OTHER CHARGES, DISCOUNT, GST & GRAND TOTAL)
+            ========================================================================= */}
+        {currentStep === 7 && (
           <div className="card calc-step-card">
             <div className="calc-step-header">
               <h3 className="calc-step-title">
-                <Percent size={17} color="var(--primary-600)" /> GST &amp; Discount
+                <Percent size={17} color="var(--primary-600)" /> GST, Discounts &amp; Other Charges
               </h3>
               <p className="calc-step-desc">
-                Apply concession discounts and select GST tax rate to calculate final grand total
+                Add miscellaneous costs, apply discounts, and configure GST tax rate for final total
               </p>
             </div>
 
             {/* Live Subtotal Display */}
             <div className="calc-subtotal-banner">
               <div>
-                <span className="calc-subtotal-label">Current Subtotal (Timber + Charges):</span>
+                <span className="calc-subtotal-label">Current Subtotal (Timber + Services):</span>
                 <div className="calc-subtotal-val">
                   ₹ {formatIndianCurrency(subtotalWithCharges)}
                 </div>
               </div>
               <div className="calc-subtotal-breakdown">
                 Timber: ₹{formatIndianCurrency(timberSubtotal)}<br />
-                Charges: ₹{formatIndianCurrency(additionalChargesTotal)}
+                Extra Services: ₹{formatIndianCurrency(additionalChargesTotal)}
               </div>
             </div>
 
-            {/* 1. Discount Section (Price in ₹ or Percentage %) */}
+            {/* 1. Other Miscellaneous Charges (e.g. Loading / Seasoning) */}
+            <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid var(--border-medium)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <Layers size={14} color="var(--primary-600)" /> Other Miscellaneous Charges (₹):
+                </label>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                  ₹ {formatIndianCurrency(otherCharges)}
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.45rem' }}>
+                <input
+                  type="number"
+                  value={otherCharges === 0 ? '' : otherCharges}
+                  onChange={(e) => setOtherCharges(Math.max(0, Number(e.target.value) || 0))}
+                  placeholder="Amount (₹ 0)"
+                  style={{ fontSize: '0.95rem', fontWeight: 800, padding: '0.38rem 0.55rem' }}
+                />
+                <input
+                  type="text"
+                  value={otherChargesLabel}
+                  onChange={(e) => setOtherChargesLabel(e.target.value)}
+                  placeholder="Label (e.g. Loading / Seasoning)"
+                  style={{ fontSize: '0.82rem', fontWeight: 600, padding: '0.38rem 0.55rem' }}
+                />
+              </div>
+            </div>
+
+            {/* 2. Discount Section (Price in ₹ or Percentage %) */}
             <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid var(--border-medium)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem', flexWrap: 'wrap', gap: '0.35rem' }}>
                 <label style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -1880,7 +2153,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               )}
             </div>
 
-            {/* 2. GST Selection & Custom Taxable Amount Section */}
+            {/* 3. GST Selection & Custom Taxable Amount Section */}
             <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid var(--border-medium)', display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
                 <label style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -2016,7 +2289,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
 
-            {/* 3. Final Grand Total Banner */}
+            {/* 4. Final Grand Total Banner */}
             <div className="calc-grand-total-banner">
               <span className="calc-grand-total-label">
                 Total Price Payable (Grand Total)
@@ -2032,21 +2305,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
 
-            {/* Step 4 Bottom Navigation */}
-            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+            {/* Step 7 Bottom Navigation */}
+            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '1.25rem' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => setCurrentStep(3)}
+                onClick={() => setCurrentStep(6)}
                 style={{ fontWeight: 600, padding: '0.55rem 0.9rem', fontSize: '0.84rem' }}
               >
-                <ArrowLeft size={15} /> Previous: Charges
+                <ArrowLeft size={15} /> Previous: Planing
               </button>
 
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => setCurrentStep(5)}
+                onClick={() => setCurrentStep(8)}
                 style={{ fontWeight: 800, padding: '0.55rem 1rem', fontSize: '0.85rem' }}
               >
                 Next: Order Sorting &rarr;
@@ -2056,10 +2329,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 5: ORDER / SORTING OF TIMBER ENTRIES
+            STEP 8: ORDER / SORTING OF TIMBER ENTRIES
             Width (IN) - Ascending, Length (FT) - Descending within each width group
             ========================================================================= */}
-        {currentStep === 5 && (
+        {currentStep === 8 && (
           <div className="card calc-step-card">
             <div className="calc-step-header">
               <h3 className="calc-step-title">
@@ -2076,10 +2349,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => setCurrentStep(3)}
                   style={{ marginTop: '0.65rem', padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
                 >
-                  Go to Step 2 to add timber entries
+                  Go to Step 3 to add timber entries
                 </button>
               </div>
             ) : (
@@ -2165,33 +2438,33 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             )}
 
-            {/* Step 5 Bottom Navigation */}
-            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+            {/* Step 8 Bottom Navigation */}
+            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '1.25rem' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => setCurrentStep(4)}
+                onClick={() => setCurrentStep(7)}
                 style={{ fontWeight: 600, padding: '0.55rem 0.9rem', fontSize: '0.84rem' }}
               >
-                <ArrowLeft size={15} /> Previous: GST &amp; Disc
+                <ArrowLeft size={15} /> Previous: GST &amp; Other
               </button>
 
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => setCurrentStep(6)}
+                onClick={() => setCurrentStep(9)}
                 style={{ fontWeight: 800, padding: '0.55rem 1rem', fontSize: '0.85rem' }}
               >
-                Next: Review &amp; Share &rarr;
+                Next: Review &amp; Invoice &rarr;
               </button>
             </div>
           </div>
         )}
 
         {/* =========================================================================
-            STEP 6: FINAL REVIEW, WHATSAPP SHARE, PDF DOWNLOAD & PRINT
+            STEP 9: FINAL REVIEW, WHATSAPP SHARE, PDF DOWNLOAD & PRINT
             ========================================================================= */}
-        {currentStep === 6 && (
+        {currentStep === 9 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
 
             {/* 3 High-Impact Primary Mobile Action Buttons (WhatsApp, PDF, Print) */}
@@ -2462,12 +2735,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
 
-            {/* Step 6 Bottom Navigation */}
+            {/* Step 9 Bottom Navigation */}
             <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => setCurrentStep(5)}
+                onClick={() => setCurrentStep(8)}
                 style={{ fontWeight: 600, padding: '0.75rem 1.25rem' }}
               >
                 <ArrowLeft size={16} /> Previous: Timber Order
@@ -2482,7 +2755,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             <button
               type="button"
               className="btn btn-secondary calc-dock-btn calc-dock-prev"
-              onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6)}
+              onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9)}
               style={{ flex: '0 0 auto', padding: '0.45rem 0.65rem' }}
             >
               <ArrowLeft size={15} /> Back
@@ -2507,22 +2780,25 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             <span>Actions</span>
           </button>
 
-          {currentStep < 6 ? (
+          {currentStep < 9 ? (
             <button
               type="button"
               className="btn btn-primary calc-dock-btn calc-dock-next"
               style={{ flex: 1 }}
               onClick={() => {
-                if (currentStep === 1) persistCurrentCustomer();
-                setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6);
+                if (currentStep === 2) persistCurrentCustomer();
+                setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9);
               }}
             >
               <span>
-                {currentStep === 1 && 'Next: Calculator →'}
-                {currentStep === 2 && 'Next: Charges →'}
-                {currentStep === 3 && 'Next: GST & Disc →'}
-                {currentStep === 4 && 'Next: Order Sorting →'}
-                {currentStep === 5 && 'Next: Review & Share →'}
+                {currentStep === 1 && 'Next: Details →'}
+                {currentStep === 2 && 'Next: Calculator →'}
+                {currentStep === 3 && 'Next: Carpentry →'}
+                {currentStep === 4 && 'Next: Transport →'}
+                {currentStep === 5 && 'Next: Planing →'}
+                {currentStep === 6 && 'Next: GST & Other →'}
+                {currentStep === 7 && 'Next: Order Sorting →'}
+                {currentStep === 8 && 'Next: Invoice & Share →'}
               </span>
             </button>
           ) : (

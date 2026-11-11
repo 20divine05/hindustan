@@ -1533,6 +1533,157 @@ input[type="number"] {
   }
 }
 
+/* Customer Type Choice Cards (Step 1) */
+.calc-type-choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+@media (max-width: 640px) {
+  .calc-type-choice-grid {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+    margin: 0.5rem 0;
+  }
+}
+
+.calc-type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.4rem 1.1rem;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border-medium);
+  background-color: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  user-select: none;
+}
+
+.calc-type-card:hover {
+  border-color: var(--primary-600);
+  background-color: var(--bg-subtle, #fdfbf7);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.calc-type-card.selected {
+  border-color: var(--primary-700);
+  background-color: var(--primary-50, #fcf7ee);
+  box-shadow: 0 4px 14px rgba(140, 84, 43, 0.16);
+}
+
+.calc-type-card-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--primary-100, #f3e6d3);
+  color: var(--primary-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+  transition: transform 0.2s ease;
+}
+
+.calc-type-card:hover .calc-type-card-icon {
+  transform: scale(1.08);
+}
+
+.calc-type-card-content h4 {
+  margin: 0 0 0.35rem 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.calc-type-card-content p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.calc-type-card-arrow {
+  margin-top: 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--primary-700);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background-color: var(--primary-100, #f3e6d3);
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+}
+
+/* Service Banners with Images (Steps 4, 5, 6) */
+.calc-service-banner {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 0.85rem;
+  border: 1px solid var(--border-medium);
+  background: linear-gradient(135deg, #3d2614 0%, #684226 100%);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 640px) {
+  .calc-service-banner {
+    height: 110px;
+    margin-bottom: 0.65rem;
+  }
+}
+
+.calc-service-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.calc-service-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(20, 10, 5, 0.88) 0%, rgba(20, 10, 5, 0.35) 60%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0.65rem 0.85rem;
+  color: #ffffff;
+}
+
+.calc-service-banner-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #f7e1b5;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 7px;
+  border-radius: 4px;
+  width: fit-content;
+  margin-bottom: 0.2rem;
+  backdrop-filter: blur(4px);
+}
+
+.calc-service-banner-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin: 0;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
+
 /* 4. Compact GST Search Box */
 .calc-gst-search-box {
   background-color: var(--bg-subtle, #f8f4eb);
