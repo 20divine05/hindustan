@@ -1661,9 +1661,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             <div className="calc-charge-card" style={{ maxWidth: '480px', margin: '0 auto 1rem auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                 <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Scissors size={14} color="var(--primary-600)" /> Carpentry Amount (₹):
+                  <Scissors size={14} color="var(--primary-600)" /> Carpentry Charges (₹):
                 </label>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                <span className="mobile-hide" style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-700)' }}>
                   ₹ {formatIndianCurrency(carpentryCharges)}
                 </span>
               </div>
@@ -1671,7 +1671,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 type="number"
                 value={carpentryCharges === 0 ? '' : carpentryCharges}
                 onChange={(e) => setCarpentryCharges(Math.max(0, Number(e.target.value) || 0))}
-                placeholder="0"
+                placeholder="Amount in ₹ (Carpentry)"
                 style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.5rem 0.65rem' }}
               />
               <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.3rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
@@ -1700,7 +1700,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Quick Running Total Banner */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '480px', margin: '0 auto' }}>
+            <div className="mobile-hide" style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '480px', margin: '0 auto' }}>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 Timber Subtotal: <strong>₹{formatIndianCurrency(timberSubtotal)}</strong>
               </span>
@@ -1765,9 +1765,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             <div className="calc-charge-card" style={{ maxWidth: '480px', margin: '0 auto 1rem auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                 <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Truck size={14} color="var(--primary-600)" /> Transportation Amount (₹):
+                  <Truck size={14} color="var(--primary-600)" /> Transportation Charges (₹):
                 </label>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                <span className="mobile-hide" style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-700)' }}>
                   ₹ {formatIndianCurrency(transportationCharges)}
                 </span>
               </div>
@@ -1775,7 +1775,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 type="number"
                 value={transportationCharges === 0 ? '' : transportationCharges}
                 onChange={(e) => setTransportationCharges(Math.max(0, Number(e.target.value) || 0))}
-                placeholder="0"
+                placeholder="Amount in ₹ (Transportation)"
                 style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.5rem 0.65rem' }}
               />
               <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.3rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
@@ -1804,7 +1804,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Quick Running Total Banner */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '480px', margin: '0 auto' }}>
+            <div className="mobile-hide" style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '480px', margin: '0 auto' }}>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 Carpentry: <strong>₹{formatIndianCurrency(carpentryCharges)}</strong>
               </span>
@@ -1869,9 +1869,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             <div className="calc-charge-card" style={{ maxWidth: '480px', margin: '0 auto 1rem auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                 <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Sparkles size={14} color="var(--primary-600)" /> Planing Amount (₹):
+                  <Sparkles size={14} color="var(--primary-600)" /> Planing Charges (₹):
                 </label>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                <span className="mobile-hide" style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-700)' }}>
                   ₹ {formatIndianCurrency(planingCharges)}
                 </span>
               </div>
@@ -1887,12 +1887,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     setPlaningRatePerCft(0);
                   }
                 }}
-                placeholder="0"
+                placeholder="Amount in ₹ (Planing)"
                 style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.5rem 0.65rem' }}
               />
 
               {/* Extended details for Planing */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', background: 'var(--primary-50, #f8f6f0)', border: '1px solid var(--border-light)', borderRadius: '6px', padding: '0.45rem 0.75rem', marginTop: '0.65rem', marginBottom: '0.65rem' }}>
+              <div className="mobile-hide" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', background: 'var(--primary-50, #f8f6f0)', border: '1px solid var(--border-light)', borderRadius: '6px', padding: '0.45rem 0.75rem', marginTop: '0.65rem', marginBottom: '0.65rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                     Total Timber Volume:
@@ -1904,7 +1904,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
 
               {/* Input: Planing Rate per CFT */}
-              <div style={{ marginBottom: '0.45rem' }}>
+              <div style={{ marginTop: '0.5rem', marginBottom: '0.45rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
                   <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
                     Or Enter Rate (₹ / CFT):
@@ -1925,7 +1925,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         const calculated = Math.round(totals.totalCft * rate * 100) / 100;
                         setPlaningCharges(calculated);
                       }}
-                      placeholder="e.g. 15 or 20"
+                      placeholder="Rate per CFT (e.g. 15)"
                       style={{ width: '100%', fontSize: '0.88rem', fontWeight: 800, padding: '0.38rem 0.55rem 0.38rem 1.6rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
                     />
                   </div>
@@ -1936,7 +1936,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
 
               {/* Quick Rate Buttons */}
-              <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+              <div className="mobile-hide" style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
                 {[10, 15, 20, 25, 30].map(r => (
                   <button
                     key={r}
@@ -1962,7 +1962,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Quick Running Total Banner */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '480px', margin: '0 auto' }}>
+            <div className="mobile-hide" style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '480px', margin: '0 auto' }}>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 Timber + Extra Services
               </span>
@@ -2010,12 +2010,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             {/* Live Subtotal Display */}
             <div className="calc-subtotal-banner">
               <div>
-                <span className="calc-subtotal-label">Current Subtotal (Timber + Services):</span>
+                <span className="calc-subtotal-label">Subtotal (Timber + Services):</span>
                 <div className="calc-subtotal-val">
                   ₹ {formatIndianCurrency(subtotalWithCharges)}
                 </div>
               </div>
-              <div className="calc-subtotal-breakdown">
+              <div className="calc-subtotal-breakdown mobile-hide">
                 Timber: ₹{formatIndianCurrency(timberSubtotal)}<br />
                 Extra Services: ₹{formatIndianCurrency(additionalChargesTotal)}
               </div>
@@ -2025,9 +2025,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid var(--border-medium)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                 <label style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Layers size={14} color="var(--primary-600)" /> Other Miscellaneous Charges (₹):
+                  <Layers size={14} color="var(--primary-600)" /> Other Charges:
                 </label>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                <span className="mobile-hide" style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--primary-700)' }}>
                   ₹ {formatIndianCurrency(otherCharges)}
                 </span>
               </div>
@@ -2036,14 +2036,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   type="number"
                   value={otherCharges === 0 ? '' : otherCharges}
                   onChange={(e) => setOtherCharges(Math.max(0, Number(e.target.value) || 0))}
-                  placeholder="Amount (₹ 0)"
+                  placeholder="Amount (₹)"
                   style={{ fontSize: '0.95rem', fontWeight: 800, padding: '0.38rem 0.55rem' }}
                 />
                 <input
                   type="text"
                   value={otherChargesLabel}
                   onChange={(e) => setOtherChargesLabel(e.target.value)}
-                  placeholder="Label (e.g. Loading / Seasoning)"
+                  placeholder="Charges Label (e.g. Loading)"
                   style={{ fontSize: '0.82rem', fontWeight: 600, padding: '0.38rem 0.55rem' }}
                 />
               </div>
@@ -2053,7 +2053,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid var(--border-medium)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem', flexWrap: 'wrap', gap: '0.35rem' }}>
                 <label style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Tag size={15} color="var(--primary-600)" /> Add Discount:
+                  <Tag size={15} color="var(--primary-600)" /> Discount:
                 </label>
 
                 {/* Discount Mode Toggle: Rupees vs Percentage */}
@@ -2093,7 +2093,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
               {/* Discount Input & Quick Chips */}
               <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', width: '150px' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: '130px' }}>
                   <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
                     {discountType === 'percentage' ? '%' : '₹'}
                   </span>
@@ -2101,7 +2101,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="number"
                     value={discountValue === 0 ? '' : discountValue}
                     onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value) || 0))}
-                    placeholder="0"
+                    placeholder={discountType === 'percentage' ? 'Discount % (e.g. 5)' : 'Discount (₹)'}
                     style={{ width: '100%', paddingLeft: '24px', paddingRight: '8px', fontSize: '0.95rem', fontWeight: 800, padding: '0.38rem 0.5rem 0.38rem 22px' }}
                   />
                 </div>
@@ -2147,7 +2147,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
 
               {discountAmount > 0 && (
-                <div style={{ marginTop: '0.4rem', fontSize: '0.78rem', color: '#15803d', fontWeight: 700 }}>
+                <div className="mobile-hide" style={{ marginTop: '0.4rem', fontSize: '0.78rem', color: '#15803d', fontWeight: 700 }}>
                   ✓ Discount applied: -₹{formatIndianCurrency(discountAmount)} &bull; Price after discount: ₹{formatIndianCurrency(taxableAmount)}
                 </div>
               )}
@@ -2160,8 +2160,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <Percent size={15} color="var(--primary-600)" /> Amount to Apply GST On:
                 </label>
 
-                {/* Quick Chips to set custom amount */}
-                <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                {/* Quick Chips to set custom amount - desktop only */}
+                <div className="mobile-hide" style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm"
@@ -2192,23 +2192,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
 
               {/* Direct Input for Custom Taxable Amount */}
-              <div style={{ background: 'var(--bg-subtle, #fbf7ee)', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid var(--primary-300, #fde68a)', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <div style={{ position: 'relative', maxWidth: '240px' }}>
-                  <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)', fontSize: '1rem' }}>
-                    ₹
-                  </span>
-                  <input
-                    type="number"
-                    value={customGstTaxableAmount === 0 ? '' : customGstTaxableAmount}
-                    onChange={(e) => setCustomGstTaxableAmount(Math.max(0, Number(e.target.value) || 0))}
-                    placeholder="Enter amount (e.g. 5000)"
-                    style={{ width: '100%', paddingLeft: '24px', fontSize: '1.05rem', fontWeight: 800, padding: '0.35rem 0.5rem 0.35rem 24px' }}
-                  />
-                </div>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  value={customGstTaxableAmount === 0 ? '' : customGstTaxableAmount}
+                  onChange={(e) => setCustomGstTaxableAmount(Math.max(0, Number(e.target.value) || 0))}
+                  placeholder={`Taxable Base Amount (₹ ${formatIndianCurrency(fullAmountBeforeGst)})`}
+                  style={{ width: '100%', paddingLeft: '24px', fontSize: '0.95rem', fontWeight: 800, padding: '0.4rem 0.5rem 0.4rem 24px' }}
+                />
+              </div>
 
-                <div style={{ fontSize: '0.74rem', color: '#b45309', fontWeight: 600 }}>
-                  💡 Total is ₹{formatIndianCurrency(fullAmountBeforeGst)}. GST applies on {customGstTaxableAmount > 0 ? `₹${formatIndianCurrency(customGstTaxableAmount)}` : `₹${formatIndianCurrency(fullAmountBeforeGst)}`}.
-                </div>
+              <div className="mobile-hide" style={{ fontSize: '0.74rem', color: '#b45309', fontWeight: 600 }}>
+                💡 Total is ₹{formatIndianCurrency(fullAmountBeforeGst)}. GST applies on {customGstTaxableAmount > 0 ? `₹${formatIndianCurrency(customGstTaxableAmount)}` : `₹${formatIndianCurrency(fullAmountBeforeGst)}`}.
               </div>
 
               {/* GST Rate Selection Header & Buttons */}
@@ -2251,9 +2249,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
               {/* Custom GST % Input Field (Visible when Custom Rate is clicked) */}
               {isCustomGstRate && (
-                <div style={{ padding: '0.55rem', background: 'var(--bg-subtle)', borderRadius: '6px', border: '1px solid var(--primary-300, #bbf7d0)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div style={{ padding: '0.45rem 0.6rem', background: 'var(--bg-subtle)', borderRadius: '6px', border: '1px solid var(--primary-300, #bbf7d0)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)' }}>Custom GST Rate:</span>
-                  <div style={{ position: 'relative', width: '100px' }}>
+                  <div style={{ position: 'relative', width: '90px' }}>
                     <input
                       type="number"
                       step="0.1"
@@ -2262,11 +2260,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       value={gstPercent}
                       onChange={(e) => setGstPercent(Math.max(0, Number(e.target.value) || 0))}
                       placeholder="e.g. 18"
-                      style={{ width: '100%', paddingRight: '22px', fontWeight: 800, fontSize: '0.92rem', textAlign: 'right', padding: '0.35rem 0.45rem' }}
+                      style={{ width: '100%', paddingRight: '20px', fontWeight: 800, fontSize: '0.92rem', textAlign: 'right', padding: '0.32rem 0.45rem' }}
                     />
-                    <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.85rem' }}>%</span>
+                    <span style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.85rem' }}>%</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                  <div className="mobile-hide" style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
                     {[3, 6, 8, 9, 14, 16, 20].map((quickRate) => (
                       <button
                         key={quickRate}
@@ -2282,8 +2280,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </div>
               )}
 
-              {/* Live GST Breakdown Summary */}
-              <div style={{ marginTop: '0.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-muted)', flexWrap: 'wrap', gap: '0.25rem' }}>
+              {/* Live GST Breakdown Summary - hidden on phone view */}
+              <div className="mobile-hide" style={{ marginTop: '0.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-muted)', flexWrap: 'wrap', gap: '0.25rem' }}>
                 <span>GST Taxable Base: <strong>₹{formatIndianCurrency(gstTaxableBase)}</strong>{customGstTaxableAmount > 0 ? ' (Custom)' : ''}</span>
                 <span>GST Amount ({gstPercent}%): <strong style={{ color: 'var(--primary-800)' }}>+₹{formatIndianCurrency(gstAmount)}</strong></span>
               </div>
@@ -2297,7 +2295,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               <div className="calc-grand-total-amount">
                 ₹ {formatIndianCurrency(finalGrandTotal)}
               </div>
-              <div className="calc-grand-total-math">
+              <div className="calc-grand-total-math mobile-hide">
                 Subtotal ₹{formatIndianCurrency(fullAmountBeforeGst)} + GST ₹{formatIndianCurrency(gstAmount)} = ₹{formatIndianCurrency(finalGrandTotal)}
               </div>
               <div className="calc-grand-total-words">

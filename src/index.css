@@ -1843,6 +1843,24 @@ input[type="number"] {
   .calc-discount-quick-chips {
     display: none !important;
   }
+
+  /* Utility class to hide verbose elements on mobile */
+  .mobile-hide {
+    display: none !important;
+  }
+
+  /* Keep step header titles and placeholders clean on phone view */
+  .calc-step-desc {
+    display: none !important;
+  }
+
+  .calc-subtotal-breakdown {
+    display: none !important;
+  }
+
+  .calc-grand-total-math {
+    display: none !important;
+  }
 }
 
 /* 7. Step 4 GST & Discount Elements */
