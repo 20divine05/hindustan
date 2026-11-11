@@ -94,7 +94,7 @@
   margin: 0 auto;
   color: #111111;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  font-size: 9.5px;
+  font-size: 11px;
   line-height: 1.25;
   box-sizing: border-box;
 }
@@ -110,10 +110,10 @@
 /* Header */
 .p-header-title {
   text-align: center;
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 800;
   letter-spacing: 1.5px;
-  padding: 4px 0;
+  padding: 5px 0;
   border-bottom: 1.5px solid #222222;
   text-transform: uppercase;
   background-color: #ffffff;
@@ -194,7 +194,7 @@
 }
 
 .p-seller-name {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1.15;
   margin-bottom: 2px;
@@ -202,7 +202,7 @@
 }
 
 .p-seller-line {
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.25;
   color: #111111;
 }
@@ -214,21 +214,21 @@
 }
 
 .p-party-heading {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   color: #333333;
   margin-bottom: 2px;
 }
 
 .p-party-name-input {
-  font-size: 10.5px;
+  font-size: 12.5px;
   font-weight: 800;
   color: #000000;
   margin-bottom: 2px;
 }
 
 .p-party-addr-input {
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.3;
   color: #222222;
   margin-bottom: 2px;
@@ -238,7 +238,7 @@
 .p-party-meta {
   display: flex;
   align-items: center;
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.25;
   margin-top: 1px;
 }
@@ -256,7 +256,7 @@
 
 .p-party-meta-input {
   font-weight: 600;
-  font-size: 9px;
+  font-size: 10px;
   color: #000000;
 }
 
@@ -286,7 +286,7 @@
 .p-meta-cell {
   padding: 3px 6px;
   border-right: 1px solid #222222;
-  font-size: 9px;
+  font-size: 10.5px;
   min-height: 25px;
   display: flex;
   flex-direction: column;
@@ -298,7 +298,7 @@
 }
 
 .p-label {
-  font-size: 8px;
+  font-size: 9.5px;
   color: #444444;
   display: block;
   line-height: 1.1;
@@ -307,14 +307,14 @@
 }
 
 .p-val-input {
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 700;
   color: #000000;
   padding: 1px 2px;
 }
 
 .p-val-textarea {
-  font-size: 9px;
+  font-size: 10.5px;
   font-weight: 700;
   color: #000000;
   line-height: 1.3;
@@ -329,7 +329,7 @@
 .p-items-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 9.5px;
+  font-size: 11px;
 }
 
 .p-items-table th {
@@ -337,7 +337,7 @@
   border-right: 1px solid #222222;
   padding: 4px 3px;
   font-weight: 700;
-  font-size: 8.5px;
+  font-size: 10.5px;
   background-color: #f6f7f6;
   vertical-align: middle;
 }
@@ -376,12 +376,12 @@
 /* Dimension & Decimal Fine Typography */
 .p-dim-num {
   font-weight: 800;
-  font-size: 1.16em;
+  font-size: 1.22em;
   letter-spacing: 0.02em;
 }
 
 .p-dim-mul {
-  font-size: 0.76em;
+  font-size: 0.82em;
   padding: 0 2px;
   opacity: 0.7;
   font-weight: 600;
@@ -390,7 +390,7 @@
 }
 
 .p-dec-small {
-  font-size: 0.76em;
+  font-size: 0.82em;
   opacity: 0.85;
   font-weight: 600;
 }
@@ -419,7 +419,7 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #000000;
-  font-size: 8.8px;
+  font-size: 11.5px;
   text-align: left !important;
   padding-left: 8px !important;
   padding: 3.5px 4px !important;
@@ -427,7 +427,7 @@
 
 .p-item-desc {
   font-weight: 700;
-  font-size: 9.5px;
+  font-size: 11.5px;
   color: #000000;
   padding-left: 8px !important;
 }
@@ -435,7 +435,7 @@
 .p-mono {
   font-family: 'JetBrains Mono', Courier, monospace;
   font-variant-numeric: tabular-nums;
-  font-size: 9px;
+  font-size: 10.5px;
 }
 
 /* Total Wood Amount Row */
@@ -500,19 +500,19 @@
 }
 
 .p-words-label {
-  font-size: 8px;
+  font-size: 9.5px;
   color: #444444;
   display: block;
 }
 
 .p-words-text {
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 800;
   color: #000000;
 }
 
 .p-eoe {
-  font-size: 9px;
+  font-size: 10.5px;
   font-weight: 700;
   color: #333333;
 }
@@ -533,7 +533,7 @@
 .p-hsn-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 9px;
+  font-size: 10px;
   border: 1px solid #222222;
 }
 
@@ -541,7 +541,7 @@
   border: 1px solid #222222;
   padding: 2px 6px;
   font-weight: 700;
-  font-size: 8.5px;
+  font-size: 9.5px;
   background-color: #f6f7f6;
 }
 
@@ -556,7 +556,7 @@
 }
 
 .p-tax-words-line {
-  font-size: 9px;
+  font-size: 10px;
   margin-top: 2px;
   color: #111111;
 }
@@ -580,7 +580,7 @@
 }
 
 .p-bank-heading {
-  font-size: 8.5px;
+  font-size: 11px;
   font-weight: 800;
   color: #000000;
   text-transform: uppercase;
@@ -592,7 +592,7 @@
 
 .p-bank-row {
   display: flex;
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1.5;
   margin-bottom: 2.5px;
   color: #111111;
@@ -634,14 +634,14 @@
 }
 
 .p-declaration-heading {
-  font-size: 8.5px;
+  font-size: 10.5px;
   font-weight: 800;
   margin-bottom: 2px;
   color: #000000;
 }
 
 .p-declaration-text {
-  font-size: 7.8px;
+  font-size: 9.5px;
   line-height: 1.3;
   color: #222222;
 }
@@ -659,7 +659,7 @@
 }
 
 .p-qr-header {
-  font-size: 8.5px;
+  font-size: 11px;
   font-weight: 800;
   color: #15803d;
   text-transform: uppercase;
@@ -683,14 +683,14 @@
 }
 
 .p-qr-apps {
-  font-size: 7.2px;
+  font-size: 9px;
   font-weight: 700;
   color: #444444;
   margin-top: 3px;
 }
 
 .p-qr-upi-id {
-  font-size: 7.5px;
+  font-size: 9.5px;
   color: #111111;
   margin-top: 1px;
 }
@@ -711,7 +711,7 @@
 }
 
 .p-seal-title {
-  font-size: 8.5px;
+  font-size: 10px;
   font-weight: 700;
   color: #333333;
 }
@@ -730,7 +730,7 @@
 }
 
 .p-for-company {
-  font-size: 8.5px;
+  font-size: 10.5px;
   font-weight: 800;
   color: #000000;
   word-break: break-word;
@@ -742,7 +742,7 @@
 }
 
 .p-auth-title {
-  font-size: 8.5px;
+  font-size: 10.5px;
   font-weight: 700;
   color: #222222;
 }
@@ -750,7 +750,7 @@
 /* Footnote */
 .p-computer-note {
   text-align: center;
-  font-size: 8.5px;
+  font-size: 10px;
   color: #444444;
   padding: 3px 0;
   font-style: italic;
