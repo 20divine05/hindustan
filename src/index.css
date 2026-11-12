@@ -560,36 +560,49 @@ input[type="number"] {
 /* Unified Tally Table */
 .tally-table-container {
   width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
   border: 1px solid var(--border-medium);
   border-radius: 8px;
   background-color: var(--bg-card);
   box-shadow: var(--shadow-xs);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: 768px) {
+  .tally-table-container {
+    overflow-x: hidden !important; /* Zero horizontal scroll on mobile */
+  }
+
   .calc-table {
-    min-width: 650px;
-    font-size: 0.8rem;
+    min-width: 0 !important;
+    width: 100% !important;
+    table-layout: auto !important;
+    font-size: 0.76rem !important;
   }
 
   .calc-table th {
-    padding: 0.45rem 0.35rem !important;
-    font-size: 0.72rem !important;
-    white-space: nowrap;
+    padding: 0.35rem 0.15rem !important;
+    font-size: 0.68rem !important;
+    white-space: nowrap !important;
   }
 
   .calc-table td {
-    padding: 0.3rem 0.3rem !important;
-    font-size: 0.78rem !important;
+    padding: 0.25rem 0.12rem !important;
+    font-size: 0.76rem !important;
   }
 
-  .calc-table .calc-input,
-  .calc-table input,
-  .calc-table select {
-    padding: 0.25rem 0.3rem !important;
-    font-size: 0.8rem !important;
+  .tally-cell-input {
+    width: 100% !important;
+    min-width: 32px !important;
+    max-width: 48px !important;
+    padding: 0.22rem 0.1rem !important;
+    font-size: 0.82rem !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+  }
+
+  .col-hide-mobile {
+    display: none !important;
   }
 
   .quick-add-bar {

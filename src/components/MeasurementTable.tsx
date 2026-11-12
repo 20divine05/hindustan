@@ -509,33 +509,38 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         </div>
       )}
 
-      {/* 2. Unified Spreadsheet Table (Desktop & Mobile) */}
-      <div className="table-responsive tally-table-container">
+      {/* 2. Unified Spreadsheet Table (Fits 100% Mobile & Desktop without Scroll) */}
+      <div className="tally-table-container">
         <table className="calc-table">
           <thead>
             <tr>
-              <th style={{ width: '40px', textAlign: 'center' }}>#</th>
-              <th style={{ minWidth: '115px' }}>Wood Species</th>
-              <th style={{ minWidth: '70px', textAlign: 'center' }}>Length (ft)</th>
-              <th style={{ minWidth: '70px', textAlign: 'center' }}>Width (in)</th>
-              <th style={{ minWidth: '70px', textAlign: 'center' }}>Thick (in)</th>
-              <th style={{ minWidth: '65px', textAlign: 'center' }}>Pieces</th>
-              <th style={{ minWidth: '85px', textAlign: 'right' }}>Total CFT</th>
-              <th style={{ minWidth: '85px', textAlign: 'right' }}>Total SQFT</th>
-              <th style={{ minWidth: '95px', textAlign: 'right' }}>Rate (₹)</th>
-              <th style={{ minWidth: '105px', textAlign: 'right' }}>Amount (₹)</th>
-              <th style={{ width: '65px', textAlign: 'center' }}>Actions</th>
+              <th style={{ width: '36px', textAlign: 'center' }}>#</th>
+              <th className="col-hide-mobile" style={{ minWidth: '115px' }}>Wood Species</th>
+              <th style={{ textAlign: 'center' }}>L (ft)</th>
+              <th style={{ textAlign: 'center' }}>W (in)</th>
+              <th style={{ textAlign: 'center' }}>T (in)</th>
+              <th style={{ textAlign: 'center' }}>Pcs</th>
+              <th style={{ textAlign: 'right' }}>
+                <span className="mobile-hide">Total CFT</span>
+                <span className="mobile-show">CFT / SQFT</span>
+              </th>
+              <th className="col-hide-mobile" style={{ textAlign: 'right' }}>Total SQFT</th>
+              <th className="col-hide-mobile" style={{ textAlign: 'right' }}>Rate (₹)</th>
+              <th style={{ textAlign: 'right' }}>Amount (₹)</th>
+              <th style={{ width: '32px', textAlign: 'center' }}>
+                <span className="mobile-hide">Action</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={11} style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)' }}>
+                <td colSpan={11} style={{ textAlign: 'center', padding: '1.5rem 1rem', color: 'var(--text-muted)' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                    <p style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                    <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                       No measurement rows yet
                     </p>
-                    <p style={{ fontSize: '0.8rem', margin: 0, maxWidth: '380px' }}>
+                    <p style={{ fontSize: '0.78rem', margin: 0, maxWidth: '380px' }}>
                       Enter dimensions above &amp; click <strong>+ Add Row</strong> to start recording measurements.
                     </p>
                   </div>
@@ -556,11 +561,16 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
                 return (
                   <tr key={item.id} style={{ opacity: isRowValid ? 1 : 0.85 }}>
-                    <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--primary-700)' }}>
+                    <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--primary-700)', padding: '0.25rem 0.15rem' }}>
                       #{item.serialNumber}
+                      {item.woodType && (
+                        <div className="mobile-show" style={{ fontSize: '0.56rem', color: 'var(--text-muted)', fontWeight: 700, lineHeight: 1, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '36px' }}>
+                          {item.woodType}
+                        </div>
+                      )}
                     </td>
 
-                    <td>
+                    <td className="col-hide-mobile">
                       <select
                         value={item.woodType || selectedWoodOption || 'Mahagony'}
                         onChange={(e) => handleUpdateItem(index, 'woodType', e.target.value)}
@@ -584,67 +594,66 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       </select>
                     </td>
 
-                    <td>
+                    <td style={{ textAlign: 'center', padding: '0.25rem 0.15rem' }}>
                       <input
                         type="number"
                         step="any"
                         min="0"
                         placeholder="0"
-                        className="calc-input"
+                        className="calc-input tally-cell-input"
                         value={item.lengthFeet}
                         onChange={(e) => handleUpdateItem(index, 'lengthFeet', e.target.value)}
-                        style={{ width: '60px', textAlign: 'center', fontWeight: 700 }}
                       />
                     </td>
 
-                    <td>
+                    <td style={{ textAlign: 'center', padding: '0.25rem 0.15rem' }}>
                       <input
                         type="number"
                         step="any"
                         min="0"
                         placeholder="0"
-                        className="calc-input"
+                        className="calc-input tally-cell-input"
                         value={item.widthInches}
                         onChange={(e) => handleUpdateItem(index, 'widthInches', e.target.value)}
-                        style={{ width: '60px', textAlign: 'center', fontWeight: 700 }}
                       />
                     </td>
 
-                    <td>
+                    <td style={{ textAlign: 'center', padding: '0.25rem 0.15rem' }}>
                       <input
                         type="number"
                         step="any"
                         min="0"
                         placeholder="0"
-                        className="calc-input"
+                        className="calc-input tally-cell-input"
                         value={item.thicknessInches}
                         onChange={(e) => handleUpdateItem(index, 'thicknessInches', e.target.value)}
-                        style={{ width: '60px', textAlign: 'center', fontWeight: 700 }}
                       />
                     </td>
 
-                    <td>
+                    <td style={{ textAlign: 'center', padding: '0.25rem 0.15rem' }}>
                       <input
                         type="number"
                         step="1"
                         min="1"
                         placeholder="1"
-                        className="calc-input"
+                        className="calc-input tally-cell-input"
                         value={item.pieces}
                         onChange={(e) => handleUpdateItem(index, 'pieces', e.target.value)}
-                        style={{ width: '55px', textAlign: 'center', fontWeight: 700 }}
                       />
                     </td>
 
-                    <td className="col-numeric col-cft" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
-                      {formatValue(item.cft, 3)}
+                    <td className="col-numeric col-cft" style={{ fontSize: '0.8rem', fontWeight: 700, padding: '0.25rem 0.15rem', whiteSpace: 'nowrap' }}>
+                      <span className="mobile-hide">{formatValue(item.cft, 3)}</span>
+                      <span className="mobile-show">
+                        {isSqft ? `${formatValue(item.sqft, 2)} SQFT` : `${formatValue(item.cft, 3)} CFT`}
+                      </span>
                     </td>
 
-                    <td className="col-numeric col-sqft" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
+                    <td className="col-numeric col-sqft col-hide-mobile" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
                       {formatValue(item.sqft, 2)}
                     </td>
 
-                    <td>
+                    <td className="col-hide-mobile">
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '3px' }}>
                         <input
                           type="number"
@@ -696,15 +705,15 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       </div>
                     </td>
 
-                    <td className="col-numeric" style={{ fontWeight: 800, color: 'var(--primary-800)', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: '0.86rem' }}>
+                    <td className="col-numeric" style={{ fontWeight: 800, color: 'var(--primary-800)', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', padding: '0.25rem 0.15rem' }}>
                       ₹ {formatIndianCurrency(rowAmount)}
                     </td>
 
-                    <td style={{ textAlign: 'center' }}>
+                    <td style={{ textAlign: 'center', padding: '0.2rem 0.1rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.15rem' }}>
                         <button
                           type="button"
-                          className="btn btn-ghost btn-sm"
+                          className="btn btn-ghost btn-sm col-hide-mobile"
                           title="Duplicate row"
                           onClick={() => handleDuplicateRow(index)}
                           style={{ padding: '3px' }}
@@ -718,7 +727,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                           onClick={() => handleDeleteRow(index)}
                           style={{ padding: '3px', color: 'var(--danger-400)' }}
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </td>
@@ -731,22 +740,22 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           {items.length > 0 && (
             <tfoot>
               <tr style={{ backgroundColor: 'var(--bg-subtle, #faf6ee)', fontWeight: 800, borderTop: '2px solid var(--border-medium)' }}>
-                <td colSpan={5} style={{ textAlign: 'right', padding: '0.5rem 0.65rem', color: 'var(--text-main)', fontSize: '0.82rem', textTransform: 'uppercase' }}>
-                  Grand Totals:
+                <td colSpan={4} style={{ textAlign: 'right', padding: '0.4rem 0.35rem', color: 'var(--text-main)', fontSize: '0.78rem', textTransform: 'uppercase' }}>
+                  Total:
                 </td>
-                <td style={{ textAlign: 'center', padding: '0.5rem 0.4rem', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '0.82rem' }}>
+                <td style={{ textAlign: 'center', padding: '0.4rem 0.15rem', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '0.78rem' }}>
                   {totals.totalPieces} pcs
                 </td>
-                <td className="col-numeric col-cft" style={{ padding: '0.5rem 0.4rem', fontWeight: 800, fontSize: '0.88rem' }}>
+                <td className="col-numeric col-cft" style={{ padding: '0.4rem 0.2rem', fontWeight: 800, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                   {formatValue(totals.totalCft, 3)}
                 </td>
-                <td className="col-numeric col-sqft" style={{ padding: '0.5rem 0.4rem', fontWeight: 800, fontSize: '0.88rem' }}>
+                <td className="col-numeric col-sqft col-hide-mobile" style={{ padding: '0.5rem 0.4rem', fontWeight: 800, fontSize: '0.88rem' }}>
                   {formatValue(totals.totalSqft, 2)}
                 </td>
-                <td style={{ textAlign: 'right', padding: '0.5rem 0.4rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                  Total Value:
+                <td className="col-hide-mobile" style={{ textAlign: 'right', padding: '0.5rem 0.4rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                  Total:
                 </td>
-                <td className="col-numeric" style={{ padding: '0.5rem 0.4rem', color: 'var(--primary-800)', fontSize: '0.95rem', fontWeight: 900, whiteSpace: 'nowrap' }}>
+                <td className="col-numeric" style={{ padding: '0.4rem 0.2rem', color: 'var(--primary-800)', fontSize: '0.84rem', fontWeight: 900, whiteSpace: 'nowrap' }}>
                   ₹ {formatIndianCurrency(totals.totalAmount || 0)}
                 </td>
                 <td></td>
