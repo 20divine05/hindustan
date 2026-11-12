@@ -407,25 +407,25 @@ export function createProformaInvoiceDoc(
     tableBody.push([
       {
         content: '',
-        styles: { lineWidth: headingBorder, cellPadding: 1.2 }
+        styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } }
       },
       {
         content: group.wood.toUpperCase(),
         styles: {
           fontStyle: 'bold',
           textColor: [0, 0, 0],
-          fontSize: 8.8,
-          cellPadding: { left: 2.2, top: 1.2, bottom: 1.2 },
+          fontSize: 8.5,
+          cellPadding: { left: 2.2, top: 0.5, bottom: 0.5 },
           halign: 'left',
           lineWidth: headingBorder
         }
       },
-      { content: '', styles: { lineWidth: headingBorder, cellPadding: 1.2 } },
-      { content: '', styles: { lineWidth: headingBorder, cellPadding: 1.2 } },
-      { content: '', styles: { lineWidth: headingBorder, cellPadding: 1.2 } },
-      { content: '', styles: { lineWidth: headingBorder, cellPadding: 1.2 } },
-      { content: '', styles: { lineWidth: headingBorder, cellPadding: 1.2 } },
-      { content: '', styles: { lineWidth: headingBorder, cellPadding: 1.2 } }
+      { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+      { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+      { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+      { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+      { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+      { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } }
     ]);
 
     // 2. Measurements of that wood (with vertical lines, zebra striping, without horizontal lines between items 1, 2, 3)
@@ -462,14 +462,14 @@ export function createProformaInvoiceDoc(
       slCounter++;
 
       tableBody.push([
-        { content: slStr, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg } },
-        { content: `   ${dimOnly}`, styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg } },
-        { content: it.pieces > 0 ? `${it.pieces} PCS` : '-', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg } },
-        { content: cftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg } },
-        { content: sqftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg } },
-        { content: it.rate !== 0 ? formatIndianCurrency(it.rate) : '-', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg } },
-        { content: isSqftBilled ? 'SQFT' : 'CFT', styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg } },
-        { content: formatIndianCurrency(it.amount), styles: { lineWidth: itemBorder, halign: 'right', fontStyle: 'bold', fillColor: zebraBg } }
+        { content: slStr, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+        { content: `   ${dimOnly}`, styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+        { content: it.pieces > 0 ? `${it.pieces} PCS` : '-', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+        { content: cftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+        { content: sqftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+        { content: it.rate !== 0 ? formatIndianCurrency(it.rate) : '-', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+        { content: isSqftBilled ? 'SQFT' : 'CFT', styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+        { content: formatIndianCurrency(it.amount), styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { left: 2.2, top: 0.45, bottom: 0.45 } } }
       ]);
     }
 
@@ -478,35 +478,35 @@ export function createProformaInvoiceDoc(
     tableBody.push([
       {
         content: '-',
-        styles: { halign: 'center', fillColor: [243, 244, 246], lineWidth: subtotalBorder }
+        styles: { halign: 'center', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: 'Total',
-        styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2 }, fillColor: [243, 244, 246], lineWidth: subtotalBorder }
+        styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: [243, 244, 246], lineWidth: subtotalBorder }
       },
       {
         content: `${groupPieces} PCS`,
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder }
+        styles: { fontStyle: 'bold', halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: groupCftBilled > 0 ? `${groupCftBilled.toFixed(4)} CFT` : (groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '-'),
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder }
+        styles: { fontStyle: 'bold', halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '-',
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder }
+        styles: { fontStyle: 'bold', halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: '-',
-        styles: { halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder }
+        styles: { halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: '-',
-        styles: { halign: 'center', fillColor: [243, 244, 246], lineWidth: subtotalBorder }
+        styles: { halign: 'center', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: `Rs. ${formatIndianCurrency(groupAmount)}`,
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder }
+        styles: { fontStyle: 'bold', halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 } }
       }
     ]);
   }
@@ -517,35 +517,35 @@ export function createProformaInvoiceDoc(
     tableBody.push([
       {
         content: '-',
-        styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder }
+        styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: 'TOTAL WOOD AMOUNT',
-        styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2 }, fillColor: [238, 240, 243], lineWidth: totalWoodBorder }
+        styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: [238, 240, 243], lineWidth: totalWoodBorder }
       },
       {
         content: `${totalPieces} PCS`,
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder }
+        styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: totalCftBilled > 0 ? `${totalCftBilled.toFixed(4)} CFT` : `${totalCft.toFixed(4)} CFT`,
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder }
+        styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '-',
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder }
+        styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: '-',
-        styles: { halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder }
+        styles: { halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: '-',
-        styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder }
+        styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: `Rs. ${formatIndianCurrency(totalAmount)}`,
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder }
+        styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 } }
       }
     ]);
   }
@@ -559,7 +559,7 @@ export function createProformaInvoiceDoc(
     isFirstChargeRow = false;
     const bg = (chargeRowIdx++ % 2 === 0) ? [243, 244, 246] : [255, 255, 255];
     return [
-      { content: '', styles: { lineWidth: { top: topWidth, bottom: 0, left: 0.2, right: 0.2 }, fillColor: bg } },
+      { content: '', styles: { lineWidth: { top: topWidth, bottom: 0, left: 0.2, right: 0.2 }, fillColor: bg, cellPadding: { top: 0.55, bottom: 0.55 } } },
       {
         content: name,
         colSpan: 6,
@@ -568,7 +568,7 @@ export function createProformaInvoiceDoc(
           halign: 'right',
           textColor: isDiscount ? [22, 101, 52] : [0, 0, 0],
           lineWidth: { top: topWidth, bottom: 0, left: 0.2, right: 0.2 },
-          cellPadding: { right: 2.5, top: 1.5, bottom: 1.5 },
+          cellPadding: { right: 2.5, top: 0.55, bottom: 0.55 },
           fillColor: bg
         }
       },
@@ -579,7 +579,7 @@ export function createProformaInvoiceDoc(
           halign: 'right',
           textColor: isDiscount ? [22, 101, 52] : [0, 0, 0],
           lineWidth: { top: topWidth, bottom: 0, left: 0.2, right: 0.2 },
-          cellPadding: { right: 1.5, top: 1.5, bottom: 1.5 },
+          cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 },
           fillColor: bg
         }
       }
@@ -688,14 +688,14 @@ function splitDimension(s: string) {
       totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '-',
       '',
       '',
-      `Rs. ${formatIndianCurrency(effectiveTotal)}`
+      { content: `Rs. ${formatIndianCurrency(effectiveTotal)}`, styles: { halign: 'right', cellPadding: { right: 1.8 } } }
     ]],
     showFoot: 'lastPage',
     theme: 'grid',
     styles: {
       font: 'helvetica',
       fontSize: 8.0,
-      cellPadding: 1.5,
+      cellPadding: { top: 0.5, bottom: 0.5, left: 1.0, right: 1.0 },
       textColor: [0, 0, 0],
       lineColor: [0, 0, 0],
       lineWidth: 0.2,
@@ -708,6 +708,7 @@ function splitDimension(s: string) {
       halign: 'center',
       valign: 'middle',
       fontSize: 8.0,
+      cellPadding: { top: 0.8, bottom: 0.8, left: 1.0, right: 1.0 },
       lineColor: [0, 0, 0],
       lineWidth: 0.2
     },
@@ -717,6 +718,7 @@ function splitDimension(s: string) {
       fontStyle: 'bold',
       valign: 'middle',
       fontSize: 8.5,
+      cellPadding: { top: 0.8, bottom: 0.8, left: 1.0, right: 1.0 },
       lineColor: [0, 0, 0],
       lineWidth: 0.2
     },
@@ -728,7 +730,7 @@ function splitDimension(s: string) {
       4: { halign: 'right', cellWidth: 23 },
       5: { halign: 'right', cellWidth: 18 },
       6: { halign: 'center', cellWidth: 13, cellPadding: { left: 0.5, right: 0.5 } },
-      7: { halign: 'right', cellWidth: 29, fontStyle: 'bold' }
+      7: { halign: 'left', cellWidth: 29, fontStyle: 'bold', cellPadding: { left: 2.2 } }
     },
     didDrawPage: (data) => {
       // Draw closing bottom line on table on every page (especially when table breaks to next page)
@@ -784,7 +786,7 @@ function splitDimension(s: string) {
         const h = data.cell.height;
 
         const isFootTotal = data.section === 'foot' && data.column.index === 7;
-        const baseline = isFootTotal ? (y + h / 2 + 1.5) : (y + h / 2 + 1.2);
+        const baseline = isFootTotal ? (y + h / 2 + 1.3) : (y + h / 2 + 1.0);
 
         const dimParts = splitDimension(raw);
         const decParts = splitDecimalNumber(raw);
@@ -811,7 +813,9 @@ function splitDimension(s: string) {
             }
           }
         } else if (decParts) {
+          const isItemAmount = data.section === 'body' && data.column.index === 7 && data.cell.styles.halign === 'left';
           const padRight = 1.8;
+          const padLeft = 2.2;
           const isBold = isFootTotal || data.cell.styles.fontStyle === 'bold';
           const baseFontSize = isFootTotal ? 11.5 : 8.0;
           const decFontSize = isFootTotal ? 8.5 : 6.0;
@@ -827,7 +831,7 @@ function splitDimension(s: string) {
           const wSuffix = doc.getTextWidth(decParts.suffix);
 
           const totalW = wInt + wDec + wSuffix;
-          let curX = x + w - padRight - totalW;
+          let curX = isItemAmount ? (x + padLeft) : (x + w - padRight - totalW);
 
           doc.setFont('helvetica', isBold ? 'bold' : 'normal');
           doc.setFontSize(baseFontSize);

@@ -335,9 +335,9 @@
 .p-items-table th {
   border-bottom: 1.5px solid #222222;
   border-right: 1px solid #222222;
-  padding: 3px 3px;
+  padding: 2px 3px;
   font-weight: 700;
-  font-size: 10.5px;
+  font-size: 10px;
   background-color: #f6f7f6;
   vertical-align: middle;
 }
@@ -347,13 +347,13 @@
 }
 
 .p-item-row td {
-  padding: 1px 4px;
+  padding: 0.5px 4px;
   border-right: 1px solid #222222 !important;
   border-left: none !important;
   border-top: none !important;
   border-bottom: none !important;
   vertical-align: middle;
-  line-height: 1.15;
+  line-height: 1.08;
 }
 
 .p-item-row td:first-child {
@@ -376,7 +376,7 @@
 /* Dimension & Decimal Fine Typography */
 .p-dim-num {
   font-weight: 800;
-  font-size: 1.14em;
+  font-size: 1.12em;
   letter-spacing: 0.02em;
   line-height: 1;
 }
@@ -402,7 +402,7 @@
   border-bottom: none !important;
   border-right: 1px solid #222222 !important;
   border-left: none !important;
-  padding: 1.5px 4px;
+  padding: 1px 4px;
   background: transparent !important;
   vertical-align: middle;
 }
@@ -420,15 +420,15 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #000000;
-  font-size: 11px;
+  font-size: 10.5px;
   text-align: left !important;
   padding-left: 8px !important;
-  padding: 1.5px 4px !important;
+  padding: 1px 4px !important;
 }
 
 .p-item-desc {
   font-weight: 700;
-  font-size: 11px;
+  font-size: 10.5px;
   color: #000000;
   padding-left: 8px !important;
 }
@@ -436,7 +436,7 @@
 .p-mono {
   font-family: 'JetBrains Mono', Courier, monospace;
   font-variant-numeric: tabular-nums;
-  font-size: 10.5px;
+  font-size: 10px;
 }
 
 /* Total Wood Amount Row */
@@ -445,7 +445,7 @@
   border-bottom: 1.5px solid #222222 !important;
   border-right: 1px solid #222222 !important;
   border-left: none !important;
-  padding: 2px 4px;
+  padding: 1.2px 4px;
   background-color: #e5e7eb !important;
   font-weight: 800;
 }
@@ -469,7 +469,7 @@
   border-bottom: 1.5px solid #222222 !important;
   border-right: 1px solid #222222 !important;
   border-left: none !important;
-  padding: 2.5px 4px;
+  padding: 1.5px 4px;
   background-color: #f6f7f6;
 }
 
@@ -759,6 +759,10 @@
 }
 
 /* Alignment Helpers */
+.text-left {
+  text-align: left;
+}
+
 .text-center {
   text-align: center;
 }
