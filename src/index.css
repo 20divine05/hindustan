@@ -557,23 +557,39 @@ input[type="number"] {
   min-width: 0;
 }
 
-/* Desktop vs Mobile Tally Visibility */
-.desktop-tally-table {
-  display: block;
-}
-
-.mobile-tally-view {
-  display: none;
+/* Unified Tally Table */
+.tally-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  background-color: var(--bg-card);
+  box-shadow: var(--shadow-xs);
 }
 
 @media (max-width: 768px) {
-  .desktop-tally-table {
-    display: none !important;
+  .calc-table {
+    min-width: 650px;
+    font-size: 0.8rem;
   }
 
-  .mobile-tally-view {
-    display: block !important;
-    width: 100%;
+  .calc-table th {
+    padding: 0.45rem 0.35rem !important;
+    font-size: 0.72rem !important;
+    white-space: nowrap;
+  }
+
+  .calc-table td {
+    padding: 0.3rem 0.3rem !important;
+    font-size: 0.78rem !important;
+  }
+
+  .calc-table .calc-input,
+  .calc-table input,
+  .calc-table select {
+    padding: 0.25rem 0.3rem !important;
+    font-size: 0.8rem !important;
   }
 
   .quick-add-bar {
