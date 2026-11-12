@@ -935,6 +935,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                     backgroundColor: '#fff',
                     border: '1px solid var(--border-medium)',
                     borderRadius: '8px',
+                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9)',
                     padding: '0.45rem 0.5rem',
                     display: 'flex',
                     flexDirection: 'column',
@@ -1106,7 +1107,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               borderRadius: '8px',
               padding: '0.45rem 0.65rem',
               fontWeight: 800,
-              fontSize: '0.78rem'
+              fontSize: '0.78rem',
+              boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)'
             }}>
               <span>Total: {totals.totalPieces} Pcs</span>
               <span style={{ color: 'var(--primary-700)' }}>{formatValue(totals.totalCft, 3)} CFT</span>

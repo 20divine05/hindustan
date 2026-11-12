@@ -34,7 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          boxShadow: 'var(--shadow-sm)'
+          boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(15, 23, 42, 0.03)'
         }}
       >
         <div
@@ -155,7 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
                       backgroundColor: 'var(--bg-card, #ffffff)',
                       border: '1px solid var(--border-medium)',
                       borderRadius: '8px',
-                      boxShadow: '0 8px 24px rgba(38, 29, 21, 0.2)',
+                      boxShadow: '0 16px 36px -4px rgba(15, 23, 42, 0.16), 0 6px 12px -2px rgba(15, 23, 42, 0.08)',
                       padding: '0.45rem',
                       zIndex: 200,
                       display: 'flex',
