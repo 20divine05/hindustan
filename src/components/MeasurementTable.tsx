@@ -263,7 +263,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               type="number"
               step="any"
               min="0"
-              placeholder="e.g. 10"
+              placeholder="10"
               className="calc-input"
               value={quickLength}
               onChange={(e) => setQuickLength(e.target.value)}
@@ -277,7 +277,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               type="number"
               step="any"
               min="0"
-              placeholder="e.g. 5"
+              placeholder="5"
               className="calc-input"
               value={quickWidth}
               onChange={(e) => {
@@ -300,7 +300,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               type="number"
               step="any"
               min="0"
-              placeholder="e.g. 3"
+              placeholder="3"
               className="calc-input"
               value={quickThickness}
               onChange={(e) => setQuickThickness(e.target.value)}
@@ -332,7 +332,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                   type="number"
                   step="any"
                   min="0"
-                  placeholder="e.g. 120"
+                  placeholder="120"
                   className="calc-input"
                   value={quickRateSqft}
                   onFocus={() => {
@@ -359,7 +359,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                   type="number"
                   step="any"
                   min="0"
-                  placeholder="e.g. 1200"
+                  placeholder="1200"
                   className="calc-input"
                   value={quickRateCft}
                   onFocus={() => {
@@ -387,7 +387,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                   type="number"
                   step="any"
                   min="0"
-                  placeholder="e.g. 1200"
+                  placeholder="1200"
                   className="calc-input"
                   value={quickRate}
                   onChange={(e) => {
@@ -438,7 +438,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Padauk, Mango..."
+                  placeholder="Wood Species Name"
                   value={customWoodType}
                   onChange={(e) => {
                     setCustomWoodType(e.target.value);
@@ -567,7 +567,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       <input
                         type="text"
                         list="wood-options-list"
-                        placeholder="e.g. Mahagony, Teak"
+                        placeholder="Mahagony, Teak"
                         value={item.woodType || ''}
                         onChange={(e) => handleUpdateItem(index, 'woodType', e.target.value)}
                         style={{ minWidth: '120px', fontWeight: 600 }}
@@ -745,20 +745,10 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       {/* 3. Mobile Fixed Tally View (100% width, Zero Horizontal Scrolling for Phones) */}
       <div className="mobile-tally-view">
         {items.length === 0 ? (
-          <div className="mobile-empty-tally" style={{ padding: '1.5rem 1rem', textAlign: 'center', backgroundColor: 'var(--bg-subtle)', borderRadius: '8px', border: '1px dashed var(--border-medium)' }}>
-            <AlertCircle size={28} color="var(--primary-600)" style={{ margin: '0 auto 0.4rem' }} />
-            <p style={{ margin: 0, fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)' }}>No measurement lines yet</p>
-            <p style={{ margin: '0.2rem 0 0.8rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Enter dimensions above or tap below to add a row:
+          <div className="mobile-empty-tally" style={{ padding: '0.85rem 1rem', textAlign: 'center', backgroundColor: 'var(--bg-subtle)', borderRadius: '8px', border: '1px dashed var(--border-medium)' }}>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+              No measurements added yet. Enter dimensions above &amp; tap <strong>+ Add Row</strong>.
             </p>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={handleAddEmptyRow}
-              style={{ fontWeight: 800, padding: '0.5rem 1rem' }}
-            >
-              <Plus size={16} /> Add Measurement Row
-            </button>
           </div>
         ) : (
           <div className="mobile-tally-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -1089,7 +1079,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                     type="number"
                     step="any"
                     min="0"
-                    placeholder="e.g. 120"
+                    placeholder="120"
                     className="calc-input"
                     value={modalRateSqft}
                     onFocus={() => setModalRateUnit('SQFT')}
@@ -1138,7 +1128,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                     type="number"
                     step="any"
                     min="0"
-                    placeholder="e.g. 1200"
+                    placeholder="1200"
                     className="calc-input"
                     value={modalRateCft}
                     onFocus={() => setModalRateUnit('CFT')}
