@@ -298,7 +298,7 @@ input[type="number"] {
 
 @media (max-width: 768px) {
   .main-content {
-    padding: 0.85rem 0.75rem 5.5rem 0.75rem;
+    padding: 0.75rem 0.65rem 3.5rem 0.65rem;
   }
 }
 
@@ -890,7 +890,12 @@ input[type="number"] {
   gap: 0.35rem;
 }
 
-/* Mobile Bottom Navigation Bar */
+/* Mobile Header Buttons (Nav & Actions in place of title) - hidden on desktop */
+.mobile-header-buttons {
+  display: none;
+}
+
+/* Mobile Bottom Navigation Bar - hidden */
 .mobile-bottom-nav {
   display: none;
 }
@@ -935,53 +940,27 @@ input[type="number"] {
     display: none !important;
   }
 
+  /* In phone view: replace brand title text with mobile nav and actions buttons */
+  .brand-text-block {
+    display: none !important;
+  }
+
+  .mobile-header-buttons {
+    display: flex !important;
+  }
+
+  /* In phone view: remove LIVE badge from top */
+  .header-live-pill {
+    display: none !important;
+  }
+
+  /* In phone view: remove mobile down navigation bar completely */
   .mobile-bottom-nav {
-    display: flex;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 58px;
-    background-color: var(--bg-surface);
-    border-top: 1px solid var(--border-medium);
-    box-shadow: 0 -3px 14px rgba(38, 29, 21, 0.12);
-    z-index: 990;
-    align-items: center;
-    justify-content: space-around;
-    padding: 0 0.5rem;
-    padding-bottom: env(safe-area-inset-bottom, 0);
+    display: none !important;
   }
 
   .mobile-nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    flex: 1;
-    height: 100%;
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 0.72rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    padding: 4px 0;
-  }
-
-  .mobile-nav-item:active {
-    transform: scale(0.95);
-  }
-
-  .mobile-nav-item.active {
-    color: var(--primary-700);
-    font-weight: 800;
-  }
-
-  .mobile-nav-item.active svg {
-    color: var(--primary-600);
-    stroke-width: 2.3;
+    display: none !important;
   }
 
   /* Header adjustments for ultra-compact phone view */
@@ -2141,18 +2120,19 @@ input[type="number"] {
     display: none !important;
   }
 
-  /* Docked bar pinned right above bottom tab navigation so Next is ALWAYS visible */
+  /* Docked bar pinned right at the very bottom since down nav bar is removed */
   .calc-mobile-docked-nav {
     display: flex;
     align-items: center;
     gap: 0.35rem;
     position: fixed;
-    bottom: 56px; /* Attached above mobile bottom nav */
+    bottom: 0 !important; /* Pinned directly to the bottom */
     left: 0;
     right: 0;
-    height: 46px;
+    height: 48px;
     padding: 0.25rem 0.55rem;
-    background: rgba(255, 255, 255, 0.97);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(8px);
     border-top: 1px solid var(--border-medium);
     box-shadow: 0 -3px 12px rgba(38, 29, 21, 0.12);

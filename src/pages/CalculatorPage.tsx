@@ -246,6 +246,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isProformaModalOpen, setIsProformaModalOpen] = useState(false);
   const [isActionsModalOpen, setIsActionsModalOpen] = useState(false);
+
+  // Global listener so the top header Actions button on mobile can trigger sheet actions
+  useEffect(() => {
+    const handleOpenActions = () => setIsActionsModalOpen(true);
+    window.addEventListener('open-sheet-actions', handleOpenActions);
+    return () => window.removeEventListener('open-sheet-actions', handleOpenActions);
+  }, []);
+
   const isInitialMount = useRef(true);
   // Track the ID of the sheet that has been loaded into state to avoid overwriting active user inputs
   const loadedSheetIdRef = useRef<string | null>(sheetToEdit?.id || null);
@@ -2754,29 +2762,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               type="button"
               className="btn btn-secondary calc-dock-btn calc-dock-prev"
               onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9)}
-              style={{ flex: '0 0 auto', padding: '0.45rem 0.65rem' }}
+              style={{ flex: '0 0 auto', padding: '0.45rem 0.85rem' }}
             >
               <ArrowLeft size={15} /> Back
             </button>
           )}
-
-          <button
-            type="button"
-            className="btn btn-secondary calc-dock-btn"
-            onClick={() => setIsActionsModalOpen(true)}
-            style={{
-              flex: '0 0 auto',
-              padding: '0.45rem 0.65rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              fontWeight: 700
-            }}
-            title="Sheet Actions Menu: Save, Invoice, PDF, Print, CSV"
-          >
-            <SlidersHorizontal size={14} color="var(--primary-700)" />
-            <span>Actions</span>
-          </button>
 
           {currentStep < 9 ? (
             <button
