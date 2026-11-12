@@ -58,7 +58,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
               alt="Hindustan Saw Mill Logo"
               onClick={() => onNavigate('dashboard')}
               style={{
-                width: '36px',
+                width: 'auto',
+                maxWidth: '56px',
                 height: '36px',
                 objectFit: 'contain',
                 flexShrink: 0,
