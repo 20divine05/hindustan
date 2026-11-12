@@ -1522,7 +1522,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
               <img
-                src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80"
+                src="https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=1200&q=80"
                 alt="Carpentry Works"
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
@@ -1726,7 +1726,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
               <img
-                src="https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=800&q=80"
+                src="https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=1200&q=80"
                 alt="Planing & Surface Milling"
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
