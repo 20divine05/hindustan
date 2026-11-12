@@ -1544,12 +1544,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Step 2 Bottom Navigation */}
-            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '1rem' }}>
+            <div className="step-footer-nav">
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => setCurrentStep(1)}
-                style={{ fontWeight: 600, padding: '0.55rem 0.9rem', fontSize: '0.84rem' }}
               >
                 <ArrowLeft size={15} /> Previous: Type
               </button>
@@ -1561,9 +1560,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   persistCurrentCustomer();
                   setCurrentStep(3);
                 }}
-                style={{ fontWeight: 800, padding: '0.55rem 1rem', fontSize: '0.85rem' }}
               >
-                Next: Timber Calculator &rarr;
+                Next: Calculator &rarr;
               </button>
             </div>
           </div>
@@ -1613,23 +1611,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               />
 
               {/* Step 3 Bottom Navigation */}
-              <div className="step-footer-nav" style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
+              <div className="step-footer-nav">
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => setCurrentStep(2)}
-                  style={{ fontWeight: 600, padding: '0.75rem 1.25rem' }}
                 >
-                  <ArrowLeft size={16} /> Previous: Details
+                  <ArrowLeft size={15} /> Previous: Details
                 </button>
 
                 <button
                   type="button"
                   className="btn btn-primary"
                   onClick={() => setCurrentStep(4)}
-                  style={{ fontWeight: 800, padding: '0.75rem 1.4rem' }}
                 >
-                  Next: Carpentry Charges &rarr;
+                  Next: Carpentry &rarr;
                 </button>
               </div>
             </div>
@@ -1718,12 +1714,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Step 4 Bottom Navigation */}
-            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '1.25rem' }}>
+            <div className="step-footer-nav">
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => setCurrentStep(3)}
-                style={{ fontWeight: 600, padding: '0.55rem 0.9rem', fontSize: '0.84rem' }}
               >
                 <ArrowLeft size={15} /> Previous: Calculator
               </button>
@@ -1732,9 +1727,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 type="button"
                 className="btn btn-primary"
                 onClick={() => setCurrentStep(5)}
-                style={{ fontWeight: 800, padding: '0.55rem 1rem', fontSize: '0.85rem' }}
               >
-                Next: Transportation &rarr;
+                Next: Transport &rarr;
               </button>
             </div>
           </div>
@@ -1822,12 +1816,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Step 5 Bottom Navigation */}
-            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '1.25rem' }}>
+            <div className="step-footer-nav">
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => setCurrentStep(4)}
-                style={{ fontWeight: 600, padding: '0.55rem 0.9rem', fontSize: '0.84rem' }}
               >
                 <ArrowLeft size={15} /> Previous: Carpentry
               </button>
@@ -1836,7 +1829,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 type="button"
                 className="btn btn-primary"
                 onClick={() => setCurrentStep(6)}
-                style={{ fontWeight: 800, padding: '0.55rem 1rem', fontSize: '0.85rem' }}
               >
                 Next: Planing &rarr;
               </button>
@@ -1980,23 +1972,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Step 6 Bottom Navigation */}
-            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '1.25rem' }}>
+            <div className="step-footer-nav">
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => setCurrentStep(5)}
-                style={{ fontWeight: 600, padding: '0.55rem 0.9rem', fontSize: '0.84rem' }}
               >
-                <ArrowLeft size={15} /> Previous: Transportation
+                <ArrowLeft size={15} /> Previous: Transport
               </button>
 
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={() => setCurrentStep(7)}
-                style={{ fontWeight: 800, padding: '0.55rem 1rem', fontSize: '0.85rem' }}
               >
-                Next: GST &amp; Other Charges &rarr;
+                Next: GST &amp; Charges &rarr;
               </button>
             </div>
           </div>
@@ -2312,12 +2302,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Step 7 Bottom Navigation */}
-            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '1.25rem' }}>
+            <div className="step-footer-nav">
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => setCurrentStep(6)}
-                style={{ fontWeight: 600, padding: '0.55rem 0.9rem', fontSize: '0.84rem' }}
               >
                 <ArrowLeft size={15} /> Previous: Planing
               </button>
@@ -2326,9 +2315,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 type="button"
                 className="btn btn-primary"
                 onClick={() => setCurrentStep(8)}
-                style={{ fontWeight: 800, padding: '0.55rem 1rem', fontSize: '0.85rem' }}
               >
-                Next: Order Sorting &rarr;
+                Next: Order &rarr;
               </button>
             </div>
           </div>
@@ -2445,12 +2433,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             )}
 
             {/* Step 8 Bottom Navigation */}
-            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '1.25rem' }}>
+            <div className="step-footer-nav">
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => setCurrentStep(7)}
-                style={{ fontWeight: 600, padding: '0.55rem 0.9rem', fontSize: '0.84rem' }}
               >
                 <ArrowLeft size={15} /> Previous: GST &amp; Other
               </button>
@@ -2459,9 +2446,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 type="button"
                 className="btn btn-primary"
                 onClick={() => setCurrentStep(9)}
-                style={{ fontWeight: 800, padding: '0.55rem 1rem', fontSize: '0.85rem' }}
               >
-                Next: Review &amp; Invoice &rarr;
+                Next: Invoice &rarr;
               </button>
             </div>
           </div>
@@ -2742,14 +2728,13 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Step 9 Bottom Navigation */}
-            <div className="step-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
+            <div className="step-footer-nav">
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => setCurrentStep(8)}
-                style={{ fontWeight: 600, padding: '0.75rem 1.25rem' }}
               >
-                <ArrowLeft size={16} /> Previous: Timber Order
+                <ArrowLeft size={15} /> Previous: Timber Order
               </button>
             </div>
           </div>

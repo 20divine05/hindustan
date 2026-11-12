@@ -115,24 +115,14 @@ const MainApp: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer
-        className="no-print"
-        style={{
-          borderTop: '1px solid var(--border-medium)',
-          padding: '1.5rem',
-          textAlign: 'center',
-          fontSize: '0.82rem',
-          color: 'var(--text-muted)',
-          backgroundColor: 'var(--bg-surface)'
-        }}
-      >
-        <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)' }}>
-            <img src="/logo-icon-transparent.png" alt="Logo" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-            <strong>Hindustan Saw Mill &amp; Wood Industries</strong> &mdash; Since 1971 &bull; CFT &amp; SQFT Calculator Suite
+      <footer className="app-footer no-print">
+        <div className="app-footer-inner">
+          <div className="app-footer-brand">
+            <img src="/logo-icon-transparent.png" alt="Logo" className="app-footer-logo" />
+            <span>Hindustan Saw Mill &bull; Since 1971</span>
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
-            CFT = (L &times; W &times; T &times; Pcs) / 144 &bull; SQFT = CFT &times; 12
+          <div className="app-footer-formula">
+            CFT = (L &times; W &times; T &times; Pcs) / 144
           </div>
         </div>
       </footer>
