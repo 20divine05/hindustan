@@ -35,7 +35,7 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { ProformaInvoiceModal } from '../components/ProformaInvoiceModal';
 import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice';
 import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood } from '../utils/calculator';
-import { formatIndianCurrency, numberToIndianCurrencyWords } from '../utils/indianNumberWords';
+import { formatIndianCurrency } from '../utils/indianNumberWords';
 import { exportSheetToCsv } from '../utils/exportCsv';
 import { exportSheetToPdf, getProformaInvoicePdfBlob, type ProformaInvoiceExportData } from '../utils/exportPdf';
 import { dbService, generateId, sanitizeAndComputeSheet } from '../services/db';
@@ -539,7 +539,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
   // Grand Total = Full Total Amount (₹ 10,000) + GST Amount (e.g. ₹ 800 or ₹ 900) = ₹ 10,800 or ₹ 10,900
   const finalGrandTotal = fullAmountBeforeGst + gstAmount;
-  const taxableAmount = gstTaxableBase;
 
   // Sorted timber entries according to strict sawmill specifications:
   // Wood Species Grouping -> Width (IN) Ascending -> Length (FT) Descending -> Thickness (IN) Descending
@@ -1982,12 +1981,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   />
                 </div>
               </div>
-
-              {discountAmount > 0 && (
-                <div style={{ marginTop: '0.3rem', fontSize: '0.74rem', color: '#15803d', fontWeight: 700 }}>
-                  ✓ -₹{formatIndianCurrency(discountAmount)} applied &bull; Net: ₹{formatIndianCurrency(taxableAmount)}
-                </div>
-              )}
             </div>
 
             {/* 3. GST Selection & Base Amount - Small Buttons Beside Placeholder */}
@@ -2074,9 +2067,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <span className="calc-grand-total-amount">
                   ₹ {formatIndianCurrency(finalGrandTotal)}
                 </span>
-              </div>
-              <div className="calc-grand-total-words">
-                {numberToIndianCurrencyWords(finalGrandTotal)}
               </div>
             </div>
 
