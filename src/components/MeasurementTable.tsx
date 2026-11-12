@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Trash2, Copy, AlertCircle, CornerDownLeft, X } from 'lucide-react';
+import { Plus, Trash2, Copy, AlertCircle, CornerDownLeft, X, Pencil } from 'lucide-react';
 import type { MeasurementItem } from '../types';
 import { calculateRow, calculateTotals, formatValue, sortTimberEntries } from '../utils/calculator';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
@@ -42,11 +42,11 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const [quickRateCft, setQuickRateCft] = useState<string>(defaultRate.toString());
   const [quickRateSqft, setQuickRateSqft] = useState<string>('120');
 
-  // Modal state for editing row when width >= 7
-  const [widthModalRowIndex, setWidthModalRowIndex] = useState<number | null>(null);
-  const [modalRateUnit, setModalRateUnit] = useState<'CFT' | 'SQFT'>('CFT');
-  const [modalRateCft, setModalRateCft] = useState<string>(defaultRate.toString());
-  const [modalRateSqft, setModalRateSqft] = useState<string>('120');
+  // Modal state for editing price / rate of a row
+  const [editPriceRowIndex, setEditPriceRowIndex] = useState<number | null>(null);
+  const [priceModalUnit, setPriceModalUnit] = useState<'CFT' | 'SQFT'>('CFT');
+  const [priceModalRate, setPriceModalRate] = useState<string>('');
+  const [priceModalAmount, setPriceModalAmount] = useState<string>('');
 
   const [selectedWoodOption, setSelectedWoodOption] = useState<string>('Mahagony');
   const [customWoodType, setCustomWoodType] = useState<string>('');
@@ -69,6 +69,80 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
   // Real-time table totals
   const totals = calculateTotals(items, sqftConvention, defaultRate);
+
+  // Open price editing modal for any row
+  const handleOpenPriceModal = (index: number) => {
+    const item = items[index];
+    if (!item) return;
+    const w = typeof item.widthInches === 'number' ? item.widthInches : 0;
+    const isSqft = w >= 7 && item.rateUnit !== 'CFT';
+    const currentUnit = isSqft ? 'SQFT' : (item.rateUnit || 'CFT');
+    const defaultRowRate = isSqft ? 120 : defaultRate;
+    const currentRate = typeof item.rate === 'number' && item.rate > 0 ? item.rate : defaultRowRate;
+    const multiplier = currentUnit === 'SQFT' ? item.sqft : item.cft;
+    const currentAmount = typeof item.amount === 'number' && item.amount > 0 ? item.amount : Math.round(multiplier * currentRate * 100) / 100;
+
+    setPriceModalUnit(currentUnit);
+    setPriceModalRate(currentRate.toString());
+    setPriceModalAmount(currentAmount.toFixed(2));
+    setEditPriceRowIndex(index);
+  };
+
+  const handlePriceModalRateChange = (newRateStr: string) => {
+    setPriceModalRate(newRateStr);
+    if (editPriceRowIndex === null) return;
+    const item = items[editPriceRowIndex];
+    if (!item) return;
+    const r = parseFloat(newRateStr);
+    if (!isNaN(r)) {
+      const mult = priceModalUnit === 'SQFT' ? item.sqft : item.cft;
+      setPriceModalAmount((Math.round(mult * r * 100) / 100).toFixed(2));
+    }
+  };
+
+  const handlePriceModalAmountChange = (newAmtStr: string) => {
+    setPriceModalAmount(newAmtStr);
+    if (editPriceRowIndex === null) return;
+    const item = items[editPriceRowIndex];
+    if (!item) return;
+    const amt = parseFloat(newAmtStr);
+    if (!isNaN(amt)) {
+      const mult = priceModalUnit === 'SQFT' ? item.sqft : item.cft;
+      if (mult > 0) {
+        setPriceModalRate((Math.round((amt / mult) * 100) / 100).toString());
+      }
+    }
+  };
+
+  const handlePriceModalUnitChange = (newUnit: 'CFT' | 'SQFT') => {
+    setPriceModalUnit(newUnit);
+    if (editPriceRowIndex === null) return;
+    const item = items[editPriceRowIndex];
+    if (!item) return;
+    const mult = newUnit === 'SQFT' ? item.sqft : item.cft;
+    let suggestedRate = parseFloat(priceModalRate);
+    if (newUnit === 'SQFT' && (!suggestedRate || suggestedRate === defaultRate)) {
+      suggestedRate = 120;
+    } else if (newUnit === 'CFT' && (!suggestedRate || suggestedRate === 120)) {
+      suggestedRate = defaultRate;
+    }
+    setPriceModalRate(suggestedRate.toString());
+    setPriceModalAmount((Math.round(mult * suggestedRate * 100) / 100).toFixed(2));
+  };
+
+  const handleSavePriceModal = () => {
+    if (editPriceRowIndex === null) return;
+    const updated = [...items];
+    const target = { ...updated[editPriceRowIndex] };
+    const r = parseFloat(priceModalRate) || 0;
+    const amt = parseFloat(priceModalAmount) || 0;
+    target.rateUnit = priceModalUnit;
+    target.rate = r;
+    target.amount = amt > 0 ? amt : Math.round((priceModalUnit === 'SQFT' ? target.sqft : target.cft) * r * 100) / 100;
+    updated[editPriceRowIndex] = target;
+    onChange(updated);
+    setEditPriceRowIndex(null);
+  };
 
   // Handle in-place row editing
   const handleUpdateItem = (
@@ -527,8 +601,9 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               <th className="col-hide-mobile" style={{ textAlign: 'right' }}>Total SQFT</th>
               <th className="col-hide-mobile" style={{ textAlign: 'right' }}>Rate (₹)</th>
               <th className="col-hide-mobile" style={{ textAlign: 'right' }}>Amount (₹)</th>
-              <th style={{ width: '26px', textAlign: 'center', padding: '0.35rem 0.05rem' }}>
+              <th style={{ width: '46px', textAlign: 'center', padding: '0.35rem 0.05rem' }}>
                 <span className="mobile-hide">Action</span>
+                <span className="mobile-show">Edit</span>
               </th>
             </tr>
           </thead>
@@ -651,9 +726,26 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary-700)' }}>
                           {isSqft ? `${formatValue(item.sqft, 2)} SQFT` : `${formatValue(item.cft, 3)} CFT`}
                         </span>
-                        <strong style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
-                          ₹ {formatIndianCurrency(rowAmount)}
-                        </strong>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPriceModal(index)}
+                          title="Click to edit price / rate"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: '1px 0',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            textAlign: 'right'
+                          }}
+                        >
+                          <strong style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
+                            ₹ {formatIndianCurrency(rowAmount)}
+                          </strong>
+                          <Pencil size={10} style={{ color: 'var(--primary-700)', opacity: 0.85 }} />
+                        </button>
                       </div>
                     </td>
 
@@ -683,17 +775,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         {w >= 7 ? (
                           <button
                             type="button"
-                            onClick={() => {
-                              setModalRateUnit(item.rateUnit === 'CFT' ? 'CFT' : 'SQFT');
-                              if (item.rateUnit === 'CFT') {
-                                setModalRateCft(item.rate ? item.rate.toString() : defaultRate.toString());
-                                setModalRateSqft('120');
-                              } else {
-                                setModalRateSqft(item.rate ? item.rate.toString() : '120');
-                                setModalRateCft(defaultRate.toString());
-                              }
-                              setWidthModalRowIndex(index);
-                            }}
+                            onClick={() => handleOpenPriceModal(index)}
                             title="Width is ≥ 7in: Click to switch Rate in CFT or SQFT"
                             style={{
                               border: '1px solid var(--primary-400)',
@@ -720,9 +802,29 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       ₹ {formatIndianCurrency(rowAmount)}
                     </td>
 
-                    {/* Action (Delete) */}
-                    <td style={{ textAlign: 'center', padding: '0.2rem 0.05rem', width: '26px' }}>
+                    {/* Action (Edit Price & Delete) */}
+                    <td style={{ textAlign: 'center', padding: '0.2rem 0.05rem', width: '46px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.15rem' }}>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          title="Edit Price & Rate"
+                          onClick={() => handleOpenPriceModal(index)}
+                          style={{
+                            padding: 0,
+                            color: 'var(--primary-800)',
+                            backgroundColor: 'rgba(167, 101, 52, 0.1)',
+                            minWidth: 0,
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '3px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Pencil size={11} />
+                        </button>
                         <button
                           type="button"
                           className="btn btn-ghost btn-sm col-hide-mobile"
@@ -730,16 +832,27 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                           onClick={() => handleDuplicateRow(index)}
                           style={{ padding: '3px' }}
                         >
-                          <Copy size={14} />
+                          <Copy size={13} />
                         </button>
                         <button
                           type="button"
                           className="btn btn-ghost btn-sm"
                           title="Delete row"
                           onClick={() => handleDeleteRow(index)}
-                          style={{ padding: 0, color: 'var(--danger-400)', minWidth: 0, width: '22px', height: '22px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          style={{
+                            padding: 0,
+                            color: 'var(--danger-500, #dc2626)',
+                            backgroundColor: 'rgba(220, 38, 38, 0.08)',
+                            minWidth: 0,
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '3px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={11} />
                         </button>
                       </div>
                     </td>
@@ -825,183 +938,240 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         </div>
       )}
 
-      {/* Width >= 7 Dual Rate Popup Dialog */}
-      {widthModalRowIndex !== null && items[widthModalRowIndex] && (
-        <div
-          className="modal-backdrop"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.65)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem',
-            backdropFilter: 'blur(2px)'
-          }}
-        >
+      {/* Comprehensive Edit Price & Rate Dialog Modal */}
+      {editPriceRowIndex !== null && items[editPriceRowIndex] && (() => {
+        const item = items[editPriceRowIndex];
+        const wNum = typeof item.widthInches === 'number' ? item.widthInches : parseFloat(item.widthInches as string) || 0;
+        const isPlank = wNum >= 7;
+        return (
           <div
+            className="modal-backdrop"
             style={{
-              backgroundColor: '#fff',
-              borderRadius: '12px',
-              padding: '1.25rem 1.5rem',
-              maxWidth: '440px',
-              width: '100%',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.25)',
-              border: '1.5px solid var(--border-medium)'
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.65)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1rem',
+              backdropFilter: 'blur(2px)'
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setEditPriceRowIndex(null);
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-900)' }}>
-                ⚡ Width is ≥ 7″ ({items[widthModalRowIndex].widthInches} Inches)
-              </h3>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setWidthModalRowIndex(null)}
-                style={{ padding: '4px' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
+            <div
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: '12px',
+                padding: '1.25rem',
+                maxWidth: '420px',
+                width: '100%',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.25)',
+                border: '1.5px solid var(--border-medium)'
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-900)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Pencil size={16} style={{ color: 'var(--primary-700)' }} />
+                  Edit Price — Row #{item.serialNumber}
+                </h3>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setEditPriceRowIndex(null)}
+                  style={{ padding: '4px', minWidth: 0, width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
 
-            <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginBottom: '1.1rem', lineHeight: 1.4 }}>
-              Timber planks with width ≥ 7&quot; can be priced either in <strong>SQFT</strong> or in <strong>CFT</strong>. Enter only one:
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.25rem' }}>
-              {/* Option 1: Rate in SQFT */}
-              <div
-                onClick={() => setModalRateUnit('SQFT')}
-                style={{
-                  border: modalRateUnit === 'SQFT' ? '2px solid var(--primary-600, #a16207)' : '1.5px solid var(--border-medium)',
-                  borderRadius: '8px',
-                  padding: '0.75rem',
-                  backgroundColor: modalRateUnit === 'SQFT' ? 'var(--primary-50, #fcf9f2)' : 'var(--bg-subtle, #f9fafb)',
-                  cursor: 'pointer'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                  <label style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-main)', cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      name="modalRateUnit"
-                      checked={modalRateUnit === 'SQFT'}
-                      onChange={() => setModalRateUnit('SQFT')}
-                      style={{ marginRight: '6px' }}
-                    />
-                    Rate in SQFT (₹ / SQFT)
-                  </label>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, backgroundColor: 'var(--primary-200)', color: 'var(--primary-900)', padding: '2px 6px', borderRadius: '4px' }}>
-                    Plank SQFT
-                  </span>
+              {/* Row Specs summary banner */}
+              <div style={{
+                backgroundColor: 'var(--bg-subtle, #fbf7ee)',
+                border: '1px solid var(--border-light, #e7decb)',
+                borderRadius: '8px',
+                padding: '0.6rem 0.75rem',
+                marginBottom: '1rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <div style={{ fontWeight: 800, color: 'var(--primary-900)', fontSize: '0.85rem' }}>
+                    {item.woodType || 'Timber'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {item.lengthFeet}′ × {item.widthInches}″ × {item.thicknessInches}″ • {item.pieces} pcs
+                  </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>₹</span>
-                  <input
-                    type="number"
-                    step="any"
-                    min="0"
-                    placeholder="120"
-                    className="calc-input"
-                    value={modalRateSqft}
-                    onFocus={() => setModalRateUnit('SQFT')}
-                    onChange={(e) => {
-                      setModalRateSqft(e.target.value);
-                      setModalRateUnit('SQFT');
-                      setModalRateCft('');
-                    }}
-                    style={{ fontWeight: 700, fontSize: '1rem' }}
-                  />
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Row Volume: <strong>{items[widthModalRowIndex].sqft.toFixed(2)} SQFT</strong>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontWeight: 800, color: 'var(--primary-700)', fontSize: '0.85rem' }}>
+                    {priceModalUnit === 'SQFT' ? `${item.sqft.toFixed(2)} SQFT` : `${item.cft.toFixed(3)} CFT`}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {priceModalUnit === 'SQFT' ? `(${item.cft.toFixed(3)} CFT)` : `(${item.sqft.toFixed(2)} SQFT)`}
+                  </div>
                 </div>
               </div>
 
-              {/* Option 2: Rate in CFT */}
-              <div
-                onClick={() => setModalRateUnit('CFT')}
-                style={{
-                  border: modalRateUnit === 'CFT' ? '2px solid var(--primary-600, #a16207)' : '1.5px solid var(--border-medium)',
-                  borderRadius: '8px',
-                  padding: '0.75rem',
-                  backgroundColor: modalRateUnit === 'CFT' ? 'var(--primary-50, #fcf9f2)' : 'var(--bg-subtle, #f9fafb)',
-                  cursor: 'pointer'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                  <label style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-main)', cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      name="modalRateUnit"
-                      checked={modalRateUnit === 'CFT'}
-                      onChange={() => setModalRateUnit('CFT')}
-                      style={{ marginRight: '6px' }}
-                    />
-                    Rate in CFT (₹ / CFT)
-                  </label>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, backgroundColor: 'var(--border-medium)', color: 'var(--text-main)', padding: '2px 6px', borderRadius: '4px' }}>
-                    Standard CFT
-                  </span>
+              {/* Unit Switcher (CFT vs SQFT) */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Pricing Unit:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => handlePriceModalUnitChange('CFT')}
+                    style={{
+                      padding: '0.55rem',
+                      borderRadius: '6px',
+                      border: priceModalUnit === 'CFT' ? '2px solid var(--primary-700)' : '1px solid var(--border-medium)',
+                      backgroundColor: priceModalUnit === 'CFT' ? 'var(--primary-100, #f8efe2)' : '#fff',
+                      color: priceModalUnit === 'CFT' ? 'var(--primary-900)' : 'var(--text-main)',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '2px'
+                    }}
+                  >
+                    <span>Rate in CFT</span>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)' }}>₹ / CFT</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePriceModalUnitChange('SQFT')}
+                    style={{
+                      padding: '0.55rem',
+                      borderRadius: '6px',
+                      border: priceModalUnit === 'SQFT' ? '2px solid var(--primary-700)' : '1px solid var(--border-medium)',
+                      backgroundColor: priceModalUnit === 'SQFT' ? 'var(--primary-100, #f8efe2)' : '#fff',
+                      color: priceModalUnit === 'SQFT' ? 'var(--primary-900)' : 'var(--text-main)',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '2px'
+                    }}
+                  >
+                    <span>Rate in SQFT {isPlank ? '⚡' : ''}</span>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)' }}>₹ / SQFT</span>
+                  </button>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>₹</span>
+              </div>
+
+              {/* Rate input & Presets */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Rate (₹ per {priceModalUnit}):
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', fontSize: '1rem' }}>₹</span>
                   <input
                     type="number"
                     step="any"
-                    min="0"
-                    placeholder="1200"
+                    inputMode="decimal"
                     className="calc-input"
-                    value={modalRateCft}
-                    onFocus={() => setModalRateUnit('CFT')}
-                    onChange={(e) => {
-                      setModalRateCft(e.target.value);
-                      setModalRateUnit('CFT');
-                      setModalRateSqft('');
+                    value={priceModalRate}
+                    onChange={(e) => handlePriceModalRateChange(e.target.value)}
+                    placeholder="Enter rate"
+                    style={{
+                      width: '100%',
+                      paddingLeft: '1.8rem',
+                      fontSize: '1.05rem',
+                      fontWeight: 800,
+                      color: 'var(--primary-900)',
+                      textAlign: 'left'
                     }}
-                    style={{ fontWeight: 700, fontSize: '1rem' }}
                   />
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Row Volume: <strong>{items[widthModalRowIndex].cft.toFixed(4)} CFT</strong>
+
+                {/* Quick preset chips */}
+                <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
+                  {(priceModalUnit === 'SQFT' ? ['80', '100', '120', '150', '180'] : ['900', '1000', '1200', '1400', '1600']).map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => handlePriceModalRateChange(preset)}
+                      style={{
+                        padding: '2px 8px',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        borderRadius: '4px',
+                        border: priceModalRate === preset ? '1.5px solid var(--primary-700)' : '1px solid var(--border-medium)',
+                        backgroundColor: priceModalRate === preset ? 'var(--primary-200)' : 'var(--bg-subtle)',
+                        color: 'var(--text-main)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ₹{preset}
+                    </button>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setWidthModalRowIndex(null)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={() => {
-                  const updated = [...items];
-                  const target = { ...updated[widthModalRowIndex] };
-                  const isSqft = modalRateUnit === 'SQFT';
-                  target.rateUnit = modalRateUnit;
-                  const rateVal = isSqft ? (parseFloat(modalRateSqft) || 120) : (parseFloat(modalRateCft) || defaultRate);
-                  target.rate = rateVal;
-                  const multiplier = isSqft ? target.sqft : target.cft;
-                  target.amount = Math.round(multiplier * rateVal * 100) / 100;
-                  updated[widthModalRowIndex] = target;
-                  onChange(updated);
-                  setWidthModalRowIndex(null);
-                }}
-                style={{ fontWeight: 800 }}
-              >
-                Apply Rate ({modalRateUnit})
-              </button>
+              {/* Total Amount Override Input */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Total Row Amount (₹):
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', fontSize: '1rem' }}>₹</span>
+                  <input
+                    type="number"
+                    step="any"
+                    inputMode="decimal"
+                    className="calc-input"
+                    value={priceModalAmount}
+                    onChange={(e) => handlePriceModalAmountChange(e.target.value)}
+                    placeholder="Enter total amount"
+                    style={{
+                      width: '100%',
+                      paddingLeft: '1.8rem',
+                      fontSize: '1.05rem',
+                      fontWeight: 900,
+                      color: 'var(--primary-900)',
+                      backgroundColor: 'var(--bg-subtle, #fcf9f2)',
+                      textAlign: 'left'
+                    }}
+                  />
+                </div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                  Auto-calculates rate or enter a flat custom amount.
+                </div>
+              </div>
+
+              {/* Modal Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setEditPriceRowIndex(null)}
+                  style={{ padding: '0.45rem 0.85rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={handleSavePriceModal}
+                  style={{ fontWeight: 800, padding: '0.45rem 1rem' }}
+                >
+                  Save &amp; Apply Price
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Shared Wood Species Datalist */}
       <datalist id="wood-options-list">
