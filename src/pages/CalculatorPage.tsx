@@ -2006,214 +2006,140 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Live Subtotal Display */}
-            <div className="calc-subtotal-banner">
-              <div>
-                <span className="calc-subtotal-label">Subtotal (Timber + Services):</span>
-                <div className="calc-subtotal-val">
-                  ₹ {formatIndianCurrency(subtotalWithCharges)}
-                </div>
-              </div>
-              <div className="calc-subtotal-breakdown mobile-hide">
-                Timber: ₹{formatIndianCurrency(timberSubtotal)}<br />
-                Extra Services: ₹{formatIndianCurrency(additionalChargesTotal)}
-              </div>
+            <div className="calc-subtotal-banner" style={{ padding: '0.45rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="calc-subtotal-label" style={{ fontSize: '0.8rem', fontWeight: 700, margin: 0 }}>
+                Subtotal (Timber + Services):
+              </span>
+              <span className="calc-subtotal-val" style={{ fontSize: '1.05rem', fontWeight: 800 }}>
+                ₹ {formatIndianCurrency(subtotalWithCharges)}
+              </span>
             </div>
 
             {/* 1. Other Miscellaneous Charges (e.g. Loading / Seasoning) */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid var(--border-medium)' }}>
+            <div style={{ background: 'var(--bg-card)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border-medium)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                <label style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.25rem', margin: 0 }}>
                   <Layers size={14} color="var(--primary-600)" /> Other Charges:
                 </label>
-                <span className="mobile-hide" style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--primary-700)' }}>
-                  ₹ {formatIndianCurrency(otherCharges)}
-                </span>
+                {otherCharges > 0 && (
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                    ₹ {formatIndianCurrency(otherCharges)}
+                  </span>
+                )}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.45rem' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', width: '100%' }}>
                 <input
                   type="number"
                   value={otherCharges === 0 ? '' : otherCharges}
                   onChange={(e) => setOtherCharges(Math.max(0, Number(e.target.value) || 0))}
                   placeholder="Amount (₹)"
-                  style={{ fontSize: '0.95rem', fontWeight: 800, padding: '0.38rem 0.55rem' }}
+                  style={{ flex: 1, minWidth: '90px', fontSize: '0.88rem', fontWeight: 800, padding: '0.35rem 0.45rem' }}
                 />
                 <input
                   type="text"
                   value={otherChargesLabel}
                   onChange={(e) => setOtherChargesLabel(e.target.value)}
-                  placeholder="Charges Label (e.g. Loading)"
-                  style={{ fontSize: '0.82rem', fontWeight: 600, padding: '0.38rem 0.55rem' }}
+                  placeholder="Other Charges"
+                  style={{ flex: 1, minWidth: '100px', fontSize: '0.82rem', fontWeight: 600, padding: '0.35rem 0.45rem' }}
                 />
               </div>
             </div>
 
-            {/* 2. Discount Section (Price in ₹ or Percentage %) */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid var(--border-medium)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem', flexWrap: 'wrap', gap: '0.35rem' }}>
-                <label style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Tag size={15} color="var(--primary-600)" /> Discount:
+            {/* 2. Discount Section - Single Row Only */}
+            <div style={{ background: 'var(--bg-card)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border-medium)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', width: '100%' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.25rem', margin: 0, whiteSpace: 'nowrap' }}>
+                  <Tag size={14} color="var(--primary-600)" /> Discount:
                 </label>
 
-                {/* Discount Mode Toggle: Rupees vs Percentage */}
-                <div style={{ display: 'inline-flex', borderRadius: '6px', border: '1px solid var(--border-medium)', overflow: 'hidden' }}>
+                {/* Mode Toggle: Rupees vs Percentage */}
+                <div style={{ display: 'inline-flex', borderRadius: '5px', border: '1px solid var(--border-medium)', overflow: 'hidden', flexShrink: 0 }}>
                   <button
                     type="button"
                     onClick={() => setDiscountType('rupees')}
                     style={{
-                      padding: '0.25rem 0.6rem',
-                      fontSize: '0.75rem',
-                      fontWeight: discountType === 'rupees' ? 800 : 500,
-                      backgroundColor: discountType === 'rupees' ? 'var(--primary-600)' : 'var(--bg-subtle)',
+                      padding: '0.3rem 0.5rem',
+                      fontSize: '0.74rem',
+                      fontWeight: discountType === 'rupees' ? 800 : 600,
+                      backgroundColor: discountType === 'rupees' ? 'var(--primary-700)' : 'var(--bg-subtle)',
                       color: discountType === 'rupees' ? '#fff' : 'var(--text-main)',
                       border: 'none',
                       cursor: 'pointer'
                     }}
                   >
-                    ₹ in Rupees
+                    ₹
                   </button>
                   <button
                     type="button"
                     onClick={() => setDiscountType('percentage')}
                     style={{
-                      padding: '0.25rem 0.6rem',
-                      fontSize: '0.75rem',
-                      fontWeight: discountType === 'percentage' ? 800 : 500,
-                      backgroundColor: discountType === 'percentage' ? 'var(--primary-600)' : 'var(--bg-subtle)',
+                      padding: '0.3rem 0.5rem',
+                      fontSize: '0.74rem',
+                      fontWeight: discountType === 'percentage' ? 800 : 600,
+                      backgroundColor: discountType === 'percentage' ? 'var(--primary-700)' : 'var(--bg-subtle)',
                       color: discountType === 'percentage' ? '#fff' : 'var(--text-main)',
                       border: 'none',
                       cursor: 'pointer'
                     }}
                   >
-                    % in Percent
+                    %
                   </button>
                 </div>
-              </div>
 
-              {/* Discount Input & Quick Chips */}
-              <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', flex: 1, minWidth: '130px' }}>
-                  <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
+                {/* Discount Input */}
+                <div style={{ position: 'relative', flex: 1, minWidth: '90px' }}>
+                  <span style={{ position: 'absolute', left: '7px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                     {discountType === 'percentage' ? '%' : '₹'}
                   </span>
                   <input
                     type="number"
                     value={discountValue === 0 ? '' : discountValue}
                     onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value) || 0))}
-                    placeholder={discountType === 'percentage' ? 'Discount % (e.g. 5)' : 'Discount (₹)'}
-                    style={{ width: '100%', paddingLeft: '24px', paddingRight: '8px', fontSize: '0.95rem', fontWeight: 800, padding: '0.38rem 0.5rem 0.38rem 22px' }}
+                    placeholder={discountType === 'percentage' ? 'Discount %' : 'Discount (₹)'}
+                    style={{ width: '100%', paddingLeft: '20px', paddingRight: '6px', fontSize: '0.88rem', fontWeight: 800, padding: '0.35rem 0.4rem 0.35rem 20px' }}
                   />
-                </div>
-
-                {/* Quick Chips */}
-                <div className="calc-discount-quick-chips" style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                  {discountType === 'percentage' ? (
-                    [2, 5, 10, 15].map(p => (
-                      <button
-                        key={p}
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setDiscountValue(p)}
-                        style={{ fontSize: '0.72rem', padding: '0.2rem 0.45rem', border: '1px solid var(--border-medium)', background: discountValue === p ? 'var(--primary-100)' : 'transparent' }}
-                      >
-                        {p}% Off
-                      </button>
-                    ))
-                  ) : (
-                    [500, 1000, 2000, 5000].map(amt => (
-                      <button
-                        key={amt}
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setDiscountValue(amt)}
-                        style={{ fontSize: '0.72rem', padding: '0.2rem 0.45rem', border: '1px solid var(--border-medium)', background: discountValue === amt ? 'var(--primary-100)' : 'transparent' }}
-                      >
-                        ₹{amt} Off
-                      </button>
-                    ))
-                  )}
-                  {discountValue > 0 && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setDiscountValue(0)}
-                      style={{ fontSize: '0.72rem', padding: '0.2rem 0.35rem', color: 'var(--danger-400)' }}
-                    >
-                      Clear
-                    </button>
-                  )}
                 </div>
               </div>
 
               {discountAmount > 0 && (
-                <div className="mobile-hide" style={{ marginTop: '0.4rem', fontSize: '0.78rem', color: '#15803d', fontWeight: 700 }}>
-                  ✓ Discount applied: -₹{formatIndianCurrency(discountAmount)} &bull; Price after discount: ₹{formatIndianCurrency(taxableAmount)}
+                <div style={{ marginTop: '0.3rem', fontSize: '0.74rem', color: '#15803d', fontWeight: 700 }}>
+                  ✓ -₹{formatIndianCurrency(discountAmount)} applied &bull; Net: ₹{formatIndianCurrency(taxableAmount)}
                 </div>
               )}
             </div>
 
-            {/* 3. GST Selection & Custom Taxable Amount Section */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid var(--border-medium)', display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
-                <label style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Percent size={15} color="var(--primary-600)" /> Amount to Apply GST On:
+            {/* 3. GST Selection & Base Amount - Small Buttons Beside Placeholder */}
+            <div style={{ background: 'var(--bg-card)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border-medium)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <Percent size={14} color="var(--primary-600)" /> GST Rate &amp; Base:
                 </label>
+                {gstAmount > 0 && (
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-800)' }}>
+                    +₹{formatIndianCurrency(gstAmount)} ({gstPercent}%)
+                  </span>
+                )}
+              </div>
 
-                {/* Quick Chips to set custom amount - desktop only */}
-                <div className="mobile-hide" style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setCustomGstTaxableAmount(Math.round(fullAmountBeforeGst * 0.5))}
-                    style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', border: '1px solid var(--border-medium)', background: customGstTaxableAmount === Math.round(fullAmountBeforeGst * 0.5) ? 'var(--primary-100)' : 'transparent' }}
-                  >
-                    50% (₹{formatIndianCurrency(Math.round(fullAmountBeforeGst * 0.5))})
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setCustomGstTaxableAmount(Math.round(fullAmountBeforeGst * 0.25))}
-                    style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', border: '1px solid var(--border-medium)', background: customGstTaxableAmount === Math.round(fullAmountBeforeGst * 0.25) ? 'var(--primary-100)' : 'transparent' }}
-                  >
-                    25% (₹{formatIndianCurrency(Math.round(fullAmountBeforeGst * 0.25))})
-                  </button>
-                  {customGstTaxableAmount > 0 && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setCustomGstTaxableAmount(0)}
-                      style={{ fontSize: '0.7rem', padding: '0.15rem 0.35rem', color: 'var(--danger-400)' }}
-                    >
-                      Clear
-                    </button>
-                  )}
+              {/* Single Row: Input Placeholder + Small GST Buttons Beside It */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '100%' }}>
+                {/* Direct Input for Taxable Base Amount */}
+                <div style={{ position: 'relative', flex: '1 1 100px', minWidth: '95px' }}>
+                  <span style={{ position: 'absolute', left: '7px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                    ₹
+                  </span>
+                  <input
+                    type="number"
+                    value={customGstTaxableAmount === 0 ? '' : customGstTaxableAmount}
+                    onChange={(e) => setCustomGstTaxableAmount(Math.max(0, Number(e.target.value) || 0))}
+                    placeholder={`Base (₹${formatIndianCurrency(fullAmountBeforeGst)})`}
+                    title="Taxable base amount for GST"
+                    style={{ width: '100%', paddingLeft: '18px', paddingRight: '4px', fontSize: '0.86rem', fontWeight: 800, padding: '0.35rem 0.35rem 0.35rem 18px' }}
+                  />
                 </div>
-              </div>
 
-              {/* Direct Input for Custom Taxable Amount */}
-              <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                  ₹
-                </span>
-                <input
-                  type="number"
-                  value={customGstTaxableAmount === 0 ? '' : customGstTaxableAmount}
-                  onChange={(e) => setCustomGstTaxableAmount(Math.max(0, Number(e.target.value) || 0))}
-                  placeholder={`Taxable Base Amount (₹ ${formatIndianCurrency(fullAmountBeforeGst)})`}
-                  style={{ width: '100%', paddingLeft: '24px', fontSize: '0.95rem', fontWeight: 800, padding: '0.4rem 0.5rem 0.4rem 24px' }}
-                />
-              </div>
-
-              <div className="mobile-hide" style={{ fontSize: '0.74rem', color: '#b45309', fontWeight: 600 }}>
-                💡 Total is ₹{formatIndianCurrency(fullAmountBeforeGst)}. GST applies on {customGstTaxableAmount > 0 ? `₹${formatIndianCurrency(customGstTaxableAmount)}` : `₹${formatIndianCurrency(fullAmountBeforeGst)}`}.
-              </div>
-
-              {/* GST Rate Selection Header & Buttons */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
-                  Select GST Rate (%):
-                </label>
-
-                <div className="calc-gst-rate-grid">
+                {/* Small GST Rate Buttons beside the placeholder */}
+                <div className="calc-gst-pills-strip">
                   {[0, 5, 12, 18, 28].map((rate) => (
                     <button
                       key={rate}
@@ -2222,79 +2148,50 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         setIsCustomGstRate(false);
                         setGstPercent(rate);
                       }}
-                      className={`calc-gst-rate-btn ${(!isCustomGstRate && gstPercent === rate) ? 'active' : ''}`}
+                      className={`calc-gst-pill ${(!isCustomGstRate && gstPercent === rate) ? 'active' : ''}`}
                     >
-                      <span className="rate-num">{rate}%</span>
-                      <span className="rate-sub">
-                        {rate === 0 ? 'None' : (rate === 18 ? 'Std' : 'GST')}
-                      </span>
+                      {rate}%
                     </button>
                   ))}
-
-                  {/* Custom GST % Button */}
                   <button
                     type="button"
-                    onClick={() => setIsCustomGstRate(true)}
-                    className={`calc-gst-rate-btn ${isCustomGstRate ? 'active' : ''}`}
+                    onClick={() => setIsCustomGstRate(!isCustomGstRate)}
+                    className={`calc-gst-pill ${isCustomGstRate ? 'active' : ''}`}
+                    title="Custom GST Rate"
                   >
-                    <span className="rate-num">Custom</span>
-                    <span className="rate-sub">
-                      {isCustomGstRate ? `${gstPercent}%` : 'Rate'}
-                    </span>
+                    {isCustomGstRate ? `${gstPercent}%` : 'Cst'}
                   </button>
                 </div>
               </div>
 
               {/* Custom GST % Input Field (Visible when Custom Rate is clicked) */}
               {isCustomGstRate && (
-                <div style={{ padding: '0.45rem 0.6rem', background: 'var(--bg-subtle)', borderRadius: '6px', border: '1px solid var(--primary-300, #bbf7d0)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)' }}>Custom GST Rate:</span>
-                  <div style={{ position: 'relative', width: '90px' }}>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="100"
-                      value={gstPercent}
-                      onChange={(e) => setGstPercent(Math.max(0, Number(e.target.value) || 0))}
-                      placeholder="e.g. 18"
-                      style={{ width: '100%', paddingRight: '20px', fontWeight: 800, fontSize: '0.92rem', textAlign: 'right', padding: '0.32rem 0.45rem' }}
-                    />
-                    <span style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.85rem' }}>%</span>
-                  </div>
-                  <div className="mobile-hide" style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                    {[3, 6, 8, 9, 14, 16, 20].map((quickRate) => (
-                      <button
-                        key={quickRate}
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setGstPercent(quickRate)}
-                        style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem', border: '1px solid var(--border-medium)', background: gstPercent === quickRate ? 'var(--primary-100)' : 'transparent' }}
-                      >
-                        {quickRate}%
-                      </button>
-                    ))}
-                  </div>
+                <div style={{ padding: '0.3rem 0.5rem', background: 'var(--bg-subtle)', borderRadius: '5px', border: '1px solid var(--primary-300)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-main)' }}>Custom %:</span>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={gstPercent}
+                    onChange={(e) => setGstPercent(Math.max(0, Number(e.target.value) || 0))}
+                    placeholder="Rate %"
+                    style={{ width: '70px', fontWeight: 800, fontSize: '0.84rem', textAlign: 'center', padding: '0.25rem 0.35rem' }}
+                  />
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>% GST</span>
                 </div>
               )}
-
-              {/* Live GST Breakdown Summary - hidden on phone view */}
-              <div className="mobile-hide" style={{ marginTop: '0.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-muted)', flexWrap: 'wrap', gap: '0.25rem' }}>
-                <span>GST Taxable Base: <strong>₹{formatIndianCurrency(gstTaxableBase)}</strong>{customGstTaxableAmount > 0 ? ' (Custom)' : ''}</span>
-                <span>GST Amount ({gstPercent}%): <strong style={{ color: 'var(--primary-800)' }}>+₹{formatIndianCurrency(gstAmount)}</strong></span>
-              </div>
             </div>
 
-            {/* 4. Final Grand Total Banner */}
+            {/* 4. Final Grand Total Banner - Compact */}
             <div className="calc-grand-total-banner">
-              <span className="calc-grand-total-label">
-                Total Price Payable (Grand Total)
-              </span>
-              <div className="calc-grand-total-amount">
-                ₹ {formatIndianCurrency(finalGrandTotal)}
-              </div>
-              <div className="calc-grand-total-math mobile-hide">
-                Subtotal ₹{formatIndianCurrency(fullAmountBeforeGst)} + GST ₹{formatIndianCurrency(gstAmount)} = ₹{formatIndianCurrency(finalGrandTotal)}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <span className="calc-grand-total-label">
+                  Total Payable:
+                </span>
+                <span className="calc-grand-total-amount">
+                  ₹ {formatIndianCurrency(finalGrandTotal)}
+                </span>
               </div>
               <div className="calc-grand-total-words">
                 {numberToIndianCurrencyWords(finalGrandTotal)}

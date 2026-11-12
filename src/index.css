@@ -1925,6 +1925,48 @@ input[type="number"] {
   line-height: 1.3;
 }
 
+.calc-gst-pills-strip {
+  display: inline-flex;
+  gap: 2px;
+  background-color: var(--bg-subtle);
+  padding: 2px;
+  border-radius: 6px;
+  border: 1px solid var(--border-medium);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.calc-gst-pill {
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.28rem 0.36rem;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.calc-gst-pill:hover {
+  background-color: var(--primary-100);
+}
+
+.calc-gst-pill.active {
+  background-color: var(--primary-700);
+  color: #ffffff;
+  font-weight: 800;
+}
+
+@media (max-width: 480px) {
+  .calc-gst-pill {
+    font-size: 0.7rem !important;
+    padding: 0.24rem 0.26rem !important;
+  }
+}
+
 .calc-gst-rate-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -1964,53 +2006,57 @@ input[type="number"] {
 .calc-grand-total-banner {
   background-color: var(--primary-800, #3c2a1e);
   color: #ffffff;
-  padding: 0.85rem 1rem;
-  border-radius: 8px;
-  box-shadow: var(--shadow-md);
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  text-align: center;
+  gap: 0.15rem;
 }
 
 .calc-grand-total-label {
   font-size: 0.76rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  opacity: 0.85;
+  opacity: 0.9;
   font-weight: 700;
 }
 
 .calc-grand-total-amount {
-  font-size: 1.65rem;
+  font-size: 1.15rem;
   font-weight: 900;
   letter-spacing: 0.02em;
   color: #fef08a;
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
 .calc-grand-total-math {
-  font-size: 0.78rem;
-  opacity: 0.9;
+  font-size: 0.72rem;
+  opacity: 0.85;
   font-weight: 600;
 }
 
 .calc-grand-total-words {
-  font-size: 0.76rem;
+  font-size: 0.68rem;
   font-style: italic;
-  opacity: 0.95;
+  opacity: 0.92;
   margin-top: 0.1rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+  padding-top: 0.15rem;
 }
 
 @media (max-width: 480px) {
   .calc-grand-total-banner {
-    padding: 0.7rem 0.75rem !important;
+    padding: 0.4rem 0.6rem !important;
+  }
+  .calc-grand-total-label {
+    font-size: 0.72rem !important;
   }
   .calc-grand-total-amount {
-    font-size: 1.4rem !important;
+    font-size: 1.05rem !important;
   }
   .calc-grand-total-words {
-    font-size: 0.72rem !important;
+    font-size: 0.64rem !important;
   }
 }
 
