@@ -29,12 +29,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
       <header
         className="no-print app-header"
         style={{
-          backgroundColor: 'var(--bg-surface)',
-          borderBottom: '1px solid var(--border-medium)',
+          backgroundColor: 'rgba(255, 255, 255, 0.82)',
+          backdropFilter: 'blur(24px) saturate(190%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(190%)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.85)',
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(15, 23, 42, 0.03)'
+          boxShadow: '0 4px 20px -2px rgba(100, 116, 139, 0.08)'
         }}
       >
         <div
@@ -61,7 +63,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
                 objectFit: 'contain',
                 flexShrink: 0,
                 cursor: 'pointer',
-                filter: 'drop-shadow(0 2px 8px rgba(79, 70, 229, 0.2))'
+                filter: 'drop-shadow(0 2px 6px rgba(15, 23, 42, 0.18))'
               }}
             />
 
@@ -82,12 +84,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
                     fontWeight: 800,
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
-                    background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
-                    border: '1px solid #c7d2fe',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 50%, #e2e8f0 100%)',
+                    border: '1px solid #cbd5e1',
                     padding: '1.5px 7px',
                     borderRadius: '20px',
-                    color: '#4338ca',
-                    boxShadow: '0 1px 3px rgba(79, 70, 229, 0.12)',
+                    color: '#334155',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), inset 0 1px 1px #ffffff',
                     whiteSpace: 'nowrap'
                   }}
                 >
@@ -116,10 +118,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
                     gap: '0.3rem',
                     fontWeight: 700,
                     fontSize: '0.78rem',
-                    padding: '0.35rem 0.55rem',
-                    borderRadius: '6px',
-                    backgroundColor: 'var(--bg-subtle, #f1f5f9)',
-                    border: '1px solid var(--border-medium)',
+                    padding: '0.35rem 0.65rem',
+                    borderRadius: '9999px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                    border: '1px solid rgba(203, 213, 225, 0.85)',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04), inset 0 1px 1px #ffffff',
                     whiteSpace: 'nowrap'
                   }}
                 >
@@ -154,11 +157,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
                       top: '100%',
                       marginTop: '0.45rem',
                       width: '210px',
-                      backgroundColor: 'var(--bg-card, #ffffff)',
-                      border: '1px solid var(--border-medium)',
-                      borderRadius: '8px',
-                      boxShadow: '0 16px 36px -4px rgba(15, 23, 42, 0.16), 0 6px 12px -2px rgba(15, 23, 42, 0.08)',
-                      padding: '0.45rem',
+                      backgroundColor: 'rgba(255, 255, 255, 0.88)',
+                      backdropFilter: 'blur(24px) saturate(180%)',
+                      WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                      border: '1px solid rgba(255, 255, 255, 0.9)',
+                      borderRadius: '16px',
+                      boxShadow: '0 16px 36px -4px rgba(15, 23, 42, 0.16), 0 6px 12px -2px rgba(15, 23, 42, 0.08), inset 0 1px 1px #ffffff',
+                      padding: '0.5rem',
                       zIndex: 200,
                       display: 'flex',
                       flexDirection: 'column',
@@ -237,8 +242,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
                   gap: '0.3rem',
                   fontWeight: 800,
                   fontSize: '0.78rem',
-                  padding: '0.35rem 0.6rem',
-                  borderRadius: '6px',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '9999px',
+                  background: 'linear-gradient(180deg, #334155 0%, #1e293b 50%, #0f172a 100%)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  color: '#ffffff',
+                  boxShadow: '0 3px 10px rgba(15, 23, 42, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.3)',
                   whiteSpace: 'nowrap'
                 }}
                 title="Sheet Actions Menu: Save, Invoice, PDF, Print, CSV"
