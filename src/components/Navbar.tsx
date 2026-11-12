@@ -61,7 +61,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
                 objectFit: 'contain',
                 flexShrink: 0,
                 cursor: 'pointer',
-                filter: 'drop-shadow(0 2px 6px rgba(38, 29, 21, 0.2))'
+                filter: 'drop-shadow(0 2px 8px rgba(79, 70, 229, 0.2))'
               }}
             />
 
@@ -78,14 +78,16 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
                 <span
                   className="brand-badge-since"
                   style={{
-                    fontSize: '0.62rem',
-                    fontWeight: 700,
+                    fontSize: '0.64rem',
+                    fontWeight: 800,
                     textTransform: 'uppercase',
-                    backgroundColor: 'rgba(148, 163, 184, 0.15)',
-                    border: '1px solid var(--primary-300)',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
-                    color: 'var(--primary-700)',
+                    letterSpacing: '0.04em',
+                    background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+                    border: '1px solid #c7d2fe',
+                    padding: '1.5px 7px',
+                    borderRadius: '20px',
+                    color: '#4338ca',
+                    boxShadow: '0 1px 3px rgba(79, 70, 229, 0.12)',
                     whiteSpace: 'nowrap'
                   }}
                 >
