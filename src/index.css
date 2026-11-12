@@ -454,6 +454,11 @@ input[type="number"] {
   font-weight: 700;
 }
 
+/* Visibility utilities across screen sizes */
+.mobile-show {
+  display: none !important;
+}
+
 .calc-input {
   background-color: #ffffff;
   border: 1px solid var(--border-medium);
@@ -593,9 +598,9 @@ input[type="number"] {
 
   .tally-cell-input {
     width: 100% !important;
-    min-width: 32px !important;
-    max-width: 48px !important;
-    padding: 0.22rem 0.1rem !important;
+    min-width: 28px !important;
+    max-width: 44px !important;
+    padding: 0.2rem 0.05rem !important;
     font-size: 0.82rem !important;
     font-weight: 800 !important;
     text-align: center !important;
@@ -603,6 +608,20 @@ input[type="number"] {
 
   .col-hide-mobile {
     display: none !important;
+  }
+
+  .mobile-show {
+    display: block !important;
+  }
+  span.mobile-show {
+    display: inline !important;
+  }
+  div.mobile-show {
+    display: flex !important;
+  }
+  td.mobile-show,
+  th.mobile-show {
+    display: table-cell !important;
   }
 
   .quick-add-bar {
