@@ -598,12 +598,16 @@ input[type="number"] {
 
   .tally-cell-input {
     width: 100% !important;
-    min-width: 28px !important;
+    min-width: 24px !important;
     max-width: 44px !important;
-    padding: 0.2rem 0.05rem !important;
-    font-size: 0.82rem !important;
+    padding: 0.18rem 0.05rem !important;
+    font-size: 0.8rem !important;
     font-weight: 800 !important;
     text-align: center !important;
+  }
+
+  .calc-history-card {
+    padding: 0.65rem 0.5rem !important;
   }
 
   .col-hide-mobile {

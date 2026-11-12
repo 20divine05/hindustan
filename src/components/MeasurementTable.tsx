@@ -588,22 +588,36 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         <table className="calc-table">
           <thead>
             <tr>
-              <th style={{ width: '32px', textAlign: 'center' }}>#</th>
+              <th style={{ width: '24px', textAlign: 'center', padding: '0.35rem 0.05rem' }}>#</th>
               <th className="col-hide-mobile" style={{ minWidth: '115px' }}>Wood Species</th>
-              <th style={{ textAlign: 'center', width: '42px' }}>L (ft)</th>
-              <th style={{ textAlign: 'center', width: '42px' }}>W (in)</th>
-              <th style={{ textAlign: 'center', width: '42px' }}>T (in)</th>
-              <th style={{ textAlign: 'center', width: '36px' }}>Pcs</th>
-              <th style={{ textAlign: 'right' }}>
+              <th style={{ textAlign: 'center', width: '34px', padding: '0.35rem 0.05rem' }}>
+                <span className="mobile-hide">L (ft)</span>
+                <span className="mobile-show">L</span>
+              </th>
+              <th style={{ textAlign: 'center', width: '34px', padding: '0.35rem 0.05rem' }}>
+                <span className="mobile-hide">W (in)</span>
+                <span className="mobile-show">W</span>
+              </th>
+              <th style={{ textAlign: 'center', width: '34px', padding: '0.35rem 0.05rem' }}>
+                <span className="mobile-hide">T (in)</span>
+                <span className="mobile-show">T</span>
+              </th>
+              <th style={{ textAlign: 'center', width: '28px', padding: '0.35rem 0.05rem' }}>
+                <span className="mobile-hide">Pcs</span>
+                <span className="mobile-show">P</span>
+              </th>
+              <th style={{ textAlign: 'center', width: '44px', padding: '0.35rem 0.05rem' }}>
+                <span className="mobile-hide">Rate (₹)</span>
+                <span className="mobile-show">Rate</span>
+              </th>
+              <th style={{ textAlign: 'right', padding: '0.35rem 0.15rem' }}>
                 <span className="mobile-hide">Total CFT</span>
                 <span className="mobile-show">CFT / Amount</span>
               </th>
               <th className="col-hide-mobile" style={{ textAlign: 'right' }}>Total SQFT</th>
-              <th className="col-hide-mobile" style={{ textAlign: 'right' }}>Rate (₹)</th>
               <th className="col-hide-mobile" style={{ textAlign: 'right' }}>Amount (₹)</th>
-              <th style={{ width: '46px', textAlign: 'center', padding: '0.35rem 0.05rem' }}>
+              <th style={{ width: '24px', textAlign: 'center', padding: '0.35rem 0.05rem' }}>
                 <span className="mobile-hide">Action</span>
-                <span className="mobile-show">Edit</span>
               </th>
             </tr>
           </thead>
@@ -705,7 +719,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       />
                     </td>
 
-                    <td style={{ textAlign: 'center', padding: '0.25rem 0.1rem' }}>
+                    <td style={{ textAlign: 'center', padding: '0.25rem 0.05rem' }}>
                       <input
                         type="number"
                         step="1"
@@ -717,35 +731,65 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       />
                     </td>
 
+                    {/* Price Box Column (Editable Rate input on both Mobile & Desktop) */}
+                    <td style={{ textAlign: 'center', padding: '0.25rem 0.05rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          placeholder={isSqft ? '120' : `${defaultRate}`}
+                          className="calc-input tally-cell-input"
+                          value={(item.rate as any) === '' ? '' : (typeof item.rate === 'number' && item.rate > 0 ? item.rate : defaultRowRate)}
+                          onChange={(e) => handleUpdateItem(index, 'rate', e.target.value)}
+                          onBlur={() => {
+                            if ((item.rate as any) === '' || item.rate === undefined || item.rate === null) {
+                              handleUpdateItem(index, 'rate', defaultRowRate.toString());
+                            }
+                          }}
+                          style={{
+                            width: '42px',
+                            padding: '0.2rem 0.05rem',
+                            fontWeight: 800,
+                            textAlign: 'center',
+                            color: 'var(--primary-900)'
+                          }}
+                        />
+                        {w >= 7 && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPriceModal(index)}
+                            title="Width ≥ 7in: Switch between CFT & SQFT rate"
+                            style={{
+                              border: '1px solid var(--primary-400)',
+                              backgroundColor: item.rateUnit === 'CFT' ? 'var(--bg-subtle)' : 'var(--primary-100)',
+                              color: 'var(--primary-900)',
+                              fontSize: '0.55rem',
+                              fontWeight: 800,
+                              borderRadius: '3px',
+                              padding: '1px 2px',
+                              cursor: 'pointer',
+                              lineHeight: 1
+                            }}
+                          >
+                            ⚡
+                          </button>
+                        )}
+                      </div>
+                    </td>
+
                     {/* Volume & Amount stacked on Mobile (Separate CFT on Desktop) */}
-                    <td className="col-numeric col-cft" style={{ textAlign: 'right', padding: '0.25rem 0.2rem', whiteSpace: 'nowrap' }}>
+                    <td className="col-numeric col-cft" style={{ textAlign: 'right', padding: '0.25rem 0.15rem', whiteSpace: 'nowrap' }}>
                       <span className="mobile-hide" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
                         {formatValue(item.cft, 3)}
                       </span>
                       <div className="mobile-show" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.15 }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--primary-700)' }}>
                           {isSqft ? `${formatValue(item.sqft, 2)} SQFT` : `${formatValue(item.cft, 3)} CFT`}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenPriceModal(index)}
-                          title="Click to edit price / rate"
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            padding: '1px 0',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            textAlign: 'right'
-                          }}
-                        >
-                          <strong style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
-                            ₹ {formatIndianCurrency(rowAmount)}
-                          </strong>
-                          <Pencil size={10} style={{ color: 'var(--primary-700)', opacity: 0.85 }} />
-                        </button>
+                        <strong style={{ fontSize: '0.76rem', fontWeight: 900, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
+                          ₹ {formatIndianCurrency(rowAmount)}
+                        </strong>
                       </div>
                     </td>
 
@@ -754,77 +798,14 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       {formatValue(item.sqft, 2)}
                     </td>
 
-                    {/* Rate (Desktop only) */}
-                    <td className="col-hide-mobile">
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '3px' }}>
-                        <input
-                          type="number"
-                          step="any"
-                          min="0"
-                          placeholder={isSqft ? '120' : `${defaultRate}`}
-                          className="calc-input"
-                          value={(item.rate as any) === '' ? '' : (typeof item.rate === 'number' && item.rate > 0 ? item.rate : defaultRowRate)}
-                          onChange={(e) => handleUpdateItem(index, 'rate', e.target.value)}
-                          onBlur={() => {
-                            if ((item.rate as any) === '' || item.rate === undefined || item.rate === null) {
-                              handleUpdateItem(index, 'rate', defaultRowRate.toString());
-                            }
-                          }}
-                          style={{ textAlign: 'right', fontWeight: 700, color: 'var(--primary-800)', width: '60px' }}
-                        />
-                        {w >= 7 ? (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenPriceModal(index)}
-                            title="Width is ≥ 7in: Click to switch Rate in CFT or SQFT"
-                            style={{
-                              border: '1px solid var(--primary-400)',
-                              backgroundColor: item.rateUnit === 'CFT' ? 'var(--bg-subtle)' : 'var(--primary-100)',
-                              color: 'var(--primary-900)',
-                              fontSize: '0.62rem',
-                              fontWeight: 800,
-                              borderRadius: '3px',
-                              padding: '1px 3px',
-                              cursor: 'pointer',
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            {item.rateUnit === 'CFT' ? 'CFT' : 'SQFT'}⚡
-                          </button>
-                        ) : (
-                          <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 700 }}>CFT</span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Amount (Desktop only, stacked on mobile in volume cell) */}
+                    {/* Amount (Desktop only) */}
                     <td className="col-numeric col-hide-mobile" style={{ fontWeight: 800, color: 'var(--primary-800)', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: '0.86rem', padding: '0.25rem 0.15rem' }}>
                       ₹ {formatIndianCurrency(rowAmount)}
                     </td>
 
-                    {/* Action (Edit Price & Delete) */}
-                    <td style={{ textAlign: 'center', padding: '0.2rem 0.05rem', width: '46px' }}>
+                    {/* Action (Delete) */}
+                    <td style={{ textAlign: 'center', padding: '0.2rem 0.05rem', width: '24px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.15rem' }}>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          title="Edit Price & Rate"
-                          onClick={() => handleOpenPriceModal(index)}
-                          style={{
-                            padding: 0,
-                            color: 'var(--primary-800)',
-                            backgroundColor: 'rgba(167, 101, 52, 0.1)',
-                            minWidth: 0,
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '3px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          <Pencil size={11} />
-                        </button>
                         <button
                           type="button"
                           className="btn btn-ghost btn-sm col-hide-mobile"
@@ -842,17 +823,15 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                           style={{
                             padding: 0,
                             color: 'var(--danger-500, #dc2626)',
-                            backgroundColor: 'rgba(220, 38, 38, 0.08)',
                             minWidth: 0,
                             width: '20px',
                             height: '20px',
-                            borderRadius: '3px',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center'
                           }}
                         >
-                          <Trash2 size={11} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </td>
@@ -871,25 +850,23 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                 <td className="mobile-hide" colSpan={5} style={{ textAlign: 'right', padding: '0.5rem 0.5rem', color: 'var(--text-main)', fontSize: '0.85rem', textTransform: 'uppercase' }}>
                   Total:
                 </td>
-                <td style={{ textAlign: 'center', padding: '0.35rem 0.1rem', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '0.78rem' }}>
+                <td style={{ textAlign: 'center', padding: '0.35rem 0.05rem', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '0.78rem' }}>
                   {totals.totalPieces}<span className="mobile-hide"> pcs</span>
                 </td>
-                <td className="col-numeric col-cft" style={{ textAlign: 'right', padding: '0.35rem 0.2rem', whiteSpace: 'nowrap' }}>
+                <td></td>
+                <td className="col-numeric col-cft" style={{ textAlign: 'right', padding: '0.35rem 0.15rem', whiteSpace: 'nowrap' }}>
                   <span className="mobile-hide" style={{ fontWeight: 800, fontSize: '0.88rem' }}>{formatValue(totals.totalCft, 3)}</span>
                   <div className="mobile-show" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.15 }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--primary-700)' }}>
                       {formatValue(totals.totalCft, 3)} CFT
                     </span>
-                    <strong style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
+                    <strong style={{ fontSize: '0.76rem', fontWeight: 900, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
                       ₹ {formatIndianCurrency(totals.totalAmount || 0)}
                     </strong>
                   </div>
                 </td>
                 <td className="col-numeric col-sqft col-hide-mobile" style={{ padding: '0.5rem 0.4rem', fontWeight: 800, fontSize: '0.88rem' }}>
                   {formatValue(totals.totalSqft, 2)}
-                </td>
-                <td className="col-hide-mobile" style={{ textAlign: 'right', padding: '0.5rem 0.4rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                  Total:
                 </td>
                 <td className="col-numeric col-hide-mobile" style={{ padding: '0.4rem 0.2rem', color: 'var(--primary-800)', fontSize: '0.92rem', fontWeight: 900, whiteSpace: 'nowrap' }}>
                   ₹ {formatIndianCurrency(totals.totalAmount || 0)}

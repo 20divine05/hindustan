@@ -234,7 +234,9 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
             </button>
           </div>
         ) : (
-          <div className="table-responsive">
+          <>
+            <div className="mobile-hide">
+              <div className="table-responsive">
             <table className="calc-table">
               <thead>
                 <tr>
@@ -437,7 +439,210 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+
+        {/* Mobile Cards View (Fits 100% Mobile Screen, Zero Horizontal Scroll) */}
+        <div className="mobile-show" style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          {sortedSheets.map((sheet, index) => (
+            <div
+              key={sheet.id}
+              style={{
+                backgroundColor: '#fff',
+                border: '1px solid var(--border-medium)',
+                borderRadius: '10px',
+                padding: '0.75rem',
+                boxShadow: 'var(--shadow-xs)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.45rem'
+              }}
+            >
+              {/* Header: Sheet Name, Ref & Date */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {editingSheet?.id === sheet.id ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                      <input
+                        type="text"
+                        value={editingSheet.name}
+                        onChange={(e) => setEditingSheet({ ...editingSheet, name: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenameSubmit(sheet.id, editingSheet.name);
+                          if (e.key === 'Escape') setEditingSheet(null);
+                        }}
+                        autoFocus
+                        style={{ fontSize: '0.85rem', padding: '0.2rem 0.4rem', width: '100%' }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        style={{ padding: '2px 6px', fontSize: '0.72rem' }}
+                        onClick={() => handleRenameSubmit(sheet.id, editingSheet.name)}
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ padding: '2px 4px', fontSize: '0.72rem' }}
+                        onClick={() => setEditingSheet(null)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)' }}>
+                        #{index + 1}
+                      </span>
+                      <strong
+                        style={{
+                          fontSize: '0.9rem',
+                          color: 'var(--text-main)',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                        onClick={async () => {
+                          const full = await dbService.getSheetById(sheet.id, user?.id || '');
+                          if (full) onOpenSheet(full);
+                        }}
+                      >
+                        {sheet.sheetName}
+                      </strong>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ padding: '2px', color: 'var(--text-subtle)' }}
+                        title="Rename sheet"
+                        onClick={() => setEditingSheet({ id: sheet.id, name: sheet.sheetName })}
+                      >
+                        <Edit2 size={11} />
+                      </button>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>{sheet.referenceNumber || 'NO-REF'}</span>
+                    <span>•</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                      <User size={11} color="var(--primary-600)" />
+                      {sheet.customerName || 'Direct Customer'}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                  <Calendar size={11} /> {sheet.measurementDate}
+                </div>
+              </div>
+
+              {/* Totals Summary Row */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: 'var(--bg-subtle, #fbf7ee)',
+                borderRadius: '6px',
+                padding: '0.35rem 0.55rem',
+                fontSize: '0.78rem',
+                fontWeight: 700
+              }}>
+                <span style={{ color: 'var(--text-main)' }}>
+                  {sheet.totalEntries || 0} rows • {formatCompact(sheet.totalPieces)} pcs
+                </span>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <span style={{ color: 'var(--primary-800)', fontWeight: 800 }}>
+                    {formatValue(sheet.totalCft, 3)} CFT
+                  </span>
+                  <span style={{ color: '#b45309' }}>
+                    {formatValue(sheet.totalSqft, 2)} SQFT
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions Row */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.35rem', paddingTop: '0.2rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 800, flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
+                  onClick={async () => {
+                    const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
+                    onOpenSheet(full || sheet);
+                  }}
+                >
+                  <ExternalLink size={13} /> Open
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    title="Export PDF"
+                    style={{ padding: '0.35rem 0.5rem' }}
+                    onClick={async () => {
+                      const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
+                      exportSheetToPdf(full || sheet, businessSettings);
+                    }}
+                  >
+                    <FileDown size={13} />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    title="Proforma Invoice"
+                    style={{ padding: '0.35rem 0.5rem', color: '#059669' }}
+                    onClick={async () => {
+                      const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
+                      setProformaSheet(full || sheet);
+                    }}
+                  >
+                    <FileText size={13} />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    title="Export CSV"
+                    style={{ padding: '0.35rem 0.5rem' }}
+                    onClick={async () => {
+                      const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
+                      exportSheetToCsv(full || sheet, businessSettings);
+                    }}
+                  >
+                    <Share2 size={13} />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    title="Duplicate"
+                    style={{ padding: '0.35rem 0.5rem' }}
+                    onClick={() => handleDuplicate(sheet.id)}
+                  >
+                    <Copy size={13} />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    title="Delete"
+                    style={{ padding: '0.35rem 0.5rem', color: 'var(--danger-500, #dc2626)' }}
+                    onClick={() => setSheetToDelete(sheet)}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </>
+    )}
       </div>
 
       {/* Delete Sheet Confirmation Modal */}
