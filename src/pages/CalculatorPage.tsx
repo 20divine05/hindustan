@@ -1887,12 +1887,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Live Subtotal Display */}
-            <div className="calc-subtotal-banner" style={{ padding: '0.45rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className="calc-subtotal-label" style={{ fontSize: '0.8rem', fontWeight: 700, margin: 0 }}>
-                Subtotal (Timber + Services):
+            <div className="calc-subtotal-banner" style={{ padding: '0.45rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap', gap: '0.5rem' }}>
+              <span className="calc-subtotal-label" style={{ fontSize: '0.82rem', fontWeight: 700, margin: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                Subtotal <span className="mobile-hide">(Timber + Services)</span>:
               </span>
-              <span className="calc-subtotal-val" style={{ fontSize: '1.05rem', fontWeight: 800 }}>
-                ₹ {formatIndianCurrency(subtotalWithCharges)}
+              <span className="calc-subtotal-val" style={{ fontSize: '0.98rem', fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                ₹&nbsp;{formatIndianCurrency(subtotalWithCharges)}
               </span>
             </div>
 

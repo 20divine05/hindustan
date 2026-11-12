@@ -2114,23 +2114,37 @@ input[type="number"] {
 /* 7. Step 4 GST & Discount Elements */
 .calc-subtotal-banner {
   background: var(--bg-subtle, #f8fafc);
-  padding: 0.6rem 0.85rem;
-  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-medium);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  gap: 0.5rem;
 }
 
 .calc-subtotal-label {
-  font-size: 0.76rem;
+  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--text-muted);
+  white-space: nowrap !important;
+  flex-shrink: 0;
 }
 
 .calc-subtotal-val {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: var(--text-main);
+  white-space: nowrap !important;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .calc-subtotal-val {
+    font-size: 0.95rem !important;
+  }
 }
 
 .calc-subtotal-breakdown {
