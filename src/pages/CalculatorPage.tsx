@@ -1582,9 +1582,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   </p>
                 </div>
 
-                <div className="calc-step2-actions-block" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span className="badge calc-step2-total-badge" style={{ backgroundColor: 'var(--primary-100)', color: 'var(--primary-800)', border: '1px solid var(--primary-200)', fontSize: '0.78rem', padding: '0.3rem 0.65rem', fontWeight: 700 }}>
-                    {customerName ? `${customerName} • ` : ''}Total: {formatValue(totals.totalCft, 3)} CFT &bull; ₹ {formatIndianCurrency(totals.totalAmount || 0)}
+                <div className="calc-step2-actions-block" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%', justifyContent: 'space-between' }}>
+                  <span className="badge calc-step2-total-badge" style={{ backgroundColor: 'var(--primary-100)', color: 'var(--primary-800)', border: '1px solid var(--primary-200)', fontSize: '0.74rem', padding: '0.22rem 0.5rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                    <span className="mobile-hide">{customerName ? `${customerName} • ` : ''}</span>
+                    Total: {formatValue(totals.totalCft, 3)} CFT &bull; ₹ {formatIndianCurrency(totals.totalAmount || 0)}
                   </span>
 
                   <button
@@ -1594,10 +1595,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       if (items.length > 0 && !window.confirm('Start a new clean sheet?')) return;
                       handleNewCleanSheet();
                     }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', fontWeight: 700 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.74rem', fontWeight: 700, padding: '0.22rem 0.55rem', whiteSpace: 'nowrap' }}
                   >
-                    <FilePlus size={14} color="var(--primary-600)" />
-                    <span>New Sheet</span>
+                    <FilePlus size={13} color="var(--primary-600)" />
+                    <span className="mobile-hide">New Sheet</span>
+                    <span className="mobile-show">New</span>
                   </button>
                 </div>
               </div>
