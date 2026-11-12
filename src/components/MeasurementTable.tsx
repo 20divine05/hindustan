@@ -766,23 +766,24 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                     backgroundColor: 'var(--bg-card, #ffffff)',
                     border: '1.5px solid var(--border-medium, #c2b59b)',
                     borderRadius: '8px',
-                    padding: '0.65rem 0.75rem',
+                    padding: '0.45rem 0.6rem',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '0.5rem',
+                    gap: '0.35rem',
                     boxShadow: 'var(--shadow-sm)'
                   }}
                 >
-                  {/* Row Top: Serial Number, Wood Species, and Delete/Duplicate buttons */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flex: 1, minWidth: 0 }}>
+                  {/* Row 1: Serial #, Wood Species, Live Volume & Amount, Actions */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.35rem', width: '100%' }}>
+                    {/* Left: #Number & Wood Species */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
                       <span
                         style={{
                           backgroundColor: 'var(--primary-700)',
                           color: '#fff',
-                          fontSize: '0.75rem',
+                          fontSize: '0.72rem',
                           fontWeight: 800,
-                          padding: '2px 7px',
+                          padding: '1px 5px',
                           borderRadius: '4px'
                         }}
                       >
@@ -792,15 +793,14 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         value={item.woodType || selectedWoodOption || 'Mahagony'}
                         onChange={(e) => handleUpdateItem(index, 'woodType', e.target.value)}
                         style={{
-                          fontSize: '0.8rem',
+                          fontSize: '0.78rem',
                           fontWeight: 700,
-                          padding: '0.25rem 0.4rem',
+                          padding: '0.2rem 0.35rem',
                           borderRadius: '4px',
                           border: '1px solid var(--border-medium)',
                           backgroundColor: 'var(--bg-subtle)',
                           color: 'var(--text-main)',
-                          flex: 1,
-                          minWidth: 0
+                          maxWidth: '105px'
                         }}
                       >
                         {WOOD_SPECIES_OPTIONS.map((sp) => (
@@ -811,98 +811,139 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       </select>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                    {/* Middle: Calculated Volume & Amount */}
+                    <div style={{ textAlign: 'right', flex: 1, minWidth: 0, overflow: 'hidden', paddingRight: '0.2rem' }}>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary-700)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', lineHeight: 1.2 }}>
+                        {isSqft ? `${formatValue(item.sqft, 2)} SQFT` : `${formatValue(item.cft, 3)} CFT`}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+                        ₹ {formatIndianCurrency(rowAmount)}
+                      </div>
+                    </div>
+
+                    {/* Right: Actions */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', flexShrink: 0 }}>
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
                         onClick={() => handleDuplicateRow(index)}
-                        style={{ padding: '4px' }}
+                        style={{ padding: '3px' }}
                         title="Duplicate row"
                       >
-                        <Copy size={15} />
+                        <Copy size={14} />
                       </button>
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
                         onClick={() => handleDeleteRow(index)}
-                        style={{ padding: '4px', color: 'var(--danger-400)' }}
+                        style={{ padding: '3px', color: 'var(--danger-400)' }}
                         title="Delete row"
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
 
-                  {/* Row Inputs: 4 Big Thumb-Friendly Number Inputs */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto 1fr auto 1fr', alignItems: 'center', gap: '0.25rem' }}>
+                  {/* Row 2: 5 Dimension & Rate Inputs in 1 Single Row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 0.9fr 1.25fr', alignItems: 'flex-end', gap: '0.25rem', width: '100%' }}>
                     <div>
-                      <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>
-                        Length (ft)
+                      <label style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', textAlign: 'center', marginBottom: '2px' }}>
+                        Length
                       </label>
                       <input
                         type="number"
                         step="any"
                         min="0"
-                        placeholder="ft"
+                        placeholder=""
                         value={item.lengthFeet}
                         onChange={(e) => handleUpdateItem(index, 'lengthFeet', e.target.value)}
-                        style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, textAlign: 'center', padding: '0.35rem 0.2rem' }}
+                        style={{ width: '100%', fontSize: '0.88rem', fontWeight: 800, textAlign: 'center', padding: '0.3rem 0.15rem' }}
                       />
                     </div>
-                    <span style={{ fontWeight: 800, color: 'var(--text-muted)', marginTop: '0.8rem' }}>&times;</span>
 
                     <div>
-                      <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>
-                        Width (in)
+                      <label style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', textAlign: 'center', marginBottom: '2px' }}>
+                        Width
                       </label>
                       <input
                         type="number"
                         step="any"
                         min="0"
-                        placeholder="in"
+                        placeholder=""
                         value={item.widthInches}
                         onChange={(e) => handleUpdateItem(index, 'widthInches', e.target.value)}
-                        style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, textAlign: 'center', padding: '0.35rem 0.2rem' }}
+                        style={{ width: '100%', fontSize: '0.88rem', fontWeight: 800, textAlign: 'center', padding: '0.3rem 0.15rem' }}
                       />
                     </div>
-                    <span style={{ fontWeight: 800, color: 'var(--text-muted)', marginTop: '0.8rem' }}>&times;</span>
 
                     <div>
-                      <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>
-                        Thick (in)
+                      <label style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', textAlign: 'center', marginBottom: '2px' }}>
+                        Thick
                       </label>
                       <input
                         type="number"
                         step="any"
                         min="0"
-                        placeholder="in"
+                        placeholder=""
                         value={item.thicknessInches}
                         onChange={(e) => handleUpdateItem(index, 'thicknessInches', e.target.value)}
-                        style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, textAlign: 'center', padding: '0.35rem 0.2rem' }}
+                        style={{ width: '100%', fontSize: '0.88rem', fontWeight: 800, textAlign: 'center', padding: '0.3rem 0.15rem' }}
                       />
                     </div>
-                    <span style={{ fontWeight: 800, color: 'var(--text-muted)', marginTop: '0.8rem' }}>&times;</span>
 
                     <div>
-                      <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>
+                      <label style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', textAlign: 'center', marginBottom: '2px' }}>
                         Pieces
                       </label>
                       <input
                         type="number"
                         step="1"
                         min="1"
-                        placeholder="pcs"
+                        placeholder=""
                         value={item.pieces}
                         onChange={(e) => handleUpdateItem(index, 'pieces', e.target.value)}
-                        style={{ width: '100%', fontSize: '0.95rem', fontWeight: 800, textAlign: 'center', padding: '0.35rem 0.2rem' }}
+                        style={{ width: '100%', fontSize: '0.88rem', fontWeight: 800, textAlign: 'center', padding: '0.3rem 0.15rem' }}
                       />
                     </div>
-                  </div>
 
-                  {/* Row Bottom: Live Volume & Amount calculation */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-subtle, #faf6ee)', padding: '0.3rem 0.5rem', borderRadius: '4px', fontSize: '0.78rem' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                      Rate: ₹
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', marginBottom: '2px' }}>
+                        <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                          Rate
+                        </span>
+                        {w >= 7 ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setModalRateUnit(item.rateUnit === 'CFT' ? 'CFT' : 'SQFT');
+                              if (item.rateUnit === 'CFT') {
+                                setModalRateCft(item.rate ? item.rate.toString() : defaultRate.toString());
+                                setModalRateSqft('120');
+                              } else {
+                                setModalRateSqft(item.rate ? item.rate.toString() : '120');
+                                setModalRateCft(defaultRate.toString());
+                              }
+                              setWidthModalRowIndex(index);
+                            }}
+                            style={{
+                              border: '1px solid var(--primary-400)',
+                              backgroundColor: item.rateUnit === 'CFT' ? 'var(--bg-subtle)' : 'var(--primary-100)',
+                              color: 'var(--primary-900)',
+                              fontSize: '0.58rem',
+                              fontWeight: 800,
+                              borderRadius: '3px',
+                              padding: '0 2px',
+                              cursor: 'pointer',
+                              lineHeight: 1
+                            }}
+                            title="Click to switch SQFT / CFT"
+                          >
+                            {item.rateUnit === 'CFT' ? 'CFT' : 'SQFT'}⚡
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 700 }}>CFT</span>
+                        )}
+                      </div>
                       <input
                         type="number"
                         value={(item.rate as any) === '' ? '' : (typeof item.rate === 'number' && item.rate > 0 ? item.rate : defaultRowRate)}
@@ -912,49 +953,9 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                             handleUpdateItem(index, 'rate', defaultRowRate.toString());
                           }
                         }}
-                        placeholder={isSqft ? '120' : `${defaultRate}`}
-                        style={{ width: '60px', fontSize: '0.82rem', fontWeight: 700, padding: '2px 4px', textAlign: 'right' }}
+                        placeholder=""
+                        style={{ width: '100%', fontSize: '0.88rem', fontWeight: 800, textAlign: 'center', padding: '0.3rem 0.15rem' }}
                       />
-                      {w >= 7 ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setModalRateUnit(item.rateUnit === 'CFT' ? 'CFT' : 'SQFT');
-                            if (item.rateUnit === 'CFT') {
-                              setModalRateCft(item.rate ? item.rate.toString() : defaultRate.toString());
-                              setModalRateSqft('120');
-                            } else {
-                              setModalRateSqft(item.rate ? item.rate.toString() : '120');
-                              setModalRateCft(defaultRate.toString());
-                            }
-                            setWidthModalRowIndex(index);
-                          }}
-                          style={{
-                            border: '1px solid var(--primary-400)',
-                            backgroundColor: item.rateUnit === 'CFT' ? 'var(--bg-subtle)' : 'var(--primary-100)',
-                            color: 'var(--primary-900)',
-                            fontSize: '0.65rem',
-                            fontWeight: 800,
-                            borderRadius: '3px',
-                            padding: '1px 4px',
-                            cursor: 'pointer'
-                          }}
-                          title="Width is ≥ 7in: Click to switch between SQFT and CFT pricing"
-                        >
-                          {item.rateUnit === 'CFT' ? 'CFT' : 'SQFT'} ⚡
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700 }}>CFT</span>
-                      )}
-                    </span>
-                    <div>
-                      <span style={{ fontWeight: 800, color: 'var(--primary-700)' }}>
-                        {isSqft ? `${formatValue(item.sqft, 2)} SQFT` : `${formatValue(item.cft, 3)} CFT`}
-                      </span>
-                      <span style={{ margin: '0 0.35rem', color: 'var(--border-medium)' }}>|</span>
-                      <strong style={{ color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
-                        ₹ {formatIndianCurrency(rowAmount)}
-                      </strong>
                     </div>
                   </div>
                 </div>
