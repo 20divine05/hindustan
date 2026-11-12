@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Trash2, Copy, AlertCircle, CornerDownLeft, X, ArrowUpDown } from 'lucide-react';
+import { Plus, Trash2, Copy, AlertCircle, CornerDownLeft, X } from 'lucide-react';
 import type { MeasurementItem } from '../types';
 import { calculateRow, calculateTotals, formatValue, sortTimberEntries } from '../utils/calculator';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
@@ -257,27 +257,33 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
         <div className="quick-add-dims">
           <div className="quick-dim-col">
-            <label className="quick-dim-label">Length (ft)</label>
+            <label className="quick-dim-label">
+              <span className="dim-label-desktop">Length (ft)</span>
+              <span className="dim-label-mobile">Length</span>
+            </label>
             <input
               ref={lengthInputRef}
               type="number"
               step="any"
               min="0"
-              placeholder="10"
+              placeholder=""
               className="calc-input"
               value={quickLength}
               onChange={(e) => setQuickLength(e.target.value)}
               required
             />
           </div>
-          <span className="quick-dim-mult">&times;</span>
+
           <div className="quick-dim-col">
-            <label className="quick-dim-label">Width (in)</label>
+            <label className="quick-dim-label">
+              <span className="dim-label-desktop">Width (in)</span>
+              <span className="dim-label-mobile">Width</span>
+            </label>
             <input
               type="number"
               step="any"
               min="0"
-              placeholder="5"
+              placeholder=""
               className="calc-input"
               value={quickWidth}
               onChange={(e) => {
@@ -293,216 +299,208 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               required
             />
           </div>
-          <span className="quick-dim-mult">&times;</span>
+
           <div className="quick-dim-col">
-            <label className="quick-dim-label">Thick (in)</label>
+            <label className="quick-dim-label">
+              <span className="dim-label-desktop">Thick (in)</span>
+              <span className="dim-label-mobile">Thick</span>
+            </label>
             <input
               type="number"
               step="any"
               min="0"
-              placeholder="3"
+              placeholder=""
               className="calc-input"
               value={quickThickness}
               onChange={(e) => setQuickThickness(e.target.value)}
               required
             />
           </div>
-          <span className="quick-dim-mult">&times;</span>
+
           <div className="quick-dim-col">
-            <label className="quick-dim-label">Pieces</label>
+            <label className="quick-dim-label">
+              <span className="dim-label-desktop">Pieces</span>
+              <span className="dim-label-mobile">Pieces</span>
+            </label>
             <input
               type="number"
               step="1"
               min="1"
-              placeholder="1"
+              placeholder=""
               className="calc-input"
               value={quickPieces}
               onChange={(e) => setQuickPieces(e.target.value)}
               required
             />
           </div>
-          <span className="quick-dim-mult quick-dim-mult-rate">@</span>
-          {wVal >= 7 ? (
-            <div className="quick-dim-rate-block quick-dim-rate-split">
-              <div className="quick-dim-col">
-                <label className="quick-dim-label" style={{ color: quickRateUnit === 'SQFT' ? 'var(--primary-800)' : 'var(--text-muted)', fontWeight: 800 }}>
-                  ₹ / SQFT {quickRateUnit === 'SQFT' && '●'}
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  placeholder="120"
-                  className="calc-input"
-                  value={quickRateSqft}
-                  onFocus={() => {
-                    setQuickRateUnit('SQFT');
+
+          <div className="quick-dim-col quick-dim-col-rate">
+            <label className="quick-dim-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+              <span className="dim-label-desktop">
+                {wVal >= 7 ? `Rate (${quickRateUnit})` : 'Rate (₹)'}
+              </span>
+              <span className="dim-label-mobile">
+                {wVal >= 7 ? `${quickRateUnit}` : 'Rate'}
+              </span>
+              {wVal >= 7 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setQuickRateUnit(prev => (prev === 'SQFT' ? 'CFT' : 'SQFT'));
                   }}
-                  onChange={(e) => {
-                    setQuickRateSqft(e.target.value);
-                    setQuickRateUnit('SQFT');
-                    setQuickRateCft('');
-                  }}
+                  className="rate-unit-toggle-btn"
+                  title="Switch between SQFT and CFT rate"
                   style={{
+                    fontSize: '0.65rem',
+                    padding: '0 3px',
+                    borderRadius: '3px',
+                    border: '1px solid var(--primary-400)',
+                    background: 'var(--primary-100)',
+                    color: 'var(--primary-800)',
+                    cursor: 'pointer',
                     fontWeight: 700,
-                    borderColor: quickRateUnit === 'SQFT' ? 'var(--primary-600)' : undefined,
-                    backgroundColor: quickRateUnit === 'SQFT' ? 'var(--primary-50, #fcf9f2)' : undefined
+                    lineHeight: '1.2'
                   }}
-                  title="Width is ≥ 7in: Enter Rate in SQFT"
-                />
-              </div>
-              <div className="quick-dim-col">
-                <label className="quick-dim-label" style={{ color: quickRateUnit === 'CFT' ? 'var(--primary-800)' : 'var(--text-muted)', fontWeight: 800 }}>
-                  ₹ / CFT {quickRateUnit === 'CFT' && '●'}
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  placeholder="1200"
-                  className="calc-input"
-                  value={quickRateCft}
-                  onFocus={() => {
-                    setQuickRateUnit('CFT');
-                  }}
-                  onChange={(e) => {
-                    setQuickRateCft(e.target.value);
-                    setQuickRateUnit('CFT');
-                    setQuickRateSqft('');
-                  }}
-                  style={{
-                    fontWeight: 700,
-                    borderColor: quickRateUnit === 'CFT' ? 'var(--primary-600)' : undefined,
-                    backgroundColor: quickRateUnit === 'CFT' ? 'var(--primary-50, #fcf9f2)' : undefined
-                  }}
-                  title="Width is ≥ 7in: Enter Rate in CFT"
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="quick-dim-rate-block quick-dim-rate-single">
-              <div className="quick-dim-col quick-dim-rate">
-                <label className="quick-dim-label">Rate / CFT (₹)</label>
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  placeholder="1200"
-                  className="calc-input"
-                  value={quickRate}
-                  onChange={(e) => {
-                    setQuickRate(e.target.value);
-                    setQuickRateCft(e.target.value);
-                  }}
-                  style={{ fontWeight: 700, color: 'var(--primary-800)' }}
-                />
-              </div>
-            </div>
-          )}
+                >
+                  ⇄
+                </button>
+              )}
+            </label>
+            <input
+              type="number"
+              step="any"
+              min="0"
+              placeholder=""
+              className="calc-input"
+              value={wVal >= 7 ? (quickRateUnit === 'SQFT' ? quickRateSqft : (quickRateCft || quickRate)) : quickRate}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (wVal >= 7) {
+                  if (quickRateUnit === 'SQFT') {
+                    setQuickRateSqft(val);
+                  } else {
+                    setQuickRateCft(val);
+                    setQuickRate(val);
+                  }
+                } else {
+                  setQuickRate(val);
+                  setQuickRateCft(val);
+                }
+              }}
+              style={{ fontWeight: 700, color: 'var(--primary-800)', textAlign: 'center' }}
+            />
+          </div>
         </div>
 
         <div className="quick-add-row-bottom">
-          <div className="quick-add-species" style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexWrap: 'wrap', flex: 1 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', minWidth: '160px', flex: 1 }}>
-              <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                Wood Species:
-              </label>
-              <select
-                className="calc-input"
-                value={selectedWoodOption}
-                onChange={(e) => {
-                  setSelectedWoodOption(e.target.value);
-                }}
-                style={{
-                  fontWeight: 800,
-                  color: 'var(--primary-800)',
-                  fontSize: '0.88rem',
-                  padding: '0.45rem 0.65rem',
-                  cursor: 'pointer',
-                  backgroundColor: 'var(--bg-surface, #ffffff)',
-                  border: '1.5px solid var(--primary-300, #c4a47c)'
-                }}
-              >
-                {WOOD_SPECIES_OPTIONS.map((species) => (
-                  <option key={species} value={species}>
-                    🪵 {species}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {selectedWoodOption === 'Other (Custom...)' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', minWidth: '150px', flex: 1 }}>
-                <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  Custom Name:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Wood Species Name"
-                  value={customWoodType}
-                  onChange={(e) => {
-                    setCustomWoodType(e.target.value);
-                  }}
-                  style={{ fontSize: '0.85rem', padding: '0.45rem 0.65rem', fontWeight: 700 }}
-                  autoFocus
-                />
-              </div>
-            )}
-          </div>
-
-          {liveCft > 0 && (
-            <div
-              className="quick-add-live-est"
+          <div className="quick-add-species">
+            <select
+              className="calc-input"
+              value={selectedWoodOption}
+              onChange={(e) => {
+                setSelectedWoodOption(e.target.value);
+              }}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                backgroundColor: 'var(--primary-50, #fcf9f2)',
-                border: '1px solid var(--primary-200)',
-                borderRadius: '6px',
-                padding: '0.35rem 0.65rem',
-                fontSize: '0.8rem'
+                fontWeight: 800,
+                color: 'var(--primary-800)',
+                fontSize: '0.85rem',
+                padding: '0.4rem 0.45rem',
+                cursor: 'pointer',
+                backgroundColor: 'var(--bg-surface, #ffffff)',
+                border: '1.5px solid var(--primary-300, #c4a47c)',
+                width: '100%',
+                height: '38px',
+                borderRadius: '6px'
               }}
             >
-              <span style={{ color: 'var(--text-muted)' }}>Estimated:</span>
-              <strong style={{ color: 'var(--primary-800)' }}>
-                {isQuickSqft ? `${formatValue(liveSqft, 2)} SQFT` : `${formatValue(liveCft, 3)} CFT`}
-              </strong>
-              {liveAmount > 0 && (
-                <>
-                  <span style={{ color: 'var(--text-subtle)' }}>&bull;</span>
-                  <strong style={{ color: 'var(--primary-700)', fontFamily: 'var(--font-mono)' }}>
-                    ₹ {formatIndianCurrency(liveAmount)}
-                  </strong>
-                </>
-              )}
-            </div>
-          )}
+              {WOOD_SPECIES_OPTIONS.map((species) => (
+                <option key={species} value={species}>
+                  🪵 {species}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <div className="quick-add-actions">
-            <button type="submit" className="btn btn-primary btn-sm" title="Add measurement row (Enter)">
-              <Plus size={16} /> Add Row
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={handleAddEmptyRow}
-              title="Add empty blank row"
-            >
-              Blank Row
-            </button>
-            {items.length > 1 && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => onChange(sortTimberEntries(items))}
-                title="Sort all rows strictly by Wood Species & Standard Mill Dimensions"
-              >
-                <ArrowUpDown size={14} /> Sort Order
-              </button>
+          <button
+            type="submit"
+            className="btn btn-primary btn-sm quick-add-btn"
+            title="Add measurement row (Enter)"
+            style={{
+              height: '38px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.25rem',
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Plus size={15} /> <span>Add Row</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm quick-blank-btn"
+            onClick={handleAddEmptyRow}
+            title="Add empty blank row"
+            style={{
+              height: '38px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <span>Blank Row</span>
+          </button>
+        </div>
+
+        {selectedWoodOption === 'Other (Custom...)' && (
+          <div style={{ marginTop: '0.35rem' }}>
+            <input
+              type="text"
+              placeholder=""
+              value={customWoodType}
+              onChange={(e) => setCustomWoodType(e.target.value)}
+              style={{ fontSize: '0.85rem', padding: '0.4rem 0.6rem', fontWeight: 700, width: '100%' }}
+              autoFocus
+            />
+          </div>
+        )}
+
+        {liveCft > 0 && (
+          <div
+            className="quick-add-live-est"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              backgroundColor: 'var(--primary-50, #fcf9f2)',
+              border: '1px solid var(--primary-200)',
+              borderRadius: '6px',
+              padding: '0.3rem 0.6rem',
+              fontSize: '0.78rem',
+              marginTop: '0.3rem'
+            }}
+          >
+            <span style={{ color: 'var(--text-muted)' }}>Estimated:</span>
+            <strong style={{ color: 'var(--primary-800)' }}>
+              {isQuickSqft ? `${formatValue(liveSqft, 2)} SQFT` : `${formatValue(liveCft, 3)} CFT`}
+            </strong>
+            {liveAmount > 0 && (
+              <>
+                <span style={{ color: 'var(--text-subtle)' }}>&bull;</span>
+                <strong style={{ color: 'var(--primary-700)', fontFamily: 'var(--font-mono)' }}>
+                  ₹ {formatIndianCurrency(liveAmount)}
+                </strong>
+              </>
             )}
           </div>
-        </div>
+        )}
       </form>
 
       {quickError && (
