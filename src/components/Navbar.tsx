@@ -81,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
                     fontSize: '0.62rem',
                     fontWeight: 700,
                     textTransform: 'uppercase',
-                    backgroundColor: 'rgba(140, 84, 43, 0.12)',
+                    backgroundColor: 'rgba(148, 163, 184, 0.15)',
                     border: '1px solid var(--primary-300)',
                     padding: '1px 5px',
                     borderRadius: '4px',
@@ -116,7 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
                     fontSize: '0.78rem',
                     padding: '0.35rem 0.55rem',
                     borderRadius: '6px',
-                    backgroundColor: 'var(--bg-subtle, #f5efe6)',
+                    backgroundColor: 'var(--bg-subtle, #f1f5f9)',
                     border: '1px solid var(--border-medium)',
                     whiteSpace: 'nowrap'
                   }}

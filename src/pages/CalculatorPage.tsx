@@ -1409,7 +1409,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       right: 0,
                       zIndex: 99,
                       backgroundColor: 'var(--bg-card, #ffffff)',
-                      border: '1px solid var(--border-medium, #c2b59b)',
+                      border: '1px solid var(--border-medium, #cbd5e1)',
                       borderRadius: '6px',
                       boxShadow: '0 8px 24px rgba(0, 0, 0, 0.16)',
                       maxHeight: '200px',
@@ -1417,14 +1417,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       marginTop: '4px'
                     }}
                   >
-                    <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #f5efe6)', borderBottom: '1px solid var(--border-light)' }}>
+                    <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #f1f5f9)', borderBottom: '1px solid var(--border-light)' }}>
                       Saved Customers (Click to auto-fill)
                     </div>
                     {customerSuggestions.map((c, i) => (
                       <div
                         key={i}
                         onMouseDown={() => handleSelectCustomer(c)}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--primary-50, #fcf7f0)')}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--primary-50, #f1f5f9)')}
                         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                         style={{
                           padding: '0.5rem 0.65rem',

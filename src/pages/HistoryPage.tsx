@@ -544,7 +544,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                backgroundColor: 'var(--bg-subtle, #fbf7ee)',
+                backgroundColor: 'var(--bg-subtle, #f8fafc)',
                 borderRadius: '6px',
                 padding: '0.35rem 0.55rem',
                 fontSize: '0.78rem',

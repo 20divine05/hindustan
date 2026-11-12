@@ -844,7 +844,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
           {items.length > 0 && (
             <tfoot>
-              <tr style={{ backgroundColor: 'var(--bg-subtle, #faf6ee)', fontWeight: 800, borderTop: '2px solid var(--border-medium)' }}>
+              <tr style={{ backgroundColor: 'var(--bg-subtle, #f1f5f9)', fontWeight: 800, borderTop: '2px solid var(--border-medium)' }}>
                 <td className="mobile-show" colSpan={4} style={{ textAlign: 'right', padding: '0.35rem 0.2rem', color: 'var(--text-main)', fontSize: '0.74rem', textTransform: 'uppercase' }}>
                   Total:
                 </td>
@@ -898,7 +898,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: '#e5dac7',
+              backgroundColor: 'var(--bg-subtle, #f1f5f9)',
               padding: '0.35rem 0.5rem',
               borderRadius: '6px',
               fontSize: '0.68rem',
@@ -1101,7 +1101,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              backgroundColor: 'var(--bg-subtle, #faf6ee)',
+              backgroundColor: 'var(--bg-subtle, #f8fafc)',
               border: '1.5px solid var(--border-medium)',
               borderRadius: '8px',
               padding: '0.45rem 0.65rem',
@@ -1138,7 +1138,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            backgroundColor: 'var(--bg-subtle, #faf6ee)',
+            backgroundColor: 'var(--bg-subtle, #f8fafc)',
             border: '1.5px solid var(--border-medium)',
             padding: '0.45rem 0.75rem',
             fontSize: '0.82rem',
@@ -1208,8 +1208,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
               {/* Row Specs summary banner */}
               <div style={{
-                backgroundColor: 'var(--bg-subtle, #fbf7ee)',
-                border: '1px solid var(--border-light, #e7decb)',
+                backgroundColor: 'var(--bg-subtle, #f8fafc)',
+                border: '1px solid var(--border-light, #e2e8f0)',
                 borderRadius: '8px',
                 padding: '0.6rem 0.75rem',
                 marginBottom: '1rem',
