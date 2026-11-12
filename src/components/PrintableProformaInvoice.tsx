@@ -398,7 +398,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                 <th style={{ width: '13%', textAlign: 'right' }}>SQFT</th>
                 <th style={{ width: '11%', textAlign: 'right' }}>Rate</th>
                 <th style={{ width: '7%', textAlign: 'center', whiteSpace: 'nowrap' }}>per</th>
-                <th style={{ width: '12%', textAlign: 'right', paddingRight: '8px' }}>Amount</th>
+                <th style={{ width: '12%', textAlign: 'left', paddingLeft: '8px' }}>Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -458,7 +458,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                           <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? (it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : '-') : '-')}</td>
                           <td className="text-right p-mono">{renderWithSmallDecimalHtml(itemRate.toFixed(2))}</td>
                           <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{isSqftBilled ? 'SQFT' : 'CFT'}</td>
-                          <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                          <td className="text-left p-mono font-bold" style={{ paddingLeft: '8px' }}>
                             {renderWithSmallDecimalHtml(formatIndianCurrency(amount))}
                           </td>
                         </tr>

@@ -772,7 +772,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                   <th style={{ width: '12%', textAlign: 'right' }}>SQFT</th>
                   <th style={{ width: '11%', textAlign: 'right' }}>Rate</th>
                   <th style={{ width: '6%', textAlign: 'center', whiteSpace: 'nowrap' }}>per</th>
-                  <th style={{ width: '12%', textAlign: 'right', paddingRight: '8px' }}>Amount</th>
+                  <th style={{ width: '12%', textAlign: 'left', paddingLeft: '8px' }}>Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -826,7 +826,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                               />
                             </td>
                             <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{item.per}</td>
-                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                            <td className="text-left p-mono font-bold" style={{ paddingLeft: '8px' }}>
                               {renderWithSmallDecimalHtml(formatIndianCurrency(item.amount))}
                             </td>
                           </tr>

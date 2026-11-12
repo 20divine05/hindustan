@@ -135,14 +135,14 @@
 }
 
 .p-input:hover {
-  background-color: #f7f1e6;
-  border-color: #c7baa3;
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .p-input:focus {
   background-color: #ffffff;
-  border: 1px solid #8c542b;
-  box-shadow: 0 0 0 2px rgba(140, 84, 43, 0.18);
+  border: 1px solid #0f172a;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.15);
 }
 
 .p-input::placeholder {
@@ -335,7 +335,7 @@
 .p-items-table th {
   border-bottom: 1.5px solid #222222;
   border-right: 1px solid #222222;
-  padding: 4px 3px;
+  padding: 3px 3px;
   font-weight: 700;
   font-size: 10.5px;
   background-color: #f6f7f6;
@@ -347,13 +347,13 @@
 }
 
 .p-item-row td {
-  padding: 2.5px 4px;
+  padding: 1px 4px;
   border-right: 1px solid #222222 !important;
   border-left: none !important;
   border-top: none !important;
   border-bottom: none !important;
   vertical-align: middle;
-  line-height: 1.25;
+  line-height: 1.15;
 }
 
 .p-item-row td:first-child {
@@ -376,8 +376,9 @@
 /* Dimension & Decimal Fine Typography */
 .p-dim-num {
   font-weight: 800;
-  font-size: 1.22em;
+  font-size: 1.14em;
   letter-spacing: 0.02em;
+  line-height: 1;
 }
 
 .p-dim-mul {
@@ -401,7 +402,7 @@
   border-bottom: none !important;
   border-right: 1px solid #222222 !important;
   border-left: none !important;
-  padding: 3.5px 4px;
+  padding: 1.5px 4px;
   background: transparent !important;
   vertical-align: middle;
 }
@@ -419,15 +420,15 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #000000;
-  font-size: 11.5px;
+  font-size: 11px;
   text-align: left !important;
   padding-left: 8px !important;
-  padding: 3.5px 4px !important;
+  padding: 1.5px 4px !important;
 }
 
 .p-item-desc {
   font-weight: 700;
-  font-size: 11.5px;
+  font-size: 11px;
   color: #000000;
   padding-left: 8px !important;
 }
@@ -444,7 +445,7 @@
   border-bottom: 1.5px solid #222222 !important;
   border-right: 1px solid #222222 !important;
   border-left: none !important;
-  padding: 4px 4px;
+  padding: 2px 4px;
   background-color: #e5e7eb !important;
   font-weight: 800;
 }
@@ -468,7 +469,7 @@
   border-bottom: 1.5px solid #222222 !important;
   border-right: 1px solid #222222 !important;
   border-left: none !important;
-  padding: 4px 4px;
+  padding: 2.5px 4px;
   background-color: #f6f7f6;
 }
 
@@ -670,7 +671,7 @@
 .p-qr-image-wrapper {
   background: #ffffff;
   padding: 2px;
-  border: 1px solid #c2b59b;
+  border: 1px solid #cbd5e1;
   border-radius: 4px;
   display: inline-flex;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
