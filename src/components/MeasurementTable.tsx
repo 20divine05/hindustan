@@ -66,6 +66,53 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
   const lengthInputRef = useRef<HTMLInputElement>(null);
 
+  // Mobile virtual keyboard & calcy elevation tracking
+  const [isCalcyFocused, setIsCalcyFocused] = useState<boolean>(false);
+  const [calcyKeyboardOffset, setCalcyKeyboardOffset] = useState<number>(0);
+  const calcyRef = useRef<HTMLFormElement>(null);
+  const focusTimeoutRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const updateViewport = () => {
+      const windowH = window.innerHeight;
+      const visualH = vv.height;
+      const diff = windowH - visualH;
+      // On mobile when keyboard opens, diff is typically >= 80px
+      if (diff > 80) {
+        setCalcyKeyboardOffset(diff);
+        document.documentElement.style.setProperty('--calcy-keyboard-offset', `${Math.round(diff)}px`);
+      } else {
+        setCalcyKeyboardOffset(0);
+        document.documentElement.style.setProperty('--calcy-keyboard-offset', '0px');
+      }
+    };
+
+    vv.addEventListener('resize', updateViewport);
+    vv.addEventListener('scroll', updateViewport);
+    return () => {
+      vv.removeEventListener('resize', updateViewport);
+      vv.removeEventListener('scroll', updateViewport);
+    };
+  }, []);
+
+  const handleCalcyFocus = () => {
+    if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
+    setIsCalcyFocused(true);
+  };
+
+  const handleCalcyBlur = (e: React.FocusEvent) => {
+    if (calcyRef.current && calcyRef.current.contains(e.relatedTarget as Node)) {
+      return;
+    }
+    focusTimeoutRef.current = setTimeout(() => {
+      setIsCalcyFocused(false);
+    }, 180);
+  };
+
   // Live calculation for quick entry preview
   const lVal = parseFloat(quickLength) || 0;
   const wVal = parseFloat(quickWidth) || 0;
@@ -330,13 +377,43 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {/* 1. Quick Dimension Entry Form (Prominent at top for instant daily tallying) */}
-      <form onSubmit={handleQuickAdd} className="quick-add-bar no-print">
-        <div className="quick-add-header-title">
-          <CornerDownLeft size={16} color="var(--primary-600)" />
-          <span>Quick Dimension Entry:</span>
-        </div>
+    <div className="measurement-tally-root" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+      {/* 1. Quick Dimension Entry Form / Calcy (Below calculation in phone view; above on desktop) */}
+      <div
+        className={`quick-add-bar-wrapper ${isCalcyFocused ? 'calcy-is-elevated' : ''}`}
+        style={{ minHeight: isCalcyFocused ? '105px' : 'auto' }}
+      >
+        <form
+          ref={calcyRef}
+          onSubmit={handleQuickAdd}
+          onFocusCapture={handleCalcyFocus}
+          onBlurCapture={handleCalcyBlur}
+          className={`quick-add-bar no-print ${isCalcyFocused ? 'is-elevated-keyboard' : ''}`}
+          style={isCalcyFocused && calcyKeyboardOffset > 0 ? { bottom: `${calcyKeyboardOffset}px` } : undefined}
+        >
+          {/* Header shown when elevated above keyboard in phone view */}
+          {isCalcyFocused && (
+            <div className="calcy-elevation-header">
+              <span className="calcy-elevation-title">
+                <CornerDownLeft size={13} color="var(--primary-600)" /> Quick Dimension Entry
+              </span>
+              <button
+                type="button"
+                className="calcy-elevation-dismiss"
+                onClick={() => {
+                  setIsCalcyFocused(false);
+                  (document.activeElement as HTMLElement)?.blur();
+                }}
+              >
+                Done ✕
+              </button>
+            </div>
+          )}
+
+          <div className="quick-add-header-title">
+            <CornerDownLeft size={16} color="var(--primary-600)" />
+            <span>Quick Dimension Entry:</span>
+          </div>
 
         <div className="quick-add-dims">
           <div className="quick-dim-col">
@@ -584,6 +661,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           </div>
         )}
       </form>
+      </div>
 
       {quickError && (
         <div style={{ fontSize: '0.82rem', color: 'var(--danger-400)', display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.25rem 0.5rem' }}>
@@ -592,7 +670,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       )}
 
       {/* 2. Desktop Spreadsheet Table View */}
-      <div className="mobile-hide">
+      <div className="mobile-hide desktop-table-container">
         <div className="tally-table-container">
         <table className="calc-table">
           <thead>
@@ -889,14 +967,14 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     </div>
 
       {/* 2. Mobile View: Single-line rows (Measurements + Price beside PCS + Delete) */}
-      <div className="mobile-show" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+      <div className="mobile-show measurement-mobile-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
         {items.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '1.25rem 1rem', color: 'var(--text-muted)' }}>
             <p style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
               No measurement rows yet
             </p>
             <p style={{ fontSize: '0.76rem', margin: '0.2rem 0 0' }}>
-              Enter dimensions above &amp; click <strong>+ Add Row</strong>.
+              Enter dimensions below &amp; click <strong>+ Add Row</strong>.
             </p>
           </div>
         ) : (

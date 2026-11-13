@@ -535,7 +535,21 @@ input[type="number"] {
   box-shadow: 0 0 0 2.5px rgba(15, 23, 42, 0.12), 0 2px 4px rgba(15, 23, 42, 0.06);
 }
 
-/* Quick Dimension Entry Bar */
+/* Quick Dimension Entry Bar / Calcy */
+.quick-add-bar-wrapper {
+  order: 1;
+  width: 100%;
+}
+
+.desktop-table-container {
+  order: 2;
+  width: 100%;
+}
+
+.calcy-elevation-header {
+  display: none;
+}
+
 .quick-add-bar {
   background-color: #ffffff;
   border: 1px solid var(--border-medium);
@@ -684,6 +698,89 @@ input[type="number"] {
   td.mobile-show,
   th.mobile-show {
     display: table-cell !important;
+  }
+
+  /* Mobile Flex Layout: Calculations at Top (order: 1), Calcy Bellow (order: 2) */
+  .measurement-tally-root {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.65rem !important;
+    padding-bottom: 3.5rem !important;
+  }
+
+  .measurement-mobile-list {
+    order: 1 !important;
+  }
+
+  .quick-add-bar-wrapper {
+    order: 2 !important;
+    margin-top: 0.35rem !important;
+    margin-bottom: 2rem !important;
+  }
+
+  /* When any input inside the calcy is clicked / focused: comes above the phone keyboard */
+  .quick-add-bar.is-elevated-keyboard,
+  .quick-add-bar-wrapper.calcy-is-elevated .quick-add-bar {
+    position: fixed !important;
+    bottom: var(--calcy-keyboard-offset, 0px) !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    z-index: 99999 !important;
+    background: #ffffff !important;
+    border-radius: 16px 16px 0 0 !important;
+    border: none !important;
+    border-top: 2.5px solid var(--primary-800, #1e3a8a) !important;
+    box-shadow: 0 -10px 32px rgba(15, 23, 42, 0.3) !important;
+    padding: 0.45rem 0.55rem calc(0.45rem + env(safe-area-inset-bottom, 0px)) !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    transition: bottom 0.12s ease-out;
+    animation: calcySlideUp 0.16s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  @keyframes calcySlideUp {
+    from {
+      transform: translateY(16px);
+      opacity: 0.94;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .calcy-elevation-header {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.15rem 0.2rem 0.3rem 0.2rem;
+    margin-bottom: 0.2rem;
+    border-bottom: 1px solid var(--border-light, #e2e8f0);
+  }
+
+  .calcy-elevation-title {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--primary-800);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .calcy-elevation-dismiss {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    background: var(--bg-subtle, #f1f5f9);
+    border: 1px solid var(--border-medium, #cbd5e1);
+    border-radius: 6px;
+    padding: 0.15rem 0.55rem;
+    cursor: pointer;
+    line-height: 1.2;
   }
 
   .quick-add-bar {
