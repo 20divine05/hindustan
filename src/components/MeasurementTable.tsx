@@ -907,25 +907,26 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               alignItems: 'center',
               justifyContent: 'space-between',
               backgroundColor: 'var(--bg-subtle, #f1f5f9)',
-              padding: '0.3rem 0.45rem',
+              padding: '0.28rem 0.4rem',
               borderRadius: '6px',
-              fontSize: '0.68rem',
+              fontSize: '0.66rem',
               fontWeight: 800,
               color: 'var(--text-main)',
               textTransform: 'uppercase'
             }}>
-              <div style={{ width: '42px', textAlign: 'left' }}>Tree</div>
-              <div style={{ display: 'flex', gap: '0.2rem', alignItems: 'center', flex: 1, justifyContent: 'center' }}>
-                <span style={{ width: '38px', textAlign: 'center' }}>L (ft)</span>
-                <span style={{ width: '6px' }}></span>
-                <span style={{ width: '38px', textAlign: 'center' }}>W (in)</span>
-                <span style={{ width: '6px' }}></span>
-                <span style={{ width: '38px', textAlign: 'center' }}>T (in)</span>
-                <span style={{ width: '6px' }}></span>
-                <span style={{ width: '34px', textAlign: 'center' }}>Pcs</span>
+              <div style={{ width: '38px', textAlign: 'left' }}>Tree</div>
+              <div style={{ display: 'flex', gap: '0.15rem', alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+                <span style={{ width: '34px', textAlign: 'center' }}>L (ft)</span>
+                <span style={{ width: '4px' }}></span>
+                <span style={{ width: '34px', textAlign: 'center' }}>W (in)</span>
+                <span style={{ width: '4px' }}></span>
+                <span style={{ width: '34px', textAlign: 'center' }}>T (in)</span>
+                <span style={{ width: '4px' }}></span>
+                <span style={{ width: '28px', textAlign: 'center' }}>Pcs</span>
               </div>
-              <div style={{ width: '56px', textAlign: 'center' }}>Rate (₹)</div>
-              <div style={{ width: '22px', textAlign: 'center' }}>Del</div>
+              <div style={{ width: '56px', textAlign: 'right', paddingRight: '0.2rem' }}>CFT / SQFT</div>
+              <div style={{ width: '44px', textAlign: 'center' }}>Rate</div>
+              <div style={{ width: '20px', textAlign: 'center' }}>Del</div>
             </div>
 
             {items.map((item, index) => {
@@ -946,16 +947,16 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                     border: '1px solid var(--border-medium)',
                     borderRadius: '8px',
                     boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
-                    padding: '0.28rem 0.4rem',
+                    padding: '0.26rem 0.35rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: '0.25rem',
+                    gap: '0.2rem',
                     opacity: isRowValid ? 1 : 0.85
                   }}
                 >
                   {/* Tree Name */}
-                  <div style={{ width: '42px', minWidth: '42px', overflow: 'hidden' }}>
+                  <div style={{ width: '38px', minWidth: '38px', overflow: 'hidden' }}>
                     <span
                       title={item.woodType || 'Wood'}
                       style={{
@@ -973,7 +974,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                   </div>
 
                   {/* Measurements */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', flex: 1, justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', flex: 1, justifyContent: 'center' }}>
                     <input
                       type="number"
                       step="any"
@@ -982,9 +983,9 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       className="calc-input tally-cell-input"
                       value={item.lengthFeet}
                       onChange={(e) => handleUpdateItem(index, 'lengthFeet', e.target.value)}
-                      style={{ width: '38px', padding: '0.25rem 0.05rem', textAlign: 'center', fontWeight: 800 }}
+                      style={{ width: '34px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
                     />
-                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>×</span>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
                     <input
                       type="number"
                       step="any"
@@ -993,9 +994,9 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       className="calc-input tally-cell-input"
                       value={item.widthInches}
                       onChange={(e) => handleUpdateItem(index, 'widthInches', e.target.value)}
-                      style={{ width: '38px', padding: '0.25rem 0.05rem', textAlign: 'center', fontWeight: 800 }}
+                      style={{ width: '34px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
                     />
-                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>×</span>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
                     <input
                       type="number"
                       step="any"
@@ -1004,9 +1005,9 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       className="calc-input tally-cell-input"
                       value={item.thicknessInches}
                       onChange={(e) => handleUpdateItem(index, 'thicknessInches', e.target.value)}
-                      style={{ width: '38px', padding: '0.25rem 0.05rem', textAlign: 'center', fontWeight: 800 }}
+                      style={{ width: '34px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
                     />
-                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>×</span>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
                     <input
                       type="number"
                       step="1"
@@ -1015,12 +1016,45 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       className="calc-input tally-cell-input"
                       value={item.pieces}
                       onChange={(e) => handleUpdateItem(index, 'pieces', e.target.value)}
-                      style={{ width: '34px', padding: '0.25rem 0.05rem', textAlign: 'center', fontWeight: 800 }}
+                      style={{ width: '28px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
                     />
                   </div>
 
+                  {/* Volume with SQFT / CFT mention */}
+                  <div
+                    onClick={() => handleOpenPriceModal(index)}
+                    title={isSqft ? `${formatValue(item.sqft, 2)} SQFT - Click to edit rate/unit` : `${formatValue(item.cft, 3)} CFT - Click to edit rate/unit`}
+                    style={{
+                      width: '56px',
+                      minWidth: '56px',
+                      textAlign: 'right',
+                      cursor: 'pointer',
+                      lineHeight: 1.15,
+                      paddingRight: '0.15rem'
+                    }}
+                  >
+                    <span style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      color: isSqft ? '#b45309' : 'var(--primary-800)',
+                      fontFamily: 'var(--font-mono, monospace)',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {!isRowValid ? '-' : (isSqft ? formatValue(item.sqft, 1) : formatValue(item.cft, 2))}
+                    </span>
+                    <span style={{
+                      fontSize: '0.58rem',
+                      fontWeight: 800,
+                      color: isSqft ? '#b45309' : 'var(--text-muted)',
+                      marginLeft: '2px',
+                      textTransform: 'uppercase'
+                    }}>
+                      {isSqft ? 'SQFT' : 'CFT'}
+                    </span>
+                  </div>
+
                   {/* Individual Price (Rate) Edit Option */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', width: '56px', justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', width: '44px', minWidth: '44px', justifyContent: 'center' }}>
                     <input
                       type="number"
                       step="any"
@@ -1035,38 +1069,18 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         }
                       }}
                       style={{
-                        width: '46px',
-                        padding: '0.22rem 0.1rem',
+                        width: '42px',
+                        padding: '0.22rem 0.04rem',
                         fontWeight: 800,
                         textAlign: 'center',
                         fontSize: '0.78rem',
                         color: 'var(--primary-900)'
                       }}
                     />
-                    {w >= 7 && (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenPriceModal(index)}
-                        title="Width ≥ 7in: Switch between CFT & SQFT rate"
-                        style={{
-                          border: '1px solid var(--primary-400)',
-                          backgroundColor: item.rateUnit === 'CFT' ? 'var(--bg-subtle)' : 'var(--primary-100)',
-                          color: 'var(--primary-900)',
-                          fontSize: '0.55rem',
-                          fontWeight: 800,
-                          borderRadius: '2px',
-                          padding: '1px 2px',
-                          cursor: 'pointer',
-                          lineHeight: 1
-                        }}
-                      >
-                        {item.rateUnit === 'CFT' ? 'C' : 'S'}
-                      </button>
-                    )}
                   </div>
 
                   {/* Delete button */}
-                  <div style={{ width: '22px', display: 'flex', justifyContent: 'center' }}>
+                  <div style={{ width: '20px', minWidth: '20px', display: 'flex', justifyContent: 'center' }}>
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
@@ -1076,7 +1090,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         padding: 0,
                         color: 'var(--danger-500, #dc2626)',
                         minWidth: 0,
-                        width: '22px',
+                        width: '20px',
                         height: '22px',
                         display: 'inline-flex',
                         alignItems: 'center',
