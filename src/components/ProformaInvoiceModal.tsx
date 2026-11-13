@@ -793,8 +793,8 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                               {renderDimensionHtml(dimOnly)}
                             </td>
                             <td className="text-right p-mono">{item.pieces} PCS</td>
-                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? '-' : `${item.cft.toFixed(4)} CFT`)}</td>
-                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? `${(item.sqft || item.cft * 12).toFixed(2)} SQFT` : '-')}</td>
+                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? '' : `${item.cft.toFixed(4)} CFT`)}</td>
+                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? `${(item.sqft || item.cft * 12).toFixed(2)} SQFT` : '')}</td>
                             <td className="text-right p-mono">
                               <input
                                 type="number"
@@ -816,7 +816,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
                       {/* Wood Subtotal Row (Total without wood species name) */}
                       <tr className="p-item-row" style={{ backgroundColor: '#f3f4f6', borderTop: '1px solid #222222', borderBottom: '1px solid #222222', fontWeight: 700 }}>
-                        <td className="text-center" style={{ color: '#888' }}>-</td>
+                        <td className="text-center" style={{ color: '#888' }}></td>
                         <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 800, textTransform: 'uppercase' }}>
                           Total
                         </td>
@@ -824,13 +824,13 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                           {groupPieces} PCS
                         </td>
                         <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                          {renderWithSmallDecimalHtml(groupCftBilled > 0 ? `${groupCftBilled.toFixed(4)} CFT` : (groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '-'))}
+                          {renderWithSmallDecimalHtml(groupCftBilled > 0 ? `${groupCftBilled.toFixed(4)} CFT` : (groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : ''))}
                         </td>
                         <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                          {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '-')}
+                          {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '')}
                         </td>
-                        <td className="text-right p-mono">-</td>
-                        <td className="text-center">-</td>
+                        <td className="text-right p-mono"></td>
+                        <td className="text-center"></td>
                         <td className="text-right p-mono" style={{ fontWeight: 800, paddingRight: '8px' }}>
                           {renderWithSmallDecimalHtml(formatIndianCurrency(groupAmount), 'Rs. ')}
                         </td>
@@ -842,7 +842,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                 {/* Combined Total Wood Amount row at the end */}
                 {totalPieces > 0 && (
                   <tr className="p-total-wood-row">
-                    <td className="text-center" style={{ color: '#444' }}>-</td>
+                    <td className="text-center" style={{ color: '#444' }}></td>
                     <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                       TOTAL WOOD AMOUNT
                     </td>
@@ -853,10 +853,10 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                       {renderWithSmallDecimalHtml(totalCftBilled > 0 ? `${totalCftBilled.toFixed(4)} CFT` : `${totalCft.toFixed(4)} CFT`)}
                     </td>
                     <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                      {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '-')}
+                      {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '')}
                     </td>
-                    <td className="text-right p-mono">-</td>
-                    <td className="text-center">-</td>
+                    <td className="text-right p-mono"></td>
+                    <td className="text-center"></td>
                     <td className="text-right p-mono" style={{ fontWeight: 800, paddingRight: '8px' }}>
                       {renderWithSmallDecimalHtml(formatIndianCurrency(totalAmount), 'Rs. ')}
                     </td>
@@ -970,7 +970,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     {renderWithSmallDecimalHtml(`${totalCft.toFixed(4)} CFT`)}
                   </td>
                   <td className="text-right p-mono font-bold">
-                    {renderWithSmallDecimalHtml(totalSqft.toFixed(2) !== '0.00' ? `${totalSqft.toFixed(2)} SQFT` : '-')}
+                    {renderWithSmallDecimalHtml(totalSqft.toFixed(2) !== '0.00' ? `${totalSqft.toFixed(2)} SQFT` : '')}
                   </td>
                   <td colSpan={3} className="text-right p-mono font-bold p-final-total-highlight">
                     {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), 'Rs. ')}

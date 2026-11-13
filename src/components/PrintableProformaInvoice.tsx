@@ -32,9 +32,10 @@ export const renderDimensionHtml = (dim: string) => {
   );
 };
 
-export const renderWithSmallDecimalHtml = (val: string | number, prefix: string = '', suffix: string = '') => {
+export const renderWithSmallDecimalHtml = (val: string | number | undefined | null, prefix: string = '', suffix: string = '') => {
+  if (val === undefined || val === null) return null;
   const str = typeof val === 'number' ? val.toString() : val;
-  if (!str || str === '-') return '-';
+  if (!str || str === '-') return null;
   const dotIdx = str.lastIndexOf('.');
   if (dotIdx === -1) {
     return <>{prefix}{str}{suffix}</>;
@@ -334,7 +335,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
               </div>
               <div className="p-meta-cell">
                 <span className="p-label">e-Way Bill No.</span>
-                <span style={{ fontFamily: 'var(--font-mono, monospace)' }}>{eWayBillNo || '-'}</span>
+                <span style={{ fontFamily: 'var(--font-mono, monospace)' }}>{eWayBillNo || ''}</span>
               </div>
               <div className="p-meta-cell">
                 <span className="p-label">Dated</span>
@@ -358,11 +359,11 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
             <div className="p-meta-grid-row cols-2">
               <div className="p-meta-cell">
                 <span className="p-label">Buyer&apos;s Order No.</span>
-                <span>{buyerOrderNo || '-'}</span>
+                <span>{buyerOrderNo || ''}</span>
               </div>
               <div className="p-meta-cell">
                 <span className="p-label">Dated</span>
-                <span>{buyerOrderDate || '-'}</span>
+                <span>{buyerOrderDate || ''}</span>
               </div>
             </div>
 
@@ -370,7 +371,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
             <div className="p-meta-grid-row full">
               <div className="p-meta-cell">
                 <span className="p-label">Motor Vehicle No.</span>
-                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 700 }}>{motorVehicleNo || '-'}</span>
+                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 700 }}>{motorVehicleNo || ''}</span>
               </div>
             </div>
 
@@ -453,9 +454,9 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                           <td className="p-item-desc" style={{ paddingLeft: '8px' }}>
                             {renderDimensionHtml(`${it.lengthFeet}X${it.widthInches}X${it.thicknessInches}`)}
                           </td>
-                          <td className="text-right p-mono">{Number(it.pieces) > 0 ? `${it.pieces} PCS` : '-'}</td>
-                          <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? '-' : (it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : '-'))}</td>
-                          <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? (it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : '-') : '-')}</td>
+                          <td className="text-right p-mono">{Number(it.pieces) > 0 ? `${it.pieces} PCS` : ''}</td>
+                          <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? '' : (it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : ''))}</td>
+                          <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? (it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : '') : '')}</td>
                           <td className="text-right p-mono">{renderWithSmallDecimalHtml(itemRate.toFixed(2))}</td>
                           <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{isSqftBilled ? 'SQFT' : 'CFT'}</td>
                           <td className="text-left p-mono font-bold" style={{ paddingLeft: '8px' }}>
@@ -467,7 +468,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
 
                     {/* Wood Subtotal Row (Total without wood species name) */}
                     <tr className="p-item-row" style={{ backgroundColor: '#f3f4f6', borderTop: '1px solid #222222', borderBottom: '1px solid #222222', fontWeight: 700 }}>
-                      <td className="text-center" style={{ color: '#888' }}>-</td>
+                      <td className="text-center" style={{ color: '#888' }}></td>
                       <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 800, textTransform: 'uppercase' }}>
                         Total
                       </td>
@@ -475,13 +476,13 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         {groupPieces} PCS
                       </td>
                       <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                        {renderWithSmallDecimalHtml(groupCftBilled > 0 ? `${groupCftBilled.toFixed(4)} CFT` : (groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '-'))}
+                        {renderWithSmallDecimalHtml(groupCftBilled > 0 ? `${groupCftBilled.toFixed(4)} CFT` : (groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : ''))}
                       </td>
                       <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                        {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '-')}
+                        {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '')}
                       </td>
-                      <td className="text-right p-mono">-</td>
-                      <td className="text-center">-</td>
+                      <td className="text-right p-mono"></td>
+                      <td className="text-center"></td>
                       <td className="text-right p-mono" style={{ fontWeight: 800, paddingRight: '8px' }}>
                         {renderWithSmallDecimalHtml(formatIndianCurrency(groupAmount), 'Rs. ')}
                       </td>
@@ -493,7 +494,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
               {/* Total Wood Amount row at the end (with guaranteed line under total wood amount) */}
               {totalPieces > 0 && (
                 <tr className="p-total-wood-row">
-                  <td className="text-center" style={{ color: '#444' }}>-</td>
+                  <td className="text-center" style={{ color: '#444' }}></td>
                   <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                     TOTAL WOOD AMOUNT
                   </td>
@@ -504,10 +505,10 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                     {renderWithSmallDecimalHtml(totalCftBilled > 0 ? `${totalCftBilled.toFixed(4)} CFT` : `${totalCft.toFixed(4)} CFT`)}
                   </td>
                   <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                    {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '-')}
+                    {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '')}
                   </td>
-                  <td className="text-right p-mono">-</td>
-                  <td className="text-center">-</td>
+                  <td className="text-right p-mono"></td>
+                  <td className="text-center"></td>
                   <td className="text-right p-mono" style={{ fontWeight: 800, paddingRight: '8px' }}>
                     {renderWithSmallDecimalHtml(formatIndianCurrency(timberTotalAmount), 'Rs. ')}
                   </td>
@@ -621,7 +622,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                   {renderWithSmallDecimalHtml(`${totalCft.toFixed(4)} CFT`)}
                 </td>
                 <td className="text-right p-mono font-bold">
-                  {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '-')}
+                  {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '')}
                 </td>
                 <td colSpan={3} className="text-right p-mono font-bold p-final-total-highlight">
                   {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), 'Rs. ')}
