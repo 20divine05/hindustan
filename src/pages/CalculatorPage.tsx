@@ -34,7 +34,7 @@ import { MeasurementTable } from '../components/MeasurementTable';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ProformaInvoiceModal } from '../components/ProformaInvoiceModal';
 import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice';
-import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood } from '../utils/calculator';
+import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood, calculateRow } from '../utils/calculator';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
 import { exportSheetToCsv } from '../utils/exportCsv';
 import { exportSheetToPdf, getProformaInvoicePdfBlob, type ProformaInvoiceExportData } from '../utils/exportPdf';
@@ -544,6 +544,86 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   // Wood Species Grouping -> Width (IN) Ascending -> Length (FT) Descending -> Thickness (IN) Descending
   const sortedItems = useMemo(() => sortTimberEntries(items), [items]);
   const timberWoodGroups = useMemo(() => groupTimberByWood(items), [items]);
+
+  // Handle in-place row editing in Step 8 (Measurements, Pieces, Rates)
+  const handleStep8UpdateItem = (
+    itemId: string,
+    field: keyof MeasurementItem,
+    rawValue: string
+  ) => {
+    const itemIndex = items.findIndex((it) => it.id === itemId);
+    if (itemIndex === -1) return;
+
+    const updated = [...items];
+    const target = { ...updated[itemIndex] };
+
+    if (field === 'woodType' || field === 'remarks') {
+      target[field] = rawValue;
+    } else {
+      const parsed = rawValue === '' ? '' : parseFloat(rawValue);
+      (target as any)[field] = isNaN(parsed as number) ? '' : parsed;
+
+      // Recalculate row
+      const calc = calculateRow(
+        target.lengthFeet,
+        target.widthInches,
+        target.thicknessInches,
+        target.pieces,
+        businessSettings?.sqftFormulaType
+      );
+      target.cft = calc.cft;
+      target.sqft = calc.sqft;
+
+      const wNum = typeof target.widthInches === 'number' ? target.widthInches : 0;
+      if (field === 'widthInches') {
+        if (wNum >= 7 && target.rateUnit !== 'CFT') {
+          target.rateUnit = 'SQFT';
+          if (!target.rate || target.rate === ratePerCft) {
+            target.rate = 120;
+          }
+        } else if (wNum > 0 && wNum < 7) {
+          target.rateUnit = 'CFT';
+          if (target.rate === 120) {
+            target.rate = ratePerCft;
+          }
+        }
+      }
+
+      const isSqft = wNum >= 7 && target.rateUnit !== 'CFT';
+      const defaultRowRate = isSqft ? 120 : ratePerCft;
+      const rowRate = typeof target.rate === 'number' && target.rate > 0 ? target.rate : defaultRowRate;
+      const multiplier = isSqft ? calc.sqft : calc.cft;
+      target.amount = Math.round(multiplier * rowRate * 100) / 100;
+    }
+
+    updated[itemIndex] = target;
+    setItems(updated);
+  };
+
+  // Delete row in Step 8
+  const handleStep8DeleteRow = (itemId: string) => {
+    const updated = items.filter((it) => it.id !== itemId);
+    const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
+    setItems(reindexed);
+  };
+
+  // Add row to a specific wood species in Step 8
+  const handleStep8AddRow = (woodType: string) => {
+    const newRow: MeasurementItem = {
+      id: generateId(),
+      serialNumber: items.length + 1,
+      lengthFeet: '',
+      widthInches: '',
+      thicknessInches: '',
+      pieces: 1,
+      cft: 0,
+      sqft: 0,
+      rate: ratePerCft,
+      amount: 0,
+      woodType: woodType || 'MAHAGONY'
+    };
+    setItems([...items, newRow]);
+  };
 
   // Construct current full sheet object
   const getCurrentSheetObject = (): MeasurementSheet => {
@@ -2139,23 +2219,26 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       </span>
                     </div>
 
-                    {/* Group Entries Table */}
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                    {/* Desktop View Table */}
+                    <div className="mobile-hide" style={{ width: '100%' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                         <thead>
                           <tr style={{ backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                            <th style={{ padding: '0.3rem 0.45rem' }}>#</th>
-                            <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Length (FT)</th>
-                            <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Width (IN)</th>
-                            <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Thick (IN)</th>
-                            <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Pieces</th>
-                            <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>CFT / SQFT</th>
-                            <th style={{ padding: '0.3rem 0.45rem', textAlign: 'right' }}>Amount (₹)</th>
+                            <th style={{ padding: '0.35rem 0.5rem', width: '36px' }}>#</th>
+                            <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center', width: '68px' }}>Length (ft)</th>
+                            <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center', width: '68px' }}>Width (in)</th>
+                            <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center', width: '68px' }}>Thick (in)</th>
+                            <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center', width: '60px' }}>Pieces</th>
+                            <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center', width: '90px' }}>CFT / SQFT</th>
+                            <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center', width: '85px' }}>Rate (₹)</th>
+                            <th style={{ padding: '0.35rem 0.5rem', textAlign: 'right', width: '95px' }}>Amount (₹)</th>
+                            <th style={{ padding: '0.35rem 0.5rem', width: '32px', textAlign: 'center' }}></th>
                           </tr>
                         </thead>
                         <tbody>
                           {group.items.map((it, idx) => {
                             const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
+                            const defaultRowRate = isSqft ? 120 : ratePerCft;
                             return (
                               <tr
                                 key={it.id || idx}
@@ -2164,20 +2247,291 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                                   backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)'
                                 }}
                               >
-                                <td style={{ padding: '0.35rem 0.45rem', color: 'var(--text-muted)' }}>{it.serialNumber || idx + 1}</td>
-                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 700 }}>{it.lengthFeet} ft</td>
-                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 800, color: 'var(--primary-700)' }}>{it.widthInches}&Prime;</td>
-                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right' }}>{it.thicknessInches}&Prime;</td>
-                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 700 }}>{it.pieces}</td>
-                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 700 }}>
+                                <td style={{ padding: '0.35rem 0.5rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                                  {it.serialNumber || idx + 1}
+                                </td>
+                                <td style={{ padding: '0.25rem 0.3rem', textAlign: 'center' }}>
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    min="0"
+                                    placeholder=""
+                                    className="calc-input tally-cell-input"
+                                    value={it.lengthFeet}
+                                    onChange={(e) => handleStep8UpdateItem(it.id, 'lengthFeet', e.target.value)}
+                                    onFocus={(e) => e.target.select()}
+                                    style={{ width: '58px', padding: '0.22rem 0.3rem', textAlign: 'center', fontWeight: 800 }}
+                                  />
+                                </td>
+                                <td style={{ padding: '0.25rem 0.3rem', textAlign: 'center' }}>
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    min="0"
+                                    placeholder=""
+                                    className="calc-input tally-cell-input"
+                                    value={it.widthInches}
+                                    onChange={(e) => handleStep8UpdateItem(it.id, 'widthInches', e.target.value)}
+                                    onFocus={(e) => e.target.select()}
+                                    style={{ width: '58px', padding: '0.22rem 0.3rem', textAlign: 'center', fontWeight: 800 }}
+                                  />
+                                </td>
+                                <td style={{ padding: '0.25rem 0.3rem', textAlign: 'center' }}>
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    min="0"
+                                    placeholder=""
+                                    className="calc-input tally-cell-input"
+                                    value={it.thicknessInches}
+                                    onChange={(e) => handleStep8UpdateItem(it.id, 'thicknessInches', e.target.value)}
+                                    onFocus={(e) => e.target.select()}
+                                    style={{ width: '58px', padding: '0.22rem 0.3rem', textAlign: 'center', fontWeight: 800 }}
+                                  />
+                                </td>
+                                <td style={{ padding: '0.25rem 0.3rem', textAlign: 'center' }}>
+                                  <input
+                                    type="number"
+                                    step="1"
+                                    min="1"
+                                    placeholder=""
+                                    className="calc-input tally-cell-input"
+                                    value={it.pieces}
+                                    onChange={(e) => handleStep8UpdateItem(it.id, 'pieces', e.target.value)}
+                                    onFocus={(e) => e.target.select()}
+                                    style={{ width: '50px', padding: '0.22rem 0.3rem', textAlign: 'center', fontWeight: 800 }}
+                                  />
+                                </td>
+                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'center', fontWeight: 800, color: 'var(--primary-700)' }}>
                                   {isSqft ? `${formatValue(it.sqft, 2)} SQFT` : `${formatValue(it.cft, 3)} CFT`}
                                 </td>
-                                <td style={{ padding: '0.35rem 0.45rem', textAlign: 'right', fontWeight: 800 }}>₹{formatIndianCurrency(it.amount || 0)}</td>
+                                <td style={{ padding: '0.25rem 0.3rem', textAlign: 'center' }}>
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    min="0"
+                                    placeholder=""
+                                    className="calc-input tally-cell-input"
+                                    value={(it.rate as any) === '' ? '' : (typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate)}
+                                    onChange={(e) => handleStep8UpdateItem(it.id, 'rate', e.target.value)}
+                                    onBlur={() => {
+                                      if ((it.rate as any) === '' || it.rate === undefined || it.rate === null) {
+                                        handleStep8UpdateItem(it.id, 'rate', defaultRowRate.toString());
+                                      }
+                                    }}
+                                    onFocus={(e) => e.target.select()}
+                                    style={{ width: '68px', padding: '0.22rem 0.3rem', textAlign: 'center', fontWeight: 800 }}
+                                  />
+                                </td>
+                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'right', fontWeight: 800, color: 'var(--primary-900)', fontFamily: 'var(--font-mono)' }}>
+                                  ₹{formatIndianCurrency(it.amount || 0)}
+                                </td>
+                                <td style={{ padding: '0.25rem 0.3rem', textAlign: 'center' }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm"
+                                    title="Delete row"
+                                    onClick={() => handleStep8DeleteRow(it.id)}
+                                    style={{ color: 'var(--danger-500, #dc2626)', padding: '0.15rem', minWidth: 0 }}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </td>
                               </tr>
                             );
                           })}
                         </tbody>
                       </table>
+                    </div>
+
+                    {/* Mobile View: Clean 2-Line Rows with Zero Horizontal Scroll */}
+                    <div className="mobile-show" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', padding: '0.35rem', width: '100%', boxSizing: 'border-box' }}>
+                      {/* Mobile Mini Header */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          backgroundColor: 'var(--bg-subtle, #f1f5f9)',
+                          padding: '0.3rem 0.45rem',
+                          borderRadius: '5px',
+                          fontSize: '0.67rem',
+                          fontWeight: 800,
+                          color: 'var(--text-main)',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        <div style={{ width: '28px' }}>#</div>
+                        <div style={{ display: 'flex', gap: '0.25rem', flex: 1, justifyContent: 'center' }}>
+                          <span style={{ width: '42px', textAlign: 'center' }}>L (ft)</span>
+                          <span style={{ width: '42px', textAlign: 'center' }}>W (in)</span>
+                          <span style={{ width: '42px', textAlign: 'center' }}>T (in)</span>
+                          <span style={{ width: '38px', textAlign: 'center' }}>Pcs</span>
+                        </div>
+                        <div style={{ width: '24px', textAlign: 'center' }}>Del</div>
+                      </div>
+
+                      {/* Mobile Cards List */}
+                      {group.items.map((it, idx) => {
+                        const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
+                        const defaultRowRate = isSqft ? 120 : ratePerCft;
+                        return (
+                          <div
+                            key={it.id || idx}
+                            style={{
+                              backgroundColor: '#ffffff',
+                              border: '1px solid var(--border-medium)',
+                              borderRadius: '7px',
+                              boxShadow: '0 2px 5px rgba(15, 23, 42, 0.04)',
+                              padding: '0.4rem 0.45rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.3rem',
+                              width: '100%',
+                              boxSizing: 'border-box'
+                            }}
+                          >
+                            {/* Line 1: Measurements Input Strip */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.25rem', width: '100%' }}>
+                              <span style={{ fontWeight: 800, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', width: '28px', flexShrink: 0 }}>
+                                #{it.serialNumber || idx + 1}
+                              </span>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', flex: 1, justifyContent: 'center' }}>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0"
+                                  placeholder=""
+                                  className="calc-input tally-cell-input"
+                                  value={it.lengthFeet}
+                                  onChange={(e) => handleStep8UpdateItem(it.id, 'lengthFeet', e.target.value)}
+                                  onFocus={(e) => e.target.select()}
+                                  style={{ width: '42px', padding: '0.22rem 0.1rem', textAlign: 'center', fontWeight: 800 }}
+                                />
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>×</span>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0"
+                                  placeholder=""
+                                  className="calc-input tally-cell-input"
+                                  value={it.widthInches}
+                                  onChange={(e) => handleStep8UpdateItem(it.id, 'widthInches', e.target.value)}
+                                  onFocus={(e) => e.target.select()}
+                                  style={{ width: '42px', padding: '0.22rem 0.1rem', textAlign: 'center', fontWeight: 800 }}
+                                />
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>×</span>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0"
+                                  placeholder=""
+                                  className="calc-input tally-cell-input"
+                                  value={it.thicknessInches}
+                                  onChange={(e) => handleStep8UpdateItem(it.id, 'thicknessInches', e.target.value)}
+                                  onFocus={(e) => e.target.select()}
+                                  style={{ width: '42px', padding: '0.22rem 0.1rem', textAlign: 'center', fontWeight: 800 }}
+                                />
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>×</span>
+                                <input
+                                  type="number"
+                                  step="1"
+                                  min="1"
+                                  placeholder=""
+                                  className="calc-input tally-cell-input"
+                                  value={it.pieces}
+                                  onChange={(e) => handleStep8UpdateItem(it.id, 'pieces', e.target.value)}
+                                  onFocus={(e) => e.target.select()}
+                                  style={{ width: '38px', padding: '0.22rem 0.1rem', textAlign: 'center', fontWeight: 800 }}
+                                />
+                              </div>
+
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                title="Delete row"
+                                onClick={() => handleStep8DeleteRow(it.id)}
+                                style={{
+                                  padding: 0,
+                                  color: 'var(--danger-500, #dc2626)',
+                                  minWidth: 0,
+                                  width: '24px',
+                                  height: '24px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0
+                                }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+
+                            {/* Line 2: Volume & Price */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                paddingTop: '0.25rem',
+                                borderTop: '1px dashed var(--border-light, #eee)',
+                                fontSize: '0.76rem',
+                                width: '100%'
+                              }}
+                            >
+                              {/* Volume */}
+                              <span style={{ fontWeight: 800, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)' }}>
+                                {isSqft ? `${formatValue(it.sqft, 2)} SQFT` : `${formatValue(it.cft, 3)} CFT`}
+                              </span>
+
+                              {/* Rate input */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>Rate: ₹</span>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0"
+                                  placeholder=""
+                                  className="calc-input tally-cell-input"
+                                  value={(it.rate as any) === '' ? '' : (typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate)}
+                                  onChange={(e) => handleStep8UpdateItem(it.id, 'rate', e.target.value)}
+                                  onBlur={() => {
+                                    if ((it.rate as any) === '' || it.rate === undefined || it.rate === null) {
+                                      handleStep8UpdateItem(it.id, 'rate', defaultRowRate.toString());
+                                    }
+                                  }}
+                                  onFocus={(e) => e.target.select()}
+                                  style={{
+                                    width: '52px',
+                                    padding: '0.15rem 0.2rem',
+                                    fontWeight: 800,
+                                    textAlign: 'center',
+                                    color: 'var(--primary-900)'
+                                  }}
+                                />
+                              </div>
+
+                              {/* Row Amount */}
+                              <strong style={{ fontWeight: 800, color: 'var(--primary-800)', fontSize: '0.84rem' }}>
+                                ₹{formatIndianCurrency(it.amount || 0)}
+                              </strong>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Add row to this wood species footer */}
+                    <div style={{ padding: '0.35rem 0.55rem', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'flex-end', backgroundColor: 'var(--bg-subtle)' }}>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => handleStep8AddRow(group.woodType)}
+                        style={{ fontSize: '0.74rem', padding: '0.2rem 0.5rem', fontWeight: 700, color: 'var(--primary-700)' }}
+                      >
+                        + Add Row to {group.woodType}
+                      </button>
                     </div>
                   </div>
                 ))}
