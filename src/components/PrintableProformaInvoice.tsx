@@ -623,10 +623,8 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                 <td className="text-right p-mono font-bold">
                   {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '-')}
                 </td>
-                <td></td>
-                <td></td>
-                <td className="text-right p-mono font-bold p-final-total-highlight">
-                  {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), '₹ ')}
+                <td colSpan={3} className="text-right p-mono font-bold p-final-total-highlight">
+                  {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), 'Rs. ')}
                 </td>
               </tr>
             </tfoot>

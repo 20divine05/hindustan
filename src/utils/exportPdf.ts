@@ -686,9 +686,11 @@ function splitDimension(s: string) {
       `${totalPieces} PCS`,
       `${totalCft.toFixed(4)} CFT`,
       totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '-',
-      '',
-      '',
-      { content: `Rs. ${formatIndianCurrency(effectiveTotal)}`, styles: { halign: 'right', cellPadding: { right: 1.8 } } }
+      {
+        content: `Rs. ${formatIndianCurrency(effectiveTotal)}`,
+        colSpan: 3,
+        styles: { halign: 'right', cellPadding: { right: 1.8 } }
+      }
     ]],
     showFoot: 'lastPage',
     theme: 'grid',
@@ -785,7 +787,7 @@ function splitDimension(s: string) {
         const w = data.cell.width;
         const h = data.cell.height;
 
-        const isFootTotal = data.section === 'foot' && data.column.index === 7;
+        const isFootTotal = data.section === 'foot' && data.column.index >= 5;
         const baseline = isFootTotal ? (y + h / 2 + 1.3) : (y + h / 2 + 1.0);
 
         const dimParts = splitDimension(raw);
