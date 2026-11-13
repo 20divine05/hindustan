@@ -1523,6 +1523,7 @@ input[type="number"] {
   gap: 1rem;
   width: 100%;
   max-width: 100%;
+  padding-bottom: 80px;
 }
 
 @media (max-width: 768px) {
@@ -2450,65 +2451,68 @@ input[type="number"] {
   display: none;
 }
 
-/* Mobile Sticky Bottom Step Navigation Dock */
+/* Sticky Bottom Step Navigation Dock (Persistent bottom navigation across all viewports) */
 .calc-mobile-docked-nav {
-  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  bottom: 0 !important;
+  left: 0;
+  right: 0;
+  height: 54px;
+  padding: 0.35rem 0.65rem;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 -8px 26px rgba(100, 116, 139, 0.12), 0 -1px 3px rgba(100, 116, 139, 0.05);
+  z-index: 994;
+}
+
+.calc-dock-inner {
+  max-width: 520px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.calc-dock-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 40px;
+  font-weight: 800;
+  font-size: 0.86rem;
+  border-radius: 12px;
+}
+
+.calc-dock-prev {
+  flex: 0 0 auto;
+  padding: 0 0.95rem;
+  font-size: 0.82rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  color: #1e293b;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), inset 0 1px 0 #ffffff;
+}
+
+.calc-dock-next {
+  flex: 1;
+  padding: 0 1rem;
+  background: linear-gradient(180deg, #334155 0%, #1e293b 50%, #0f172a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.35);
 }
 
 @media (max-width: 768px) {
   /* Hide the obstructive round floating button on phone since Actions is in docked bar */
   .calc-mobile-fab-actions {
     display: none !important;
-  }
-
-  /* Docked bar pinned right at the very bottom since down nav bar is removed */
-  .calc-mobile-docked-nav {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    position: fixed;
-    bottom: 0 !important; /* Pinned directly to the bottom */
-    left: 0;
-    right: 0;
-    height: 52px;
-    padding: 0.35rem 0.65rem;
-    padding-bottom: env(safe-area-inset-bottom, 0);
-    background: rgba(255, 255, 255, 0.82) !important;
-    backdrop-filter: blur(28px) saturate(190%) !important;
-    -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.85);
-    box-shadow: 0 -8px 26px rgba(100, 116, 139, 0.12), 0 -1px 3px rgba(100, 116, 139, 0.05);
-    z-index: 994;
-  }
-
-  .calc-dock-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
-    height: 40px;
-    font-weight: 800;
-    font-size: 0.86rem;
-    border-radius: 12px;
-  }
-
-  .calc-dock-prev {
-    flex: 0 0 auto;
-    padding: 0 0.95rem;
-    font-size: 0.82rem;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(203, 213, 225, 0.9);
-    color: #1e293b;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), inset 0 1px 0 #ffffff;
-  }
-
-  .calc-dock-next {
-    flex: 1;
-    padding: 0 1rem;
-    background: linear-gradient(180deg, #334155 0%, #1e293b 50%, #0f172a 100%);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    color: #ffffff;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.35);
   }
 }
 

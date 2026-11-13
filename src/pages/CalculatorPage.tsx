@@ -1204,18 +1204,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </span>
               </div>
             </div>
-
-            {/* Step 1 Footer CTA */}
-            <div className="step-footer-cta">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => setCurrentStep(2)}
-                style={{ width: '100%', maxWidth: '380px', justifyContent: 'center', fontWeight: 800, padding: '0.65rem 1rem', fontSize: '0.9rem' }}
-              >
-                Continue as {customerType === 'b2b' ? 'Business GST (B2B)' : 'Retail / Cash (B2C)'} &rarr;
-              </button>
-            </div>
           </div>
         )}
 
@@ -1493,28 +1481,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </div>
               </div>
             </div>
-
-            {/* Step 2 Bottom Navigation */}
-            <div className="step-footer-nav">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setCurrentStep(1)}
-              >
-                <ArrowLeft size={15} /> Previous: Type
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  persistCurrentCustomer();
-                  setCurrentStep(3);
-                }}
-              >
-                Next: Calculator &rarr;
-              </button>
-            </div>
           </div>
         )}
         {/* =========================================================================
@@ -1562,25 +1528,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 sqftConvention={businessSettings?.sqftFormulaType}
                 defaultRate={ratePerCft}
               />
-
-              {/* Step 3 Bottom Navigation */}
-              <div className="step-footer-nav">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setCurrentStep(2)}
-                >
-                  <ArrowLeft size={15} /> Previous: Details
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => setCurrentStep(4)}
-                >
-                  Next: Carpentry &rarr;
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -1664,25 +1611,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 Carpentry: ₹{formatIndianCurrency(carpentryCharges)}
               </strong>
             </div>
-
-            {/* Step 4 Bottom Navigation */}
-            <div className="step-footer-nav">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setCurrentStep(3)}
-              >
-                <ArrowLeft size={15} /> Previous: Calculator
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => setCurrentStep(5)}
-              >
-                Next: Transport &rarr;
-              </button>
-            </div>
           </div>
         )}
 
@@ -1764,25 +1692,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               <strong style={{ fontSize: '0.9rem', color: 'var(--primary-800)' }}>
                 Transport: ₹{formatIndianCurrency(transportationCharges)}
               </strong>
-            </div>
-
-            {/* Step 5 Bottom Navigation */}
-            <div className="step-footer-nav">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setCurrentStep(4)}
-              >
-                <ArrowLeft size={15} /> Previous: Carpentry
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => setCurrentStep(6)}
-              >
-                Next: Planing &rarr;
-              </button>
             </div>
           </div>
         )}
@@ -1918,25 +1827,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               <strong style={{ fontSize: '0.9rem', color: 'var(--primary-800)' }}>
                 Planing: ₹{formatIndianCurrency(planingCharges)}
               </strong>
-            </div>
-
-            {/* Step 6 Bottom Navigation */}
-            <div className="step-footer-nav">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setCurrentStep(5)}
-              >
-                <ArrowLeft size={15} /> Previous: Transport
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => setCurrentStep(7)}
-              >
-                Next: GST &amp; Charges &rarr;
-              </button>
             </div>
           </div>
         )}
@@ -2131,25 +2021,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   ₹ {formatIndianCurrency(finalGrandTotal)}
                 </span>
               </div>
-            </div>
-
-            {/* Step 7 Bottom Navigation */}
-            <div className="step-footer-nav">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setCurrentStep(6)}
-              >
-                <ArrowLeft size={15} /> Previous: Planing
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => setCurrentStep(8)}
-              >
-                Next: Order &rarr;
-              </button>
             </div>
           </div>
         )}
@@ -2537,25 +2408,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 ))}
               </div>
             )}
-
-            {/* Step 8 Bottom Navigation */}
-            <div className="step-footer-nav">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setCurrentStep(7)}
-              >
-                <ArrowLeft size={15} /> Previous: GST &amp; Other
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => setCurrentStep(9)}
-              >
-                Next: Invoice &rarr;
-              </button>
-            </div>
           </div>
         )}
 
@@ -2827,65 +2679,56 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </div>
               </div>
             </div>
-
-            {/* Step 9 Bottom Navigation */}
-            <div className="step-footer-nav">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setCurrentStep(8)}
-              >
-                <ArrowLeft size={15} /> Previous: Timber Order
-              </button>
-            </div>
           </div>
         )}
 
-        {/* Mobile Sticky Step Dock Bar (Always visible on mobile screen without scrolling) */}
+        {/* Sticky Step Dock Bar (Persistent bottom navigation across all viewports) */}
         <div className="calc-mobile-docked-nav no-print">
-          {currentStep > 1 && (
-            <button
-              type="button"
-              className="btn btn-secondary calc-dock-btn calc-dock-prev"
-              onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9)}
-              style={{ flex: '0 0 auto', padding: '0.45rem 0.85rem' }}
-            >
-              <ArrowLeft size={15} /> Back
-            </button>
-          )}
+          <div className="calc-dock-inner">
+            {currentStep > 1 && (
+              <button
+                type="button"
+                className="btn btn-secondary calc-dock-btn calc-dock-prev"
+                onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9)}
+                style={{ flex: '0 0 auto', padding: '0.45rem 0.85rem' }}
+              >
+                <ArrowLeft size={15} /> Back
+              </button>
+            )}
 
-          {currentStep < 9 ? (
-            <button
-              type="button"
-              className="btn btn-primary calc-dock-btn calc-dock-next"
-              style={{ flex: 1 }}
-              onClick={() => {
-                if (currentStep === 2) persistCurrentCustomer();
-                setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9);
-              }}
-            >
-              <span>
-                {currentStep === 1 && 'Next: Details →'}
-                {currentStep === 2 && 'Next: Calculator →'}
-                {currentStep === 3 && 'Next: Carpentry →'}
-                {currentStep === 4 && 'Next: Transport →'}
-                {currentStep === 5 && 'Next: Planing →'}
-                {currentStep === 6 && 'Next: GST & Other →'}
-                {currentStep === 7 && 'Next: Order Sorting →'}
-                {currentStep === 8 && 'Next: Invoice & Share →'}
-              </span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary calc-dock-btn calc-dock-next"
-              onClick={handleShareWhatsApp}
-              style={{ flex: 1, backgroundColor: '#25D366' }}
-            >
-              <MessageCircle size={16} />
-              <span>Share to WhatsApp</span>
-            </button>
-          )}
+            {currentStep < 9 ? (
+              <button
+                type="button"
+                className="btn btn-primary calc-dock-btn calc-dock-next"
+                style={{ flex: 1 }}
+                onClick={() => {
+                  if (currentStep === 2) persistCurrentCustomer();
+                  setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9);
+                }}
+              >
+                <span>
+                  {currentStep === 1 && 'Next: Details →'}
+                  {currentStep === 2 && 'Next: Calculator →'}
+                  {currentStep === 3 && 'Next: Carpentry →'}
+                  {currentStep === 4 && 'Next: Transport →'}
+                  {currentStep === 5 && 'Next: Planing →'}
+                  {currentStep === 6 && 'Next: GST & Other →'}
+                  {currentStep === 7 && 'Next: Order Sorting →'}
+                  {currentStep === 8 && 'Next: Invoice & Share →'}
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary calc-dock-btn calc-dock-next"
+                onClick={handleShareWhatsApp}
+                style={{ flex: 1, backgroundColor: '#25D366' }}
+              >
+                <MessageCircle size={16} />
+                <span>Share to WhatsApp</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Quick Actions Drawer / Modal */}
