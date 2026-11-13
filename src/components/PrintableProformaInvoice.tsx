@@ -459,31 +459,31 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                           <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? (it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : '') : '')}</td>
                           <td className="text-right p-mono">{renderWithSmallDecimalHtml(itemRate.toFixed(2))}</td>
                           <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{isSqftBilled ? 'SQFT' : 'CFT'}</td>
-                          <td className="text-left p-mono font-bold" style={{ paddingLeft: '8px' }}>
+                          <td className="text-left p-mono p-item-amount" style={{ paddingLeft: '8px', fontWeight: 500, color: '#4b5563' }}>
                             {renderWithSmallDecimalHtml(formatIndianCurrency(amount))}
                           </td>
                         </tr>
                       );
                     })}
 
-                    {/* Wood Subtotal Row (Total of each individual wood) */}
-                    <tr className="p-item-row p-wood-subtotal-row" style={{ backgroundColor: '#f3f4f6', borderTop: '1px solid #9ca3af', borderBottom: '1px solid #9ca3af', fontWeight: 700 }}>
+                    {/* Wood Subtotal Row (Total of each individual wood) - Bold & prominent */}
+                    <tr className="p-item-row p-wood-subtotal-row" style={{ backgroundColor: '#f3f4f6', borderTop: '1px solid #222222', borderBottom: '1px solid #222222', fontWeight: 800 }}>
                       <td className="text-center" style={{ color: '#888' }}></td>
-                      <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 700, textTransform: 'uppercase', color: '#555f6e' }}>
+                      <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 800, textTransform: 'uppercase', color: '#000000' }}>
                         Total
                       </td>
-                      <td className="text-right p-mono" style={{ fontWeight: 700, color: '#555f6e' }}>
+                      <td className="text-right p-mono" style={{ fontWeight: 800, color: '#000000' }}>
                         {groupPieces} PCS
                       </td>
-                      <td className="text-right p-mono" style={{ fontWeight: 700, color: '#555f6e' }}>
+                      <td className="text-right p-mono" style={{ fontWeight: 800, color: '#000000' }}>
                         {renderWithSmallDecimalHtml(groupCftBilled > 0 ? `${groupCftBilled.toFixed(4)} CFT` : (groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : ''))}
                       </td>
-                      <td className="text-right p-mono" style={{ fontWeight: 700, color: '#555f6e' }}>
+                      <td className="text-right p-mono" style={{ fontWeight: 800, color: '#000000' }}>
                         {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '')}
                       </td>
                       <td className="text-right p-mono"></td>
                       <td className="text-center"></td>
-                      <td className="text-right p-mono p-wood-subtotal-price" style={{ fontWeight: 700, paddingRight: '8px', color: '#555f6e' }}>
+                      <td className="text-right p-mono p-wood-subtotal-price" style={{ fontWeight: 800, paddingRight: '8px', color: '#000000' }}>
                         {renderWithSmallDecimalHtml(formatIndianCurrency(groupAmount), 'Rs. ')}
                       </td>
                     </tr>

@@ -523,14 +523,14 @@ export function createProformaInvoiceDoc(
         { content: sqftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
         { content: it.rate !== 0 ? formatIndianCurrency(it.rate) : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
         { content: isSqftBilled ? 'SQFT' : 'CFT', styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-        { content: formatIndianCurrency(it.amount), styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { left: 2.2, top: 0.45, bottom: 0.45 } } }
+        { content: formatIndianCurrency(it.amount), styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'normal', textColor: [75, 85, 99], fillColor: zebraBg, cellPadding: { left: 2.2, top: 0.45, bottom: 0.45 } } }
       ]);
     }
 
     // 3. Wood Subtotal Row (Total with top and bottom divider lines, and vertical lines)
     const subtotalBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
-    const subtotalTextColor: [number, number, number] = [85, 95, 110]; // #555f6e, slightly low / softer color
-    const subtotalLineColor: [number, number, number] = [156, 163, 175]; // #9ca3af, softer divider lines
+    const subtotalTextColor: [number, number, number] = [0, 0, 0]; // Bold black for wood subtotal
+    const subtotalLineColor: [number, number, number] = [0, 0, 0];
     const subtotalBg: [number, number, number] = [243, 244, 246];
 
     tableBody.push([
