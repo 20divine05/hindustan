@@ -262,27 +262,41 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
       const l = typeof it.lengthFeet === 'number' ? it.lengthFeet : parseFloat(String(it.lengthFeet)) || 0;
       const w = typeof it.widthInches === 'number' ? it.widthInches : parseFloat(String(it.widthInches)) || 0;
       const t = typeof it.thicknessInches === 'number' ? it.thicknessInches : parseFloat(String(it.thicknessInches)) || 0;
-      const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : (w >= 7 ? 120 : 1200);
-      const unit = it.rateUnit || (w >= 7 ? 'SQFT' : 'CFT');
+      const p = typeof it.pieces === 'number' ? it.pieces : parseFloat(String(it.pieces)) || 1;
+      const isWide = w >= 7;
+      const unit = isWide ? (it.rateUnit === 'CFT' ? 'CFT' : 'SQFT') : 'CFT';
+      const defaultRateVal = unit === 'SQFT' ? 120 : 1200;
+      const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRateVal;
+      const calc = calculateRow(l, w, t, p);
+      const isSqft = w >= 7 && unit !== 'CFT';
+      const mult = isSqft ? calc.sqft : calc.cft;
+      const computedAmount = Math.round(mult * r * 100) / 100;
+
       const key = `${l}_${w}_${t}_${r}_${unit}`;
 
       if (consolidatedMap.has(key)) {
         const existing = consolidatedMap.get(key)!;
         const oldPieces = typeof existing.pieces === 'number' ? existing.pieces : parseFloat(String(existing.pieces)) || 0;
-        const addPieces = typeof it.pieces === 'number' ? it.pieces : parseFloat(String(it.pieces)) || 0;
+        const addPieces = p;
         const newPieces = oldPieces + addPieces;
 
-        const calc = calculateRow(l, w, t, newPieces);
-        const isSqft = w >= 7 && unit !== 'CFT';
-        const mult = isSqft ? calc.sqft : calc.cft;
-        const newAmount = Math.round(mult * r * 100) / 100;
+        const newCalc = calculateRow(l, w, t, newPieces);
+        const newMult = isSqft ? newCalc.sqft : newCalc.cft;
+        const newAmount = Math.round(newMult * r * 100) / 100;
 
         existing.pieces = newPieces;
-        existing.cft = calc.cft;
-        existing.sqft = calc.sqft;
+        existing.cft = newCalc.cft;
+        existing.sqft = newCalc.sqft;
         existing.amount = newAmount;
       } else {
-        const clone = { ...it };
+        const clone: MeasurementItem = {
+          ...it,
+          cft: calc.cft,
+          sqft: calc.sqft,
+          rate: r,
+          rateUnit: unit,
+          amount: (typeof it.amount === 'number' && it.amount > 0) ? it.amount : computedAmount
+        };
         consolidatedMap.set(key, clone);
         consolidatedList.push(clone);
       }
@@ -332,7 +346,7 @@ export interface TimberWoodGroup {
 /**
  * Groups sorted timber entries by Wood Species for clear display & order review
  */
-export function groupTimberByWood(items: MeasurementItem[]): TimberWoodGroup[] {
+export function groupTimberByWood(items: MeasurementItem[], defaultRate = 1200): TimberWoodGroup[] {
   const sorted = sortTimberEntries(items);
   const groupsMap = new Map<string, MeasurementItem[]>();
   const woodOrder: string[] = [];
@@ -350,7 +364,15 @@ export function groupTimberByWood(items: MeasurementItem[]): TimberWoodGroup[] {
     const groupItems = groupsMap.get(wood) || [];
     const totalPieces = groupItems.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
     const totalCft = groupItems.reduce((acc, it) => acc + (it.cft || 0), 0);
-    const totalAmount = groupItems.reduce((acc, it) => acc + (it.amount || 0), 0);
+    const totalAmount = groupItems.reduce((acc, it) => {
+      if (typeof it.amount === 'number' && it.amount > 0) {
+        return acc + it.amount;
+      }
+      const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
+      const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : (isSqft ? 120 : defaultRate);
+      const mult = isSqft ? (it.sqft || 0) : (it.cft || 0);
+      return acc + Math.round(mult * r * 100) / 100;
+    }, 0);
     return {
       woodType: wood,
       items: groupItems,
@@ -372,7 +394,7 @@ export interface TimberWidthGroup {
 /**
  * Groups sorted timber entries by Width (IN) for clean display
  */
-export function groupTimberByWidth(items: MeasurementItem[]): TimberWidthGroup[] {
+export function groupTimberByWidth(items: MeasurementItem[], defaultRate = 1200): TimberWidthGroup[] {
   const sorted = sortTimberEntries(items);
   const groupsMap = new Map<number, MeasurementItem[]>();
 
@@ -387,7 +409,15 @@ export function groupTimberByWidth(items: MeasurementItem[]): TimberWidthGroup[]
   groupsMap.forEach((groupItems, widthInches) => {
     const totalPieces = groupItems.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
     const totalCft = groupItems.reduce((acc, it) => acc + (it.cft || 0), 0);
-    const totalAmount = groupItems.reduce((acc, it) => acc + (it.amount || 0), 0);
+    const totalAmount = groupItems.reduce((acc, it) => {
+      if (typeof it.amount === 'number' && it.amount > 0) {
+        return acc + it.amount;
+      }
+      const isSqft = widthInches >= 7 && it.rateUnit !== 'CFT';
+      const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : (isSqft ? 120 : defaultRate);
+      const mult = isSqft ? (it.sqft || 0) : (it.cft || 0);
+      return acc + Math.round(mult * r * 100) / 100;
+    }, 0);
     result.push({
       widthInches,
       items: groupItems,

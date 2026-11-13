@@ -545,7 +545,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   // Sorted timber entries according to strict sawmill specifications:
   // Wood Species Grouping -> Width (IN) Ascending -> Length (FT) Descending -> Thickness (IN) Descending
   const sortedItems = useMemo(() => sortTimberEntries(items), [items]);
-  const timberWoodGroups = useMemo(() => groupTimberByWood(items), [items]);
+  const timberWoodGroups = useMemo(() => groupTimberByWood(items, ratePerCft), [items, ratePerCft]);
 
   // Handle in-place row editing in Step 8 (Measurements, Pieces, Rates)
   const handleStep8UpdateItem = (
@@ -578,7 +578,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
       const wNum = typeof target.widthInches === 'number' ? target.widthInches : 0;
       if (field === 'widthInches') {
-        if (wNum >= 7 && target.rateUnit !== 'CFT') {
+        if (wNum >= 7) {
           target.rateUnit = 'SQFT';
           if (!target.rate || target.rate === ratePerCft) {
             target.rate = 120;
@@ -2211,6 +2211,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                           {group.items.map((it, idx) => {
                             const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
                             const defaultRowRate = isSqft ? 120 : ratePerCft;
+                            const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
+                            const mult = isSqft ? it.sqft : it.cft;
+                            const rowAmount = (typeof it.amount === 'number' && it.amount > 0) ? it.amount : Math.round(mult * rowRate * 100) / 100;
                             return (
                               <tr
                                 key={it.id || idx}
@@ -2296,7 +2299,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                                   />
                                 </td>
                                 <td style={{ padding: '0.35rem 0.5rem', textAlign: 'right', fontWeight: 800, color: 'var(--primary-900)', fontFamily: 'var(--font-mono)' }}>
-                                  ₹{formatIndianCurrency(it.amount || 0)}
+                                  ₹{formatIndianCurrency(rowAmount)}
                                 </td>
                                 <td style={{ padding: '0.25rem 0.3rem', textAlign: 'center' }}>
                                   <button
@@ -2347,6 +2350,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       {group.items.map((it, idx) => {
                         const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
                         const defaultRowRate = isSqft ? 120 : ratePerCft;
+                        const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
+                        const mult = isSqft ? it.sqft : it.cft;
+                        const displayAmount = (typeof it.amount === 'number' && it.amount > 0) ? it.amount : Math.round(mult * rowRate * 100) / 100;
                         return (
                           <div
                             key={it.id || idx}
@@ -2486,7 +2492,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
                               {/* Row Amount */}
                               <strong style={{ fontWeight: 800, color: 'var(--primary-800)', fontSize: '0.84rem' }}>
-                                ₹{formatIndianCurrency(it.amount || 0)}
+                                ₹{formatIndianCurrency(displayAmount)}
                               </strong>
                             </div>
                           </div>
