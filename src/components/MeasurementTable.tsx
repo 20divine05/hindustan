@@ -892,8 +892,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       </div>
     </div>
 
-      {/* 2. Mobile View: 2-line rows ("in first lets have measurment and below that only mention the price") */}
-      <div className="mobile-show" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+      {/* 2. Mobile View: Single-line rows (Measurements + Price beside PCS + Delete) */}
+      <div className="mobile-show" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
         {items.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '1.25rem 1rem', color: 'var(--text-muted)' }}>
             <p style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
@@ -911,20 +911,23 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               alignItems: 'center',
               justifyContent: 'space-between',
               backgroundColor: 'var(--bg-subtle, #f1f5f9)',
-              padding: '0.35rem 0.5rem',
+              padding: '0.3rem 0.5rem',
               borderRadius: '6px',
               fontSize: '0.68rem',
               fontWeight: 800,
               color: 'var(--text-main)',
               textTransform: 'uppercase'
             }}>
-              <div style={{ width: '42px' }}>#</div>
-              <div style={{ display: 'flex', gap: '0.35rem', flex: 1, justifyContent: 'center' }}>
+              <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flex: 1, justifyContent: 'flex-start' }}>
                 <span style={{ width: '44px', textAlign: 'center' }}>L (ft)</span>
+                <span style={{ width: '8px' }}></span>
                 <span style={{ width: '44px', textAlign: 'center' }}>W (in)</span>
+                <span style={{ width: '8px' }}></span>
                 <span style={{ width: '44px', textAlign: 'center' }}>T (in)</span>
+                <span style={{ width: '8px' }}></span>
                 <span style={{ width: '40px', textAlign: 'center' }}>Pcs</span>
               </div>
+              <div style={{ minWidth: '78px', textAlign: 'right', paddingRight: '0.25rem' }}>Price (₹)</div>
               <div style={{ width: '24px', textAlign: 'center' }}>Del</div>
             </div>
 
@@ -947,163 +950,102 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                     backgroundColor: '#fff',
                     border: '1px solid var(--border-medium)',
                     borderRadius: '8px',
-                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9)',
-                    padding: '0.45rem 0.5rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.35rem',
-                    opacity: isRowValid ? 1 : 0.85
-                  }}
-                >
-                  {/* Line 1: Measurements */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.35rem' }}>
-                    <div style={{ width: '42px', display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontWeight: 800, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>
-                        #{item.serialNumber}
-                      </span>
-                      {item.woodType && (
-                        <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '40px' }}>
-                          {item.woodType.substring(0, 5)}
-                        </span>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flex: 1, justifyContent: 'center' }}>
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        placeholder=""
-                        className="calc-input tally-cell-input"
-                        value={item.lengthFeet}
-                        onChange={(e) => handleUpdateItem(index, 'lengthFeet', e.target.value)}
-                        style={{ width: '44px', padding: '0.25rem 0.1rem', textAlign: 'center', fontWeight: 800 }}
-                      />
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>×</span>
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        placeholder=""
-                        className="calc-input tally-cell-input"
-                        value={item.widthInches}
-                        onChange={(e) => handleUpdateItem(index, 'widthInches', e.target.value)}
-                        style={{ width: '44px', padding: '0.25rem 0.1rem', textAlign: 'center', fontWeight: 800 }}
-                      />
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>×</span>
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        placeholder=""
-                        className="calc-input tally-cell-input"
-                        value={item.thicknessInches}
-                        onChange={(e) => handleUpdateItem(index, 'thicknessInches', e.target.value)}
-                        style={{ width: '44px', padding: '0.25rem 0.1rem', textAlign: 'center', fontWeight: 800 }}
-                      />
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>×</span>
-                      <input
-                        type="number"
-                        step="1"
-                        min="1"
-                        placeholder=""
-                        className="calc-input tally-cell-input"
-                        value={item.pieces}
-                        onChange={(e) => handleUpdateItem(index, 'pieces', e.target.value)}
-                        style={{ width: '40px', padding: '0.25rem 0.1rem', textAlign: 'center', fontWeight: 800 }}
-                      />
-                    </div>
-
-                    <div style={{ width: '24px', display: 'flex', justifyContent: 'center' }}>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        title="Delete row"
-                        onClick={() => handleDeleteRow(index)}
-                        style={{
-                          padding: 0,
-                          color: 'var(--danger-500, #dc2626)',
-                          minWidth: 0,
-                          width: '24px',
-                          height: '24px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Line 2: Below that, mention the price */}
-                  <div style={{
+                    boxShadow: '0 1px 4px rgba(15, 23, 42, 0.04)',
+                    padding: '0.32rem 0.45rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    paddingTop: '0.25rem',
-                    borderTop: '1px dashed var(--border-light, #eee)',
-                    fontSize: '0.78rem'
-                  }}>
-                    {/* Volume */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <span style={{ fontWeight: 800, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)' }}>
-                        {isSqft ? `${formatValue(item.sqft, 2)} SQFT` : `${formatValue(item.cft, 3)} CFT`}
-                      </span>
-                    </div>
+                    gap: '0.3rem',
+                    opacity: isRowValid ? 1 : 0.85
+                  }}
+                >
+                  {/* Measurements */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flex: 1, justifyContent: 'flex-start' }}>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      placeholder=""
+                      className="calc-input tally-cell-input"
+                      value={item.lengthFeet}
+                      onChange={(e) => handleUpdateItem(index, 'lengthFeet', e.target.value)}
+                      style={{ width: '44px', padding: '0.28rem 0.1rem', textAlign: 'center', fontWeight: 800 }}
+                    />
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>×</span>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      placeholder=""
+                      className="calc-input tally-cell-input"
+                      value={item.widthInches}
+                      onChange={(e) => handleUpdateItem(index, 'widthInches', e.target.value)}
+                      style={{ width: '44px', padding: '0.28rem 0.1rem', textAlign: 'center', fontWeight: 800 }}
+                    />
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>×</span>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      placeholder=""
+                      className="calc-input tally-cell-input"
+                      value={item.thicknessInches}
+                      onChange={(e) => handleUpdateItem(index, 'thicknessInches', e.target.value)}
+                      style={{ width: '44px', padding: '0.28rem 0.1rem', textAlign: 'center', fontWeight: 800 }}
+                    />
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>×</span>
+                    <input
+                      type="number"
+                      step="1"
+                      min="1"
+                      placeholder=""
+                      className="calc-input tally-cell-input"
+                      value={item.pieces}
+                      onChange={(e) => handleUpdateItem(index, 'pieces', e.target.value)}
+                      style={{ width: '40px', padding: '0.28rem 0.1rem', textAlign: 'center', fontWeight: 800 }}
+                    />
+                  </div>
 
-                    {/* Price box */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700 }}>Rate: ₹</span>
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        placeholder=""
-                        className="calc-input tally-cell-input"
-                        value={(item.rate as any) === '' ? '' : (typeof item.rate === 'number' && item.rate > 0 ? item.rate : defaultRowRate)}
-                        onChange={(e) => handleUpdateItem(index, 'rate', e.target.value)}
-                        onBlur={() => {
-                          if ((item.rate as any) === '' || item.rate === undefined || item.rate === null) {
-                            handleUpdateItem(index, 'rate', defaultRowRate.toString());
-                          }
-                        }}
-                        style={{
-                          width: '54px',
-                          padding: '0.15rem 0.25rem',
-                          fontWeight: 800,
-                          textAlign: 'center',
-                          color: 'var(--primary-900)'
-                        }}
-                      />
-                      {w >= 7 && (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenPriceModal(index)}
-                          title="Width ≥ 7in: Switch between CFT & SQFT rate"
-                          style={{
-                            border: '1px solid var(--primary-400)',
-                            backgroundColor: item.rateUnit === 'CFT' ? 'var(--bg-subtle)' : 'var(--primary-100)',
-                            color: 'var(--primary-900)',
-                            fontSize: '0.6rem',
-                            fontWeight: 800,
-                            borderRadius: '3px',
-                            padding: '1px 3px',
-                            cursor: 'pointer',
-                            lineHeight: 1
-                          }}
-                        >
-                          {item.rateUnit === 'CFT' ? 'CFT' : 'SQFT'}⚡
-                        </button>
-                      )}
-                    </div>
+                  {/* Price beside PCS (Clickable to edit rate or amount) */}
+                  <div
+                    onClick={() => handleOpenPriceModal(index)}
+                    title={`Rate: ₹${rowRate} - Click to edit rate or amount`}
+                    style={{
+                      minWidth: '78px',
+                      textAlign: 'right',
+                      padding: '0.22rem 0.35rem',
+                      cursor: 'pointer',
+                      borderRadius: '5px',
+                      background: 'var(--bg-subtle, #f8fafc)',
+                      border: '1px solid var(--border-light, #e2e8f0)',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <strong style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--primary-900)', fontFamily: 'var(--font-mono)' }}>
+                      ₹{formatIndianCurrency(rowAmount)}
+                    </strong>
+                  </div>
 
-                    {/* Amount */}
-                    <div>
-                      <strong style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--primary-900)', fontFamily: 'var(--font-mono)' }}>
-                        ₹ {formatIndianCurrency(rowAmount)}
-                      </strong>
-                    </div>
+                  {/* Delete button */}
+                  <div style={{ width: '24px', display: 'flex', justifyContent: 'center' }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      title="Delete row"
+                      onClick={() => handleDeleteRow(index)}
+                      style={{
+                        padding: 0,
+                        color: 'var(--danger-500, #dc2626)',
+                        minWidth: 0,
+                        width: '24px',
+                        height: '24px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 </div>
               );
