@@ -293,13 +293,13 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
       const wB = typeof b.widthInches === 'number' ? b.widthInches : parseFloat(String(b.widthInches)) || 0;
       if (wA !== wB) return wA - wB;
 
-      const lA = typeof a.lengthFeet === 'number' ? a.lengthFeet : parseFloat(String(a.lengthFeet)) || 0;
-      const lB = typeof b.lengthFeet === 'number' ? b.lengthFeet : parseFloat(String(b.lengthFeet)) || 0;
-      if (lA !== lB) return lB - lA;
-
       const tA = typeof a.thicknessInches === 'number' ? a.thicknessInches : parseFloat(String(a.thicknessInches)) || 0;
       const tB = typeof b.thicknessInches === 'number' ? b.thicknessInches : parseFloat(String(b.thicknessInches)) || 0;
       if (tA !== tB) return tB - tA;
+
+      const lA = typeof a.lengthFeet === 'number' ? a.lengthFeet : parseFloat(String(a.lengthFeet)) || 0;
+      const lB = typeof b.lengthFeet === 'number' ? b.lengthFeet : parseFloat(String(b.lengthFeet)) || 0;
+      if (lA !== lB) return lB - lA;
 
       const rA = typeof a.rate === 'number' ? a.rate : 0;
       const rB = typeof b.rate === 'number' ? b.rate : 0;

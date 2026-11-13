@@ -356,8 +356,8 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
         const dA = parseDims(a);
         const dB = parseDims(b);
         if (dA.w !== dB.w) return dA.w - dB.w;
-        if (dA.l !== dB.l) return dB.l - dA.l;
         if (dA.t !== dB.t) return dB.t - dA.t;
+        if (dA.l !== dB.l) return dB.l - dA.l;
         return (b.pieces || 0) - (a.pieces || 0);
       });
     }
