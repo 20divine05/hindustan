@@ -7,6 +7,7 @@ import { numberToIndianCurrencyWords, formatIndianCurrency } from './indianNumbe
 import { sortTimberEntries } from './calculator';
 
 export interface ProformaInvoiceExportData {
+  customerName?: string;
   invoiceNo?: string;
   eWayBillNo?: string;
   invoiceDate?: string;
@@ -1070,18 +1071,44 @@ export function createProformaInvoiceDoc(
   return doc;
 }
 
+export function getInvoiceFilename(
+  sheet: MeasurementSheet,
+  invoiceData?: ProformaInvoiceExportData
+): string {
+  const rawClient = (
+    invoiceData?.customerName ||
+    invoiceData?.buyerName ||
+    invoiceData?.consigneeName ||
+    sheet.customerName ||
+    ''
+  ).trim();
+
+  if (rawClient && !/^valued customer$/i.test(rawClient)) {
+    const cleanClient = rawClient
+      .replace(/[\\/:*?"<>|]/g, '')
+      .replace(/\s+/g, '_')
+      .replace(/_+/g, '_')
+      .trim();
+    if (cleanClient) {
+      return `${cleanClient}.pdf`;
+    }
+  }
+
+  const safeFilename = (sheet.sheetName || 'proforma_invoice')
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '_');
+  const dateStr = sheet.measurementDate || invoiceData?.invoiceDate || new Date().toISOString().split('T')[0];
+  return `${safeFilename}_${dateStr}.pdf`;
+}
+
 export function exportSheetToPdf(
   sheet: MeasurementSheet,
   settings?: BusinessSettings,
   invoiceData?: ProformaInvoiceExportData
 ): void {
   const doc = createProformaInvoiceDoc(sheet, settings, invoiceData);
-  const safeFilename = (sheet.sheetName || 'proforma_invoice')
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]/g, '_');
-  const dateStr = sheet.measurementDate || new Date().toISOString().split('T')[0];
-
-  doc.save(`${safeFilename}_${dateStr}.pdf`);
+  const filename = getInvoiceFilename(sheet, invoiceData);
+  doc.save(filename);
 }
 
 export function printProformaInvoicePdf(
@@ -1126,11 +1153,7 @@ export function getProformaInvoicePdfBlob(
   invoiceData?: ProformaInvoiceExportData
 ): { blob: Blob; filename: string } {
   const doc = createProformaInvoiceDoc(sheet, settings, invoiceData);
-  const safeFilename = (sheet.sheetName || 'proforma_invoice')
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]/g, '_');
-  const dateStr = sheet.measurementDate || new Date().toISOString().split('T')[0];
-  const filename = `${safeFilename}_${dateStr}.pdf`;
+  const filename = getInvoiceFilename(sheet, invoiceData);
   const blob = doc.output('blob');
   return { blob, filename };
 }

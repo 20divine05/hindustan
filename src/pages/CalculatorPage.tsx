@@ -904,6 +904,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       });
 
     const exportData: ProformaInvoiceExportData = {
+      customerName: customerName || undefined,
       invoiceNo,
       eWayBillNo,
       invoiceDate,
@@ -959,7 +960,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   };
 
   // Share Invoice PDF directly to customer's WhatsApp chat
-  const handleShareWhatsApp = () => {
+  const handleShareWhatsApp = async () => {
     persistCurrentCustomer();
 
     // 1. Extract customer phone from invoice details
@@ -995,8 +996,27 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
     const { current, exportData } = getFullInvoiceExportData();
 
-    // 2. Generate and trigger instant download of the official Proforma Invoice PDF
+    // 2. Generate the official Proforma Invoice PDF named after the client
     const { blob, filename } = getProformaInvoicePdfBlob(current, businessSettings, exportData);
+    const pdfFile = new File([blob], filename, { type: 'application/pdf' });
+
+    // 3. Web Share API (Mobile Devices & Supporting Environments):
+    // Directly attaches and shares the ACTUAL PDF file into WhatsApp
+    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      try {
+        await navigator.share({
+          files: [pdfFile],
+          title: filename,
+        });
+        return;
+      } catch (err: any) {
+        if (err.name === 'AbortError') return; // User closed share sheet
+        console.warn('Native file share failed, falling back to download & WhatsApp Web:', err);
+      }
+    }
+
+    // 4. Desktop Fallback (when Web Share API file attachment is not supported):
+    // Instantly downloads the PDF named after the client
     const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = downloadUrl;
@@ -1006,26 +1026,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(downloadUrl), 15000);
 
-    // 3. Compose clean invoice message
-    const msg =
-      `📄 *PROFORMA INVOICE #${invoiceNo}*\n` +
-      `*Hindustan Saw Mills & Wood Industries*\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `👤 *Customer:* ${customerName || 'Valued Customer'}\n` +
-      `📅 *Date:* ${invoiceDate}\n` +
-      `🪵 *Total Quantity:* ${totals.totalPieces} PCS  •  ${totals.totalCft.toFixed(4)} CFT\n` +
-      `💰 *Total Payable:* *₹${formatIndianCurrency(finalGrandTotal)}*\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `🏦 *Payment Details (ICICI Bank):*\n` +
-      `• A/c Name: *HINDUSTAN SAW MILLS AND WOOD INDUSTRIES 2024-25*\n` +
-      `• A/c No: *464205000153*\n` +
-      `• IFSC: *ICIC0004642* (JP Nagar)\n` +
-      `• UPI ID: *hindustansawmill@icici*\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📎 *Official PDF Invoice (${filename}) has been generated.*`;
-
-    // 4. Directly open the customer's WhatsApp chat with the pre-filled invoice message
-    const waUrl = `https://api.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(msg)}`;
+    // Directly open WhatsApp chat to customer number WITHOUT that wall of text
+    const waUrl = `https://api.whatsapp.com/send?phone=${digits}`;
     window.open(waUrl, '_blank');
   };
 
