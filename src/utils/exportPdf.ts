@@ -1080,6 +1080,42 @@ export function exportSheetToPdf(
   doc.save(`${safeFilename}_${dateStr}.pdf`);
 }
 
+export function printProformaInvoicePdf(
+  sheet: MeasurementSheet,
+  settings?: BusinessSettings,
+  invoiceData?: ProformaInvoiceExportData
+): void {
+  const doc = createProformaInvoiceDoc(sheet, settings, invoiceData);
+  doc.autoPrint();
+  const blob = doc.output('blob');
+  const blobUrl = URL.createObjectURL(blob);
+
+  // Open the auto-printing PDF blob in a new window/tab
+  // Modern browsers (Chrome, Edge, Firefox, Safari) immediately launch the native print dialog for the exact PDF
+  const printWin = window.open(blobUrl, '_blank');
+  if (!printWin) {
+    // If popup blocker intervened, use invisible iframe as seamless fallback
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.visibility = 'hidden';
+    iframe.src = blobUrl;
+    document.body.appendChild(iframe);
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch {
+        window.location.href = blobUrl;
+      }
+    };
+  }
+}
+
 export function getProformaInvoicePdfBlob(
   sheet: MeasurementSheet,
   settings?: BusinessSettings,

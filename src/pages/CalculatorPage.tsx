@@ -37,7 +37,7 @@ import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice
 import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood, calculateRow } from '../utils/calculator';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
 import { exportSheetToCsv } from '../utils/exportCsv';
-import { exportSheetToPdf, getProformaInvoicePdfBlob, type ProformaInvoiceExportData } from '../utils/exportPdf';
+import { exportSheetToPdf, printProformaInvoicePdf, getProformaInvoicePdfBlob, type ProformaInvoiceExportData } from '../utils/exportPdf';
 import { dbService, generateId, sanitizeAndComputeSheet } from '../services/db';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchGstinDetails } from '../services/gstinService';
@@ -871,91 +871,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setIsActionsModalOpen(false);
   };
 
-  const handleExportPdf = () => {
-    persistCurrentCustomer();
+  const getFullInvoiceExportData = () => {
     const current = getCurrentSheetObject();
     const sortedCurrentItems = sortTimberEntries(current.items);
 
     // Map items including additional charges as line items if present
-    const invoiceItems = sortedCurrentItems
-      .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)
-      .map((it, idx) => {
-        const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
-        const isSqftBilled = w >= 7 && it.rateUnit !== 'CFT';
-        const defaultRowRate = isSqftBilled ? 120 : ratePerCft;
-        const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
-        const mult = isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft;
-        const rowAmount = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * rowRate * 100) / 100;
-        return {
-          slNo: idx + 1,
-          description: `${it.lengthFeet}X${it.widthInches}X${it.thicknessInches} ${(it.woodType || 'MAHAGONY').toUpperCase()}`,
-          hsn: '4407',
-          cft: it.cft,
-          sqft: it.sqft,
-          widthInches: it.widthInches,
-          rateUnit: isSqftBilled ? ('SQFT' as const) : ('CFT' as const),
-          pieces: typeof it.pieces === 'number' ? it.pieces : 0,
-          rate: rowRate,
-          per: isSqftBilled ? 'SQFT' : 'CFT',
-          discPercent: '',
-          amount: rowAmount
-        };
-      });
-
-    exportSheetToPdf(current, businessSettings, {
-      invoiceNo,
-      eWayBillNo,
-      invoiceDate,
-      paymentTerms,
-      buyerOrderNo,
-      buyerOrderDate,
-      destination,
-      motorVehicleNo,
-      termsOfDelivery,
-      consigneeName: customerName || 'New India Saw Mill',
-      consigneeAddress: customerAddress || 'Local Mill Pickup',
-      consigneeGstin: customerGstin || '29CJZPK3158H1ZG',
-      consigneeState: customerState || 'Karnataka',
-      consigneeStateCode: customerStateCode || '29',
-      buyerName: customerName || 'New India Saw Mill',
-      buyerAddress: customerAddress || 'Local Mill Pickup',
-      buyerGstin: customerGstin || '29CJZPK3158H1ZG',
-      buyerState: customerState || 'Karnataka',
-      buyerStateCode: customerStateCode || '29',
-      additionalCharges: {
-        carpentry: carpentryCharges,
-        transportation: transportationCharges,
-        planing: planingCharges,
-        planingRatePerCft,
-        sawing: sawingCharges,
-        other: otherCharges,
-        otherLabel: otherChargesLabel
-      },
-      discountAmount,
-      discountDesc: discountType === 'percentage' ? `DISCOUNT (${discountValue}%)` : 'SPECIAL DISCOUNT',
-      gstPercent,
-      gstTaxableBase: (customGstTaxableAmount > 0 && customGstTaxableAmount !== fullAmountBeforeGst) ? gstTaxableBase : undefined,
-      finalGrandTotal,
-      gstAmount,
-      items: invoiceItems
-    });
-    setIsActionsModalOpen(false);
-  };
-
-  const handlePrint = () => {
-    persistCurrentCustomer();
-    setIsActionsModalOpen(false);
-    window.print();
-  };
-
-  // Share Invoice PDF directly to WhatsApp (as a real PDF document, not chat text)
-  const handleShareWhatsApp = async () => {
-    persistCurrentCustomer();
-    const cleanPhone = customerPhone.replace(/\D/g, '');
-    const targetPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : (cleanPhone.length > 10 ? cleanPhone : '');
-
-    const current = getCurrentSheetObject();
-    const sortedCurrentItems = sortTimberEntries(current.items);
     const invoiceItems = sortedCurrentItems
       .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)
       .map((it, idx) => {
@@ -1018,6 +938,31 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       gstAmount,
       items: invoiceItems
     };
+
+    return { current, exportData };
+  };
+
+  const handleExportPdf = () => {
+    persistCurrentCustomer();
+    const { current, exportData } = getFullInvoiceExportData();
+    exportSheetToPdf(current, businessSettings, exportData);
+    setIsActionsModalOpen(false);
+  };
+
+  const handlePrint = () => {
+    persistCurrentCustomer();
+    setIsActionsModalOpen(false);
+    const { current, exportData } = getFullInvoiceExportData();
+    printProformaInvoicePdf(current, businessSettings, exportData);
+  };
+
+  // Share Invoice PDF directly to WhatsApp (as a real PDF document, not chat text)
+  const handleShareWhatsApp = async () => {
+    persistCurrentCustomer();
+    const cleanPhone = customerPhone.replace(/\D/g, '');
+    const targetPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : (cleanPhone.length > 10 ? cleanPhone : '');
+
+    const { current, exportData } = getFullInvoiceExportData();
 
     // 1. Generate the official Proforma Invoice PDF Blob & File
     const { blob, filename } = getProformaInvoicePdfBlob(current, businessSettings, exportData);

@@ -4,7 +4,7 @@ import { Printer, X, RotateCcw, Copy, Sparkles, FileText, Check, FileDown } from
 import type { MeasurementSheet, BusinessSettings } from '../types';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from '../utils/indianNumberWords';
 import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
-import { exportSheetToPdf } from '../utils/exportPdf';
+import { exportSheetToPdf, printProformaInvoicePdf } from '../utils/exportPdf';
 import { renderDimensionHtml, renderWithSmallDecimalHtml } from './PrintableProformaInvoice';
 import './ProformaInvoice.css';
 
@@ -418,7 +418,42 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   };
 
   const handlePrint = () => {
-    window.print();
+    if (!sheet) return;
+    printProformaInvoicePdf(sheet, businessSettings, {
+      invoiceNo,
+      eWayBillNo,
+      invoiceDate,
+      deliveryNote,
+      paymentTerms,
+      refNoAndDate,
+      otherReferences,
+      buyerOrderNo,
+      buyerOrderDate,
+      dispatchDocNo,
+      deliveryNoteDate,
+      dispatchedThrough,
+      destination,
+      billOfLadingNo,
+      motorVehicleNo,
+      termsOfDelivery,
+      consigneeName,
+      consigneeAddress,
+      consigneeGstin,
+      consigneeState,
+      consigneeStateCode,
+      buyerName,
+      buyerAddress,
+      buyerGstin,
+      buyerState,
+      buyerStateCode,
+      items: invoiceItems,
+      additionalCharges: sheet.additionalCharges,
+      discountAmount: discAmount,
+      discountDesc: sheet.discount?.type === 'percentage' ? `${sheet.discount.value}%` : undefined,
+      gstPercent: sheet.gstPercent,
+      gstAmount: gstAmount,
+      finalGrandTotal: effectiveTotal
+    });
   };
 
   return createPortal(
