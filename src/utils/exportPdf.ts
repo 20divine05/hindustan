@@ -636,35 +636,35 @@ export function createProformaInvoiceDoc(
     ]);
   }
 
-function splitDecimalNumber(s: string) {
-  if (!s || typeof s !== 'string') return null;
-  const dotIdx = s.lastIndexOf('.');
-  if (dotIdx === -1) return null;
-  const before = s.slice(0, dotIdx);
-  if (!/\d/.test(before)) return null;
-  const after = s.slice(dotIdx + 1);
-  const match = after.match(/^(\d+)(.*)$/);
-  if (!match) return null;
-  return {
-    intStr: s.slice(0, dotIdx + 1),
-    decStr: match[1],
-    suffix: match[2]
-  };
-}
-
-function splitDimension(s: string) {
-  if (!s || typeof s !== 'string') return null;
-  const trimmed = s.trim();
-  if (/^\d+(\.\d+)?[xX×]\d+(\.\d+)?[xX×]\d+(\.\d+)?$/.test(trimmed)) {
-    const rawParts = trimmed.split(/([xX×])/);
-    return rawParts.map(p => {
-      if (p.toLowerCase() === 'x' || p === '×') return 'x';
-      if (/^\d+$/.test(p)) return p.padStart(2, '0');
-      return p;
-    });
+  function splitDecimalNumber(s: string) {
+    if (!s || typeof s !== 'string') return null;
+    const dotIdx = s.lastIndexOf('.');
+    if (dotIdx === -1) return null;
+    const before = s.slice(0, dotIdx);
+    if (!/\d/.test(before)) return null;
+    const after = s.slice(dotIdx + 1);
+    const match = after.match(/^(\d+)(.*)$/);
+    if (!match) return null;
+    return {
+      intStr: s.slice(0, dotIdx + 1),
+      decStr: match[1],
+      suffix: match[2]
+    };
   }
-  return null;
-}
+
+  function splitDimension(s: string) {
+    if (!s || typeof s !== 'string') return null;
+    const trimmed = s.trim();
+    if (/^\d+(\.\d+)?[xX×]\d+(\.\d+)?[xX×]\d+(\.\d+)?$/.test(trimmed)) {
+      const rawParts = trimmed.split(/([xX×])/);
+      return rawParts.map(p => {
+        if (p.toLowerCase() === 'x' || p === '×') return 'x';
+        if (/^\d+$/.test(p)) return p.padStart(2, '0');
+        return p;
+      });
+    }
+    return null;
+  }
 
   autoTable(doc, {
     startY: 87,
@@ -863,153 +863,151 @@ function splitDimension(s: string) {
   // -------------------------------------------------------------
   let bottomY = finalY;
   // If not enough room on current page, add new page
-  if (bottomY > 224) {
+  if (bottomY > 238) {
     doc.addPage();
     bottomY = 15;
   }
 
-  // A. Amount Chargeable in Words Box (height: 8mm)
-  doc.rect(10, bottomY, 190, 8);
+  // A. Amount Chargeable in Words Box (height: 7.5mm)
+  doc.rect(10, bottomY, 190, 7.5);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.text('Amount Chargeable (in words)', 11.5, bottomY + 3.2);
+  doc.setFontSize(7.2);
+  doc.text('Amount Chargeable (in words)', 11.5, bottomY + 3.0);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text('E. & O.E', 198.5, bottomY + 3.2, { align: 'right' });
+  doc.setFontSize(8.0);
+  doc.text('E. & O.E', 198.5, bottomY + 3.0, { align: 'right' });
 
-  doc.setFontSize(8.8);
-  doc.text(amountInWords, 11.5, bottomY + 6.8);
+  doc.setFontSize(8.2);
+  doc.text(amountInWords, 11.5, bottomY + 6.3);
 
-  const blockY = bottomY + 8;
-  const blockHeight = 48;
+  const blockY = bottomY + 7.5;
+  const blockHeight = 31;
 
-  // Outer container for Terms + Tax (Left), Payment Scanner (Middle), and Big Seals (Right)
+  // Outer container for Bank Details (Left), UPI Scanner (Middle), and Seals (Right)
   doc.rect(10, blockY, 190, blockHeight);
-  doc.line(92, blockY, 92, blockY + blockHeight); // Divider between Left & Middle
-  doc.line(134, blockY, 134, blockY + blockHeight); // Divider between Middle & Right
+  doc.line(76, blockY, 76, blockY + blockHeight); // Divider between Bank Details & UPI Scanner
+  doc.line(114, blockY, 114, blockY + blockHeight); // Divider between UPI Scanner & Seals
 
-  // --- 1. LEFT SIDE: Company's Bank Details (x: 10 to 92) ---
+  // --- 1. LEFT SIDE: Company's Bank Details (x: 10 to 76, width: 66mm) ---
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
+  doc.setFontSize(7.8);
   doc.setTextColor(0, 0, 0);
-  doc.text("Company's Bank Details", 12.5, blockY + 5.5);
+  doc.text("Company's Bank Details", 12.0, blockY + 4.0);
 
   doc.setDrawColor(220, 220, 220);
-  doc.line(12.5, blockY + 7.5, 90, blockY + 7.5);
+  doc.line(12.0, blockY + 5.2, 74.0, blockY + 5.2);
   doc.setDrawColor(0, 0, 0);
 
   // Row 1: A/c Holder's Name
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.2);
-  doc.setTextColor(50, 50, 50);
-  doc.text("A/c Holder's Name :", 12.5, blockY + 13.0);
+  doc.setFontSize(6.5);
+  doc.setTextColor(60, 60, 60);
+  doc.text("A/c Holder's Name :", 12.0, blockY + 8.8);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.2);
+  doc.setFontSize(7.2);
   doc.setTextColor(0, 0, 0);
-  doc.text("HINDUSTAN SAW MILLS AND", 12.5, blockY + 17.5);
-  doc.text("WOOD INDUSTRIES 2024-25", 12.5, blockY + 21.5);
+  doc.text("HINDUSTAN SAW MILLS AND", 12.0, blockY + 12.2);
+  doc.text("WOOD INDUSTRIES 2024-25", 12.0, blockY + 15.6);
 
   // Row 2: Bank Name
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.2);
-  doc.setTextColor(50, 50, 50);
-  doc.text("Bank Name", 12.5, blockY + 27.5);
-  doc.text(":", 40, blockY + 27.5);
+  doc.setFontSize(6.5);
+  doc.setTextColor(60, 60, 60);
+  doc.text("Bank Name", 12.0, blockY + 20.2);
+  doc.text(":", 34, blockY + 20.2);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.2);
+  doc.setFontSize(7.2);
   doc.setTextColor(0, 0, 0);
-  doc.text("ICICI BANK", 43, blockY + 27.5);
+  doc.text("ICICI BANK", 36.5, blockY + 20.2);
 
   // Row 3: A/c No.
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.2);
-  doc.setTextColor(50, 50, 50);
-  doc.text("A/c No.", 12.5, blockY + 33.5);
-  doc.text(":", 40, blockY + 33.5);
+  doc.setFontSize(6.5);
+  doc.setTextColor(60, 60, 60);
+  doc.text("A/c No.", 12.0, blockY + 24.2);
+  doc.text(":", 34, blockY + 24.2);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.2);
+  doc.setFontSize(7.2);
   doc.setTextColor(0, 0, 0);
-  doc.text("464205000153", 43, blockY + 33.5);
+  doc.text("464205000153", 36.5, blockY + 24.2);
 
   // Row 4: Branch & IFS Code
   doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(60, 60, 60);
+  doc.text("Branch & IFS Code", 12.0, blockY + 28.2);
+  doc.text(":", 34, blockY + 28.2);
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.2);
-  doc.setTextColor(50, 50, 50);
-  doc.text("Branch & IFS Code", 12.5, blockY + 39.5);
-  doc.text(":", 40, blockY + 39.5);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.2);
   doc.setTextColor(0, 0, 0);
-  doc.text("JP NAGAR & ICIC0004642", 43, blockY + 39.5);
+  doc.text("JP NAGAR & ICIC0004642", 36.5, blockY + 28.2);
 
-  // --- 2. MIDDLE: Payment Scanner (UPI QR Code) (x: 92 to 134) ---
+  // --- 2. MIDDLE: Payment Scanner (UPI QR Code) (x: 76 to 114, width: 38mm) ---
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.2);
-  doc.setTextColor(0, 0, 0);
-  doc.text('Scan & Pay via UPI', 113, blockY + 4.5, { align: 'center' });
+  doc.setFontSize(7.2);
+  doc.setTextColor(22, 101, 52);
+  doc.text('Scan & Pay via UPI', 95, blockY + 3.8, { align: 'center' });
 
   try {
-    doc.addImage(PAYMENT_QR_BASE64, 'PNG', 101, blockY + 6.5, 24, 24);
+    doc.addImage(PAYMENT_QR_BASE64, 'PNG', 86.5, blockY + 5.2, 17, 17);
   } catch (err) {
     console.warn('Could not draw QR code on PDF:', err);
   }
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.2);
+  doc.setFontSize(5.5);
   doc.setTextColor(80, 80, 80);
-  doc.text('GPay  •  PhonePe  •  Paytm  •  BHIM', 113, blockY + 33.5, { align: 'center' });
+  doc.text('GPay • PhonePe • Paytm • BHIM', 95, blockY + 24.0, { align: 'center' });
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.2);
+  doc.setFontSize(6.4);
   doc.setTextColor(0, 0, 0);
-  doc.text('UPI ID: hindustansawmill@icici', 113, blockY + 37.5, { align: 'center' });
+  doc.text('UPI: hindustansawmill@icici', 95, blockY + 27.2, { align: 'center' });
 
-  // Small note below QR
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(5.2);
+  doc.setTextColor(100, 100, 100);
+  doc.text('Instant Bank-to-Bank Transfer', 95, blockY + 29.8, { align: 'center' });
+
+  // --- 3. RIGHT SIDE: Customer Seal (114 to 148, w: 34mm) & Authorised Signatory (148 to 200, w: 52mm) ---
+  doc.line(148, blockY, 148, blockY + blockHeight);
+
+  // Customer's Seal and Signature Box
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.0);
+  doc.setTextColor(0, 0, 0);
+  doc.text("Customer's Seal and", 116, blockY + 4.2);
+  doc.text('Signature', 116, blockY + 7.5);
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(5.8);
-  doc.setTextColor(100, 100, 100);
-  doc.text('Instant Bank-to-Bank Transfer', 113, blockY + 41.5, { align: 'center' });
-
-  // --- 3. RIGHT SIDE: Big Customer Seal & Big Company Authorised Signatory (x: 134 to 200) ---
-  // Sub-divider between Customer Seal (134 to 167) and Authorised Signatory (167 to 200)
-  doc.line(167, blockY, 167, blockY + blockHeight);
-
-  // Big Customer's Seal and Signature Box
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(0, 0, 0);
-  doc.text("Customer's Seal and", 136, blockY + 5);
-  doc.text('Signature', 136, blockY + 8.8);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.2);
   doc.setTextColor(130, 130, 130);
-  doc.text('[ Affix Seal & Sign Here ]', 150.5, blockY + 44, { align: 'center' });
+  doc.text('[ Affix Seal & Sign Here ]', 131, blockY + 28.5, { align: 'center' });
 
-  // Big Authorised Signatory Box (Full Height)
+  // Authorised Signatory Box (x: 148 to 200, w: 52 mm)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.2);
   doc.setTextColor(0, 0, 0);
-  doc.text('for HINDUSTAN SAW MILLS AND', 169, blockY + 5);
-  doc.text('WOOD INDUSTRIES', 169, blockY + 8.8);
+  doc.text('for HINDUSTAN SAW MILLS AND', 150.5, blockY + 4.2);
+  doc.text('WOOD INDUSTRIES', 150.5, blockY + 7.5);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.2);
+  doc.setFontSize(5.8);
   doc.setTextColor(130, 130, 130);
-  doc.text('[ Authorised Stamp & Sign ]', 183.5, blockY + 39, { align: 'center' });
+  doc.text('[ Authorised Stamp & Sign ]', 174, blockY + 23.5, { align: 'center' });
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.0);
+  doc.setFontSize(7.8);
   doc.setTextColor(0, 0, 0);
-  doc.text('Authorised Signatory', 198.5, blockY + 45.5, { align: 'right' });
+  doc.text('Authorised Signatory', 198.0, blockY + 28.5, { align: 'right' });
 
   // -------------------------------------------------------------
   // 5. Bottom Computer Generated Note
   // -------------------------------------------------------------
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(50, 50, 50);
-  doc.text('This is a Computer Generated Invoice', 105, blockY + blockHeight + 4.5, { align: 'center' });
+  doc.setFontSize(7.0);
+  doc.setTextColor(60, 60, 60);
+  doc.text('This is a Computer Generated Invoice', 105, blockY + blockHeight + 3.8, { align: 'center' });
 
   return doc;
 }

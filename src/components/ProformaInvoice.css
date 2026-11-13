@@ -565,49 +565,49 @@
 /* Bottom Grid: Bank Details (Left) | Payment Scanner (Middle) | Big Seals (Right) */
 .p-bottom-grid {
   display: grid;
-  grid-template-columns: 42% 26% 32%;
+  grid-template-columns: 36% 22% 42%;
   border-bottom: 1px solid #222222;
 }
 
 /* Bank Details Box (Replaced HSN/SAC and Terms & Conditions) */
 .p-bottom-bank-box {
   border-right: 1.5px solid #222222;
-  padding: 8px 10px;
+  padding: 5px 8px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   background-color: #ffffff;
-  min-height: 98px;
+  min-height: 72px;
 }
 
 .p-bank-heading {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   color: #000000;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  margin-bottom: 6px;
+  margin-bottom: 3px;
   border-bottom: 1px solid #e0e0e0;
-  padding-bottom: 3px;
+  padding-bottom: 2px;
 }
 
 .p-bank-row {
   display: flex;
-  font-size: 10px;
-  line-height: 1.5;
-  margin-bottom: 2.5px;
+  font-size: 9px;
+  line-height: 1.35;
+  margin-bottom: 1.5px;
   color: #111111;
 }
 
 .p-bank-label {
-  width: 105px;
+  width: 95px;
   flex-shrink: 0;
   font-weight: 600;
   color: #333333;
 }
 
 .p-bank-colon {
-  margin-right: 6px;
+  margin-right: 4px;
   font-weight: 700;
   color: #000000;
 }
@@ -654,44 +654,45 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 6px 4px;
+  padding: 4px 4px;
   text-align: center;
   background-color: #fbfbfb;
+  min-height: 72px;
 }
 
 .p-qr-header {
-  font-size: 11px;
+  font-size: 9.5px;
   font-weight: 800;
   color: #15803d;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 3px;
+  letter-spacing: 0.03em;
+  margin-bottom: 2px;
 }
 
 .p-qr-image-wrapper {
   background: #ffffff;
-  padding: 2px;
+  padding: 1.5px;
   border: 1px solid #cbd5e1;
-  border-radius: 4px;
+  border-radius: 3px;
   display: inline-flex;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .p-qr-img {
-  width: 74px;
-  height: 74px;
+  width: 50px;
+  height: 50px;
   display: block;
 }
 
 .p-qr-apps {
-  font-size: 9px;
+  font-size: 7.5px;
   font-weight: 700;
   color: #444444;
-  margin-top: 3px;
+  margin-top: 2px;
 }
 
 .p-qr-upi-id {
-  font-size: 9.5px;
+  font-size: 8px;
   color: #111111;
   margin-top: 1px;
 }
@@ -699,22 +700,23 @@
 /* Big Seals Box: Customer Seal + Authorised Signatory */
 .p-bottom-seals-box {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 42% 58%;
 }
 
 .p-customer-seal-big {
   border-right: 1px solid #222222;
-  padding: 6px 8px;
+  padding: 5px 6px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 98px;
+  min-height: 72px;
 }
 
 .p-seal-title {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   color: #333333;
+  line-height: 1.2;
 }
 
 .p-seal-space {
@@ -722,20 +724,20 @@
 }
 
 .p-auth-seal-big {
-  padding: 6px 8px;
+  padding: 5px 8px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   text-align: right;
-  min-height: 98px;
+  min-height: 72px;
 }
 
 .p-for-company {
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 800;
   color: #000000;
   word-break: break-word;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .p-sign-space {
@@ -743,7 +745,7 @@
 }
 
 .p-auth-title {
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 700;
   color: #222222;
 }
