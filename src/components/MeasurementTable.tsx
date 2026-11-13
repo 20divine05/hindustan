@@ -689,7 +689,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         type="number"
                         step="any"
                         min="0"
-                        placeholder="0"
+                        placeholder=""
                         className="calc-input tally-cell-input"
                         value={item.lengthFeet}
                         onChange={(e) => handleUpdateItem(index, 'lengthFeet', e.target.value)}
@@ -701,7 +701,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         type="number"
                         step="any"
                         min="0"
-                        placeholder="0"
+                        placeholder=""
                         className="calc-input tally-cell-input"
                         value={item.widthInches}
                         onChange={(e) => handleUpdateItem(index, 'widthInches', e.target.value)}
@@ -713,7 +713,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         type="number"
                         step="any"
                         min="0"
-                        placeholder="0"
+                        placeholder=""
                         className="calc-input tally-cell-input"
                         value={item.thicknessInches}
                         onChange={(e) => handleUpdateItem(index, 'thicknessInches', e.target.value)}
@@ -725,7 +725,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         type="number"
                         step="1"
                         min="1"
-                        placeholder="1"
+                        placeholder=""
                         className="calc-input tally-cell-input"
                         value={item.pieces}
                         onChange={(e) => handleUpdateItem(index, 'pieces', e.target.value)}
@@ -739,7 +739,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                           type="number"
                           step="any"
                           min="0"
-                          placeholder={isSqft ? '120' : `${defaultRate}`}
+                          placeholder=""
                           className="calc-input tally-cell-input"
                           value={(item.rate as any) === '' ? '' : (typeof item.rate === 'number' && item.rate > 0 ? item.rate : defaultRowRate)}
                           onChange={(e) => handleUpdateItem(index, 'rate', e.target.value)}
@@ -961,7 +961,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         type="number"
                         step="any"
                         min="0"
-                        placeholder="L"
+                        placeholder=""
                         className="calc-input tally-cell-input"
                         value={item.lengthFeet}
                         onChange={(e) => handleUpdateItem(index, 'lengthFeet', e.target.value)}
@@ -972,7 +972,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         type="number"
                         step="any"
                         min="0"
-                        placeholder="W"
+                        placeholder=""
                         className="calc-input tally-cell-input"
                         value={item.widthInches}
                         onChange={(e) => handleUpdateItem(index, 'widthInches', e.target.value)}
@@ -983,7 +983,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         type="number"
                         step="any"
                         min="0"
-                        placeholder="T"
+                        placeholder=""
                         className="calc-input tally-cell-input"
                         value={item.thicknessInches}
                         onChange={(e) => handleUpdateItem(index, 'thicknessInches', e.target.value)}
@@ -994,7 +994,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         type="number"
                         step="1"
                         min="1"
-                        placeholder="Pcs"
+                        placeholder=""
                         className="calc-input tally-cell-input"
                         value={item.pieces}
                         onChange={(e) => handleUpdateItem(index, 'pieces', e.target.value)}
@@ -1047,7 +1047,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         type="number"
                         step="any"
                         min="0"
-                        placeholder={isSqft ? '120' : `${defaultRate}`}
+                        placeholder=""
                         className="calc-input tally-cell-input"
                         value={(item.rate as any) === '' ? '' : (typeof item.rate === 'number' && item.rate > 0 ? item.rate : defaultRowRate)}
                         onChange={(e) => handleUpdateItem(index, 'rate', e.target.value)}
@@ -1302,7 +1302,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                     className="calc-input"
                     value={priceModalRate}
                     onChange={(e) => handlePriceModalRateChange(e.target.value)}
-                    placeholder="Enter rate"
+                    placeholder=""
                     style={{
                       width: '100%',
                       paddingLeft: '1.8rem',
@@ -1352,7 +1352,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                     className="calc-input"
                     value={priceModalAmount}
                     onChange={(e) => handlePriceModalAmountChange(e.target.value)}
-                    placeholder="Enter total amount"
+                    placeholder=""
                     style={{
                       width: '100%',
                       paddingLeft: '1.8rem',

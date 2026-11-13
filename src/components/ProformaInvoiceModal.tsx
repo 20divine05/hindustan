@@ -546,14 +546,12 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                   className="p-input p-party-name-input"
                   value={consigneeName}
                   onChange={(e) => setConsigneeName(e.target.value)}
-                  placeholder="Enter Consignee / Firm Name"
                 />
                 <textarea
                   className="p-input p-party-addr-input no-print"
                   rows={3}
                   value={consigneeAddress}
                   onChange={(e) => setConsigneeAddress(e.target.value)}
-                  placeholder="Enter Address, Street, Area, City..."
                 />
                 <div className="print-only p-print-preline">{consigneeAddress}</div>
                 <div className="p-party-meta">
@@ -564,7 +562,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-party-meta-input"
                     value={consigneeGstin}
                     onChange={(e) => setConsigneeGstin(e.target.value)}
-                    placeholder="29XXXXXXXXXXXXX"
                   />
                 </div>
                 <div className="p-party-meta">
@@ -575,7 +572,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-party-meta-input"
                     value={consigneeState}
                     onChange={(e) => setConsigneeState(e.target.value)}
-                    placeholder="Karnataka"
                     style={{ flex: 2 }}
                   />
                   <span style={{ margin: '0 4px', alignSelf: 'center', fontSize: '8.5px' }}>Code:</span>
@@ -584,7 +580,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-party-meta-input"
                     value={consigneeStateCode}
                     onChange={(e) => setConsigneeStateCode(e.target.value)}
-                    placeholder="29"
                     style={{ width: '38px', textAlign: 'center' }}
                   />
                 </div>
@@ -598,14 +593,12 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                   className="p-input p-party-name-input"
                   value={buyerName}
                   onChange={(e) => setBuyerName(e.target.value)}
-                  placeholder="Enter Buyer / Firm Name"
                 />
                 <textarea
                   className="p-input p-party-addr-input no-print"
                   rows={3}
                   value={buyerAddress}
                   onChange={(e) => setBuyerAddress(e.target.value)}
-                  placeholder="Enter Address, Street, Area, City..."
                 />
                 <div className="print-only p-print-preline">{buyerAddress}</div>
                 <div className="p-party-meta">
@@ -616,7 +609,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-party-meta-input"
                     value={buyerGstin}
                     onChange={(e) => setBuyerGstin(e.target.value)}
-                    placeholder="29XXXXXXXXXXXXX"
                   />
                 </div>
                 <div className="p-party-meta">
@@ -627,7 +619,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-party-meta-input"
                     value={buyerState}
                     onChange={(e) => setBuyerState(e.target.value)}
-                    placeholder="Karnataka"
                     style={{ flex: 2 }}
                   />
                   <span style={{ margin: '0 4px', alignSelf: 'center', fontSize: '8.5px' }}>Code:</span>
@@ -636,7 +627,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-party-meta-input"
                     value={buyerStateCode}
                     onChange={(e) => setBuyerStateCode(e.target.value)}
-                    placeholder="29"
                     style={{ width: '38px', textAlign: 'center' }}
                   />
                 </div>
@@ -654,7 +644,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-val-input"
                     value={invoiceNo}
                     onChange={(e) => setInvoiceNo(e.target.value)}
-                    placeholder="e.g. 8"
                   />
                 </div>
                 <div className="p-meta-cell">
@@ -664,7 +653,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-val-input"
                     value={eWayBillNo}
                     onChange={(e) => setEWayBillNo(e.target.value)}
-                    placeholder="-"
                   />
                 </div>
                 <div className="p-meta-cell">
@@ -674,7 +662,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-val-input"
                     value={invoiceDate}
                     onChange={(e) => setInvoiceDate(e.target.value)}
-                    placeholder="DD-Mon-YY"
                   />
                 </div>
               </div>
@@ -688,7 +675,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-val-input"
                     value={paymentTerms}
                     onChange={(e) => setPaymentTerms(e.target.value)}
-                    placeholder="e.g. Immediate Payment"
                   />
                 </div>
                 <div className="p-meta-cell">
@@ -698,7 +684,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-val-input"
                     value={destination}
                     onChange={(e) => setDestination(e.target.value)}
-                    placeholder="e.g. BANGALORE"
                   />
                 </div>
               </div>
@@ -712,7 +697,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-val-input"
                     value={buyerOrderNo}
                     onChange={(e) => setBuyerOrderNo(e.target.value)}
-                    placeholder="-"
                   />
                 </div>
                 <div className="p-meta-cell">
@@ -722,7 +706,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-val-input"
                     value={buyerOrderDate}
                     onChange={(e) => setBuyerOrderDate(e.target.value)}
-                    placeholder="-"
                   />
                 </div>
               </div>
@@ -736,7 +719,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     className="p-input p-val-input"
                     value={motorVehicleNo}
                     onChange={(e) => setMotorVehicleNo(e.target.value)}
-                    placeholder="KA-XX-XXXX"
                   />
                 </div>
               </div>
@@ -750,7 +732,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     rows={4}
                     value={termsOfDelivery}
                     onChange={(e) => setTermsOfDelivery(e.target.value)}
-                    placeholder="e.g. TRANSPORTATION EXTRA&#10;APPLICABLE GST EXTRA"
                     style={{ minHeight: '44px', fontSize: '9.2px', lineHeight: 1.45, fontWeight: 600 }}
                   />
                   <div className="print-only p-print-preline" style={{ fontWeight: 700, fontSize: '9px', lineHeight: 1.45 }}>{termsOfDelivery}</div>

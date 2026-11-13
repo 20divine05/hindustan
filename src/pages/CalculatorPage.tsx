@@ -1221,7 +1221,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         handleSearchGst(val);
                       }
                     }}
-                    placeholder="e.g. 29APYPK6256P1ZL"
                     maxLength={15}
                     className="calc-gst-input"
                     onKeyDown={(e) => {
@@ -1274,7 +1273,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     setTimeout(() => setShowCustomerSuggestions(false), 250);
                     persistCurrentCustomer();
                   }}
-                  placeholder={customerType === 'b2b' ? 'e.g. New India Saw Mill & Timber Works' : 'e.g. Ramesh Kumar'}
                   autoComplete="off"
                 />
 
@@ -1335,7 +1333,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   onBlur={persistCurrentCustomer}
-                  placeholder="e.g. +91 98765 43210"
                 />
               </div>
 
@@ -1350,7 +1347,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   value={customerAddress}
                   onChange={(e) => setCustomerAddress(e.target.value)}
                   onBlur={persistCurrentCustomer}
-                  placeholder="e.g. Sy. No. 10/7 Khata No. 27/2, Industrial Suburb 2nd Stage, Mysore / Bangalore"
                 />
               </div>
 
@@ -1365,7 +1361,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     value={customerGstin}
                     onChange={(e) => setCustomerGstin(e.target.value.toUpperCase())}
                     onBlur={persistCurrentCustomer}
-                    placeholder="Optional GSTIN"
                   />
                 </div>
               )}
@@ -1381,7 +1376,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     value={customerState}
                     onChange={(e) => setCustomerState(e.target.value)}
                     onBlur={persistCurrentCustomer}
-                    placeholder="Karnataka"
                     style={{ flex: 2 }}
                   />
                   <input
@@ -1389,7 +1383,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     value={customerStateCode}
                     onChange={(e) => setCustomerStateCode(e.target.value)}
                     onBlur={persistCurrentCustomer}
-                    placeholder="29"
                     style={{ width: '55px', textAlign: 'center' }}
                   />
                 </div>
@@ -1405,7 +1398,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="text"
                     value={referenceNumber}
                     onChange={(e) => setReferenceNumber(e.target.value)}
-                    placeholder="e.g. REF-261026"
                   />
                 </div>
 
@@ -1556,7 +1548,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 type="number"
                 value={carpentryCharges === 0 ? '' : carpentryCharges}
                 onChange={(e) => setCarpentryCharges(Math.max(0, Number(e.target.value) || 0))}
-                placeholder="Amount in ₹ (Carpentry)"
                 style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.5rem 0.65rem' }}
               />
               <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.3rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
@@ -1658,7 +1649,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 type="number"
                 value={transportationCharges === 0 ? '' : transportationCharges}
                 onChange={(e) => setTransportationCharges(Math.max(0, Number(e.target.value) || 0))}
-                placeholder="Amount in ₹ (Transportation)"
                 style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.5rem 0.65rem' }}
               />
               <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.3rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
@@ -1768,7 +1758,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     setPlaningRatePerCft(0);
                   }
                 }}
-                placeholder="Amount in ₹ (Planing)"
                 style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.5rem 0.65rem' }}
               />
 
@@ -1806,7 +1795,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         const calculated = Math.round(totals.totalCft * rate * 100) / 100;
                         setPlaningCharges(calculated);
                       }}
-                      placeholder="Rate per CFT (e.g. 15)"
                       style={{ width: '100%', fontSize: '0.88rem', fontWeight: 800, padding: '0.38rem 0.55rem 0.38rem 1.6rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
                     />
                   </div>
@@ -1913,14 +1901,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   type="number"
                   value={otherCharges === 0 ? '' : otherCharges}
                   onChange={(e) => setOtherCharges(Math.max(0, Number(e.target.value) || 0))}
-                  placeholder="Amount (₹)"
                   style={{ flex: 1, minWidth: '90px', fontSize: '0.88rem', fontWeight: 800, padding: '0.35rem 0.45rem' }}
                 />
                 <input
                   type="text"
                   value={otherChargesLabel}
                   onChange={(e) => setOtherChargesLabel(e.target.value)}
-                  placeholder="Other Charges"
                   style={{ flex: 1, minWidth: '100px', fontSize: '0.82rem', fontWeight: 600, padding: '0.35rem 0.45rem' }}
                 />
               </div>
@@ -1976,7 +1962,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="number"
                     value={discountValue === 0 ? '' : discountValue}
                     onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value) || 0))}
-                    placeholder={discountType === 'percentage' ? 'Discount %' : 'Discount (₹)'}
                     style={{ width: '100%', paddingLeft: '20px', paddingRight: '6px', fontSize: '0.88rem', fontWeight: 800, padding: '0.35rem 0.4rem 0.35rem 20px' }}
                   />
                 </div>
@@ -2007,7 +1992,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="number"
                     value={customGstTaxableAmount === 0 ? '' : customGstTaxableAmount}
                     onChange={(e) => setCustomGstTaxableAmount(Math.max(0, Number(e.target.value) || 0))}
-                    placeholder={`Base (₹${formatIndianCurrency(fullAmountBeforeGst)})`}
                     title="Taxable base amount for GST"
                     style={{ width: '100%', paddingLeft: '18px', paddingRight: '4px', fontSize: '0.86rem', fontWeight: 800, padding: '0.35rem 0.35rem 0.35rem 18px' }}
                   />
@@ -2050,7 +2034,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     max="100"
                     value={gstPercent}
                     onChange={(e) => setGstPercent(Math.max(0, Number(e.target.value) || 0))}
-                    placeholder="Rate %"
                     style={{ width: '70px', fontWeight: 800, fontSize: '0.84rem', textAlign: 'center', padding: '0.25rem 0.35rem' }}
                   />
                   <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>% GST</span>
@@ -2431,7 +2414,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="text"
                     value={eWayBillNo}
                     onChange={(e) => setEWayBillNo(e.target.value)}
-                    placeholder="Optional"
                     style={{ width: '100%', fontSize: '0.85rem' }}
                   />
                 </div>
@@ -2450,7 +2432,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="text"
                     value={buyerOrderNo}
                     onChange={(e) => setBuyerOrderNo(e.target.value)}
-                    placeholder="Optional"
                     style={{ width: '100%', fontSize: '0.85rem' }}
                   />
                 </div>
@@ -2460,7 +2441,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="text"
                     value={buyerOrderDate}
                     onChange={(e) => setBuyerOrderDate(e.target.value)}
-                    placeholder="DD-Mon-YY"
                     style={{ width: '100%', fontSize: '0.85rem' }}
                   />
                 </div>
@@ -2479,7 +2459,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="text"
                     value={motorVehicleNo}
                     onChange={(e) => setMotorVehicleNo(e.target.value)}
-                    placeholder="KA-09-XX-1234"
                     style={{ width: '100%', fontSize: '0.85rem' }}
                   />
                 </div>
@@ -2489,7 +2468,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     rows={3}
                     value={termsOfDelivery}
                     onChange={(e) => setTermsOfDelivery(e.target.value)}
-                    placeholder="e.g. TRANSPORTATION EXTRA&#10;APPLICABLE GST EXTRA"
                     style={{ width: '100%', fontSize: '0.85rem', lineHeight: 1.4 }}
                   />
                 </div>
