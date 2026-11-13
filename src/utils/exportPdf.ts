@@ -529,38 +529,42 @@ export function createProformaInvoiceDoc(
 
     // 3. Wood Subtotal Row (Total with top and bottom divider lines, and vertical lines)
     const subtotalBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+    const subtotalTextColor: [number, number, number] = [85, 95, 110]; // #555f6e, slightly low / softer color
+    const subtotalLineColor: [number, number, number] = [156, 163, 175]; // #9ca3af, softer divider lines
+    const subtotalBg: [number, number, number] = [243, 244, 246];
+
     tableBody.push([
       {
         content: '',
-        styles: { halign: 'center', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
+        styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: 'Total',
-        styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: [243, 244, 246], lineWidth: subtotalBorder }
+        styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, textColor: subtotalTextColor }
       },
       {
         content: `${groupPieces} PCS`,
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
+        styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor }
       },
       {
         content: groupCftBilled > 0 ? `${groupCftBilled.toFixed(4)} CFT` : (groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : ''),
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
+        styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor }
       },
       {
         content: groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '',
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
+        styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor }
       },
       {
         content: '',
-        styles: { halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
+        styles: { halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: '',
-        styles: { halign: 'center', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
+        styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
         content: `Rs. ${formatIndianCurrency(groupAmount)}`,
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [243, 244, 246], lineWidth: subtotalBorder, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 } }
+        styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor }
       }
     ]);
   }

@@ -439,6 +439,29 @@
   font-size: 10px;
 }
 
+/* Wood Subtotal Row (Total of each individual wood) */
+.p-wood-subtotal-row td {
+  background-color: #f3f4f6 !important;
+  border-top: 1px solid #9ca3af !important;
+  border-bottom: 1px solid #9ca3af !important;
+  border-right: 1px solid #222222 !important;
+  color: #555f6e !important;
+  padding: 1px 4px;
+}
+
+.p-wood-subtotal-row td:first-child {
+  border-left: 1px solid #222222 !important;
+}
+
+.p-wood-subtotal-row td:last-child {
+  border-right: 1px solid #222222 !important;
+}
+
+.p-wood-subtotal-price {
+  color: #555f6e !important;
+  font-weight: 700 !important;
+}
+
 /* Total Wood Amount Row */
 .p-total-wood-row td {
   border-top: 1.5px solid #222222 !important;
