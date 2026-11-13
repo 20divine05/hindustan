@@ -491,7 +491,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                 fontWeight: 800,
                 color: 'var(--primary-800)',
                 fontSize: '0.85rem',
-                padding: '0.4rem 0.45rem',
+                padding: '0.4rem 1.4rem 0.4rem 0.45rem',
                 cursor: 'pointer',
                 backgroundColor: 'var(--bg-surface, #ffffff)',
                 border: '1.5px solid var(--primary-300, #c4a47c)',
@@ -502,7 +502,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             >
               {WOOD_SPECIES_OPTIONS.map((species) => (
                 <option key={species} value={species}>
-                  🪵 {species}
+                  🪵{species}
                 </option>
               ))}
             </select>
