@@ -1000,7 +1000,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                 <div
                   key={item.id}
                   style={{
-                    backgroundColor: '#fff',
+                    backgroundColor: 'rgba(255, 255, 255, 0.75)',
                     border: '1px solid var(--border-medium)',
                     borderRadius: '8px',
                     boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',

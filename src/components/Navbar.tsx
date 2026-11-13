@@ -29,10 +29,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
       <header
         className="no-print app-header"
         style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.82)',
-          backdropFilter: 'blur(24px) saturate(190%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(190%)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.85)',
+          backgroundColor: 'rgba(255, 255, 255, 0.65)',
+          backdropFilter: 'blur(16px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.7)',
           position: 'sticky',
           top: 0,
           zIndex: 100,
