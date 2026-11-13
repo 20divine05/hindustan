@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, Trash2, Copy, AlertCircle, CornerDownLeft, X, Pencil } from 'lucide-react';
 import type { MeasurementItem } from '../types';
 import { calculateRow, calculateTotals, formatValue, sortTimberEntries } from '../utils/calculator';
@@ -47,6 +48,17 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const [priceModalUnit, setPriceModalUnit] = useState<'CFT' | 'SQFT'>('CFT');
   const [priceModalRate, setPriceModalRate] = useState<string>('');
   const [priceModalAmount, setPriceModalAmount] = useState<string>('');
+
+  useEffect(() => {
+    if (editPriceRowIndex !== null) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [editPriceRowIndex]);
 
   const [selectedWoodOption, setSelectedWoodOption] = useState<string>('Mahagony');
   const [customWoodType, setCustomWoodType] = useState<string>('');
@@ -1158,240 +1170,251 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         </div>
       )}
 
-      {/* Comprehensive Edit Price & Rate Dialog Modal */}
-      {editPriceRowIndex !== null && items[editPriceRowIndex] && (() => {
-        const item = items[editPriceRowIndex];
-        const wNum = typeof item.widthInches === 'number' ? item.widthInches : parseFloat(item.widthInches as string) || 0;
-        const isPlank = wNum >= 7;
-        return (
-          <div
-            className="modal-backdrop"
-            style={{
-              position: 'fixed',
-              inset: 0,
-              backgroundColor: 'rgba(0,0,0,0.65)',
-              zIndex: 9999,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '1rem',
-              backdropFilter: 'blur(2px)'
-            }}
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setEditPriceRowIndex(null);
-            }}
-          >
+      {/* Comprehensive Edit Price & Rate Dialog Modal (Rendered at top of viewport via portal) */}
+      {editPriceRowIndex !== null && items[editPriceRowIndex] && typeof document !== 'undefined' && createPortal(
+        (() => {
+          const item = items[editPriceRowIndex];
+          const wNum = typeof item.widthInches === 'number' ? item.widthInches : parseFloat(item.widthInches as string) || 0;
+          const isPlank = wNum >= 7;
+          return (
             <div
+              className="modal-backdrop"
               style={{
-                backgroundColor: '#fff',
-                borderRadius: '12px',
-                padding: '1.25rem',
-                maxWidth: '420px',
-                width: '100%',
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.25)',
-                border: '1.5px solid var(--border-medium)'
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(15, 23, 42, 0.68)',
+                zIndex: 99999,
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                padding: '0.65rem',
+                paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.85rem)',
+                overflowY: 'auto',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)'
+              }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setEditPriceRowIndex(null);
               }}
             >
-              {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-900)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Pencil size={16} style={{ color: 'var(--primary-700)' }} />
-                  Edit Price — Row #{item.serialNumber}
-                </h3>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setEditPriceRowIndex(null)}
-                  style={{ padding: '4px', minWidth: 0, width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Row Specs summary banner */}
-              <div style={{
-                backgroundColor: 'var(--bg-subtle, #f8fafc)',
-                border: '1px solid var(--border-light, #e2e8f0)',
-                borderRadius: '8px',
-                padding: '0.6rem 0.75rem',
-                marginBottom: '1rem',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <div style={{ fontWeight: 800, color: 'var(--primary-900)', fontSize: '0.85rem' }}>
-                    {item.woodType || 'Timber'}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {item.lengthFeet}′ × {item.widthInches}″ × {item.thicknessInches}″ • {item.pieces} pcs
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 800, color: 'var(--primary-700)', fontSize: '0.85rem' }}>
-                    {priceModalUnit === 'SQFT' ? `${item.sqft.toFixed(2)} SQFT` : `${item.cft.toFixed(3)} CFT`}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {priceModalUnit === 'SQFT' ? `(${item.cft.toFixed(3)} CFT)` : `(${item.sqft.toFixed(2)} SQFT)`}
-                  </div>
-                </div>
-              </div>
-
-              {/* Unit Switcher (CFT vs SQFT) */}
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Pricing Unit:
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '16px',
+                  padding: '1rem 1.15rem',
+                  maxWidth: '400px',
+                  width: '100%',
+                  boxShadow: '0 20px 40px -8px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.9) inset',
+                  border: '1.5px solid var(--border-medium)',
+                  marginTop: '0',
+                  marginBottom: '2rem'
+                }}
+              >
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-900)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Pencil size={16} style={{ color: 'var(--primary-700)' }} />
+                    Edit Price — Row #{item.serialNumber}
+                  </h3>
                   <button
                     type="button"
-                    onClick={() => handlePriceModalUnitChange('CFT')}
-                    style={{
-                      padding: '0.55rem',
-                      borderRadius: '6px',
-                      border: priceModalUnit === 'CFT' ? '2px solid var(--primary-700)' : '1px solid var(--border-medium)',
-                      backgroundColor: priceModalUnit === 'CFT' ? 'var(--primary-100, #f8efe2)' : '#fff',
-                      color: priceModalUnit === 'CFT' ? 'var(--primary-900)' : 'var(--text-main)',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '2px'
-                    }}
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setEditPriceRowIndex(null)}
+                    style={{ padding: '4px', minWidth: 0, width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    <span>Rate in CFT</span>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)' }}>₹ / CFT</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handlePriceModalUnitChange('SQFT')}
-                    style={{
-                      padding: '0.55rem',
-                      borderRadius: '6px',
-                      border: priceModalUnit === 'SQFT' ? '2px solid var(--primary-700)' : '1px solid var(--border-medium)',
-                      backgroundColor: priceModalUnit === 'SQFT' ? 'var(--primary-100, #f8efe2)' : '#fff',
-                      color: priceModalUnit === 'SQFT' ? 'var(--primary-900)' : 'var(--text-main)',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '2px'
-                    }}
-                  >
-                    <span>Rate in SQFT {isPlank ? '⚡' : ''}</span>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)' }}>₹ / SQFT</span>
+                    <X size={18} />
                   </button>
                 </div>
-              </div>
 
-              {/* Rate input & Presets */}
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Rate (₹ per {priceModalUnit}):
-                </label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ position: 'absolute', left: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', fontSize: '1rem' }}>₹</span>
-                  <input
-                    type="number"
-                    step="any"
-                    inputMode="decimal"
-                    className="calc-input"
-                    value={priceModalRate}
-                    onChange={(e) => handlePriceModalRateChange(e.target.value)}
-                    placeholder=""
-                    style={{
-                      width: '100%',
-                      paddingLeft: '1.8rem',
-                      fontSize: '1.05rem',
-                      fontWeight: 800,
-                      color: 'var(--primary-900)',
-                      textAlign: 'left'
-                    }}
-                  />
+                {/* Row Specs summary banner */}
+                <div style={{
+                  backgroundColor: 'var(--bg-subtle, #f8fafc)',
+                  border: '1px solid var(--border-light, #e2e8f0)',
+                  borderRadius: '8px',
+                  padding: '0.6rem 0.75rem',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 800, color: 'var(--primary-900)', fontSize: '0.85rem' }}>
+                      {item.woodType || 'Timber'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {item.lengthFeet}′ × {item.widthInches}″ × {item.thicknessInches}″ • {item.pieces} pcs
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 800, color: 'var(--primary-700)', fontSize: '0.85rem' }}>
+                      {priceModalUnit === 'SQFT' ? `${item.sqft.toFixed(2)} SQFT` : `${item.cft.toFixed(3)} CFT`}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      {priceModalUnit === 'SQFT' ? `(${item.cft.toFixed(3)} CFT)` : `(${item.sqft.toFixed(2)} SQFT)`}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Quick preset chips */}
-                <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
-                  {(priceModalUnit === 'SQFT' ? ['80', '100', '120', '150', '180'] : ['900', '1000', '1200', '1400', '1600']).map((preset) => (
+                {/* Unit Switcher (CFT vs SQFT) */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Pricing Unit:
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                     <button
-                      key={preset}
                       type="button"
-                      onClick={() => handlePriceModalRateChange(preset)}
+                      onClick={() => handlePriceModalUnitChange('CFT')}
                       style={{
-                        padding: '2px 8px',
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        borderRadius: '4px',
-                        border: priceModalRate === preset ? '1.5px solid var(--primary-700)' : '1px solid var(--border-medium)',
-                        backgroundColor: priceModalRate === preset ? 'var(--primary-200)' : 'var(--bg-subtle)',
-                        color: 'var(--text-main)',
-                        cursor: 'pointer'
+                        padding: '0.55rem',
+                        borderRadius: '6px',
+                        border: priceModalUnit === 'CFT' ? '2px solid var(--primary-700)' : '1px solid var(--border-medium)',
+                        backgroundColor: priceModalUnit === 'CFT' ? 'var(--primary-100, #f8efe2)' : '#fff',
+                        color: priceModalUnit === 'CFT' ? 'var(--primary-900)' : 'var(--text-main)',
+                        fontWeight: 800,
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '2px'
                       }}
                     >
-                      ₹{preset}
+                      <span>Rate in CFT</span>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)' }}>₹ / CFT</span>
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => handlePriceModalUnitChange('SQFT')}
+                      style={{
+                        padding: '0.55rem',
+                        borderRadius: '6px',
+                        border: priceModalUnit === 'SQFT' ? '2px solid var(--primary-700)' : '1px solid var(--border-medium)',
+                        backgroundColor: priceModalUnit === 'SQFT' ? 'var(--primary-100, #f8efe2)' : '#fff',
+                        color: priceModalUnit === 'SQFT' ? 'var(--primary-900)' : 'var(--text-main)',
+                        fontWeight: 800,
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}
+                    >
+                      <span>Rate in SQFT {isPlank ? '⚡' : ''}</span>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)' }}>₹ / SQFT</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Total Amount Override Input */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Total Row Amount (₹):
-                </label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ position: 'absolute', left: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', fontSize: '1rem' }}>₹</span>
-                  <input
-                    type="number"
-                    step="any"
-                    inputMode="decimal"
-                    className="calc-input"
-                    value={priceModalAmount}
-                    onChange={(e) => handlePriceModalAmountChange(e.target.value)}
-                    placeholder=""
-                    style={{
-                      width: '100%',
-                      paddingLeft: '1.8rem',
-                      fontSize: '1.05rem',
-                      fontWeight: 900,
-                      color: 'var(--primary-900)',
-                      backgroundColor: 'var(--bg-subtle, #fcf9f2)',
-                      textAlign: 'left'
-                    }}
-                  />
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
-                  Auto-calculates rate or enter a flat custom amount.
-                </div>
-              </div>
+                {/* Rate input & Presets */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Rate (₹ per {priceModalUnit}):
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', fontSize: '1rem' }}>₹</span>
+                    <input
+                      type="number"
+                      step="any"
+                      inputMode="decimal"
+                      className="calc-input"
+                      value={priceModalRate}
+                      onChange={(e) => handlePriceModalRateChange(e.target.value)}
+                      placeholder=""
+                      style={{
+                        width: '100%',
+                        paddingLeft: '1.8rem',
+                        fontSize: '1.05rem',
+                        fontWeight: 800,
+                        color: 'var(--primary-900)',
+                        textAlign: 'left'
+                      }}
+                    />
+                  </div>
 
-              {/* Modal Action Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setEditPriceRowIndex(null)}
-                  style={{ padding: '0.45rem 0.85rem' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={handleSavePriceModal}
-                  style={{ fontWeight: 800, padding: '0.45rem 1rem' }}
-                >
-                  Save &amp; Apply Price
-                </button>
+                  {/* Quick preset chips */}
+                  <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
+                    {(priceModalUnit === 'SQFT' ? ['80', '100', '120', '150', '180'] : ['900', '1000', '1200', '1400', '1600']).map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => handlePriceModalRateChange(preset)}
+                        style={{
+                          padding: '2px 8px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          borderRadius: '4px',
+                          border: priceModalRate === preset ? '1.5px solid var(--primary-700)' : '1px solid var(--border-medium)',
+                          backgroundColor: priceModalRate === preset ? 'var(--primary-200)' : 'var(--bg-subtle)',
+                          color: 'var(--text-main)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ₹{preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Total Amount Override Input */}
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Total Row Amount (₹):
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', fontSize: '1rem' }}>₹</span>
+                    <input
+                      type="number"
+                      step="any"
+                      inputMode="decimal"
+                      className="calc-input"
+                      value={priceModalAmount}
+                      onChange={(e) => handlePriceModalAmountChange(e.target.value)}
+                      placeholder=""
+                      style={{
+                        width: '100%',
+                        paddingLeft: '1.8rem',
+                        fontSize: '1.05rem',
+                        fontWeight: 900,
+                        color: 'var(--primary-900)',
+                        backgroundColor: 'var(--bg-subtle, #fcf9f2)',
+                        textAlign: 'left'
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                    Auto-calculates rate or enter a flat custom amount.
+                  </div>
+                </div>
+
+                {/* Modal Action Buttons */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setEditPriceRowIndex(null)}
+                    style={{ padding: '0.45rem 0.85rem' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={handleSavePriceModal}
+                    style={{ fontWeight: 800, padding: '0.45rem 1rem' }}
+                  >
+                    Save &amp; Apply Price
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })(),
+        document.body
+      )}
 
       {/* Shared Wood Species Datalist */}
       <datalist id="wood-options-list">
