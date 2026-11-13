@@ -39,7 +39,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
   const [sheets, setSheets] = useState<MeasurementSheet[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [filterOption, setFilterOption] = useState<'all' | 'confirmed' | 'unconfirmed' | 'today' | 'week' | 'month'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'cft_desc' | 'pieces_desc'>('newest');
 
   const [sheetToDelete, setSheetToDelete] = useState<MeasurementSheet | null>(null);
@@ -111,14 +111,22 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
 
     if (!matchesSearch) return false;
 
+    // Status filter
+    if (filterOption === 'confirmed') {
+      return Boolean(sheet.isConfirmed);
+    }
+    if (filterOption === 'unconfirmed') {
+      return !sheet.isConfirmed;
+    }
+
     // Date filter
-    if (dateFilter === 'today') {
+    if (filterOption === 'today') {
       return sheet.measurementDate === todayStr;
-    } else if (dateFilter === 'week') {
+    } else if (filterOption === 'week') {
       const sheetDate = new Date(sheet.measurementDate);
       const diffDays = (now.getTime() - sheetDate.getTime()) / (1000 * 3600 * 24);
       return diffDays <= 7;
-    } else if (dateFilter === 'month') {
+    } else if (filterOption === 'month') {
       const sheetDate = new Date(sheet.measurementDate);
       const diffDays = (now.getTime() - sheetDate.getTime()) / (1000 * 3600 * 24);
       return diffDays <= 30;
@@ -190,15 +198,17 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
           </div>
 
           <div className="history-selects-row">
-            {/* Date Range Quick Filter */}
+            {/* Quick Filter */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flex: 1 }}>
               <Filter size={14} color="var(--text-subtle)" />
               <select
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value as any)}
+                value={filterOption}
+                onChange={(e) => setFilterOption(e.target.value as any)}
                 style={{ fontSize: '0.88rem', width: '100%' }}
               >
                 <option value="all">All Dates</option>
+                <option value="confirmed">✓ Confirmed Only</option>
+                <option value="unconfirmed">Pending Only</option>
                 <option value="today">Today</option>
                 <option value="week">Past 7 Days</option>
                 <option value="month">Past 30 Days</option>
@@ -220,6 +230,46 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Quick Filter Pills */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-sm"
+            style={{
+              padding: '3px 10px',
+              fontSize: '0.78rem',
+              borderRadius: '20px',
+              backgroundColor: filterOption === 'all' ? 'var(--primary-100, #dbeafe)' : 'var(--bg-surface, #ffffff)',
+              color: filterOption === 'all' ? 'var(--primary-800, #1e40af)' : 'var(--text-muted)',
+              borderColor: filterOption === 'all' ? 'var(--primary-300, #93c5fd)' : 'var(--border-light, #e2e8f0)',
+              fontWeight: filterOption === 'all' ? 700 : 500
+            }}
+            onClick={() => setFilterOption('all')}
+          >
+            All ({sheets.length})
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm"
+            style={{
+              padding: '3px 10px',
+              fontSize: '0.78rem',
+              borderRadius: '20px',
+              backgroundColor: filterOption === 'confirmed' ? '#dcfce7' : 'var(--bg-surface, #ffffff)',
+              color: filterOption === 'confirmed' ? '#15803d' : 'var(--text-muted)',
+              borderColor: filterOption === 'confirmed' ? '#86efac' : 'var(--border-light, #e2e8f0)',
+              fontWeight: filterOption === 'confirmed' ? 700 : 500,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+            onClick={() => setFilterOption(filterOption === 'confirmed' ? 'all' : 'confirmed')}
+          >
+            <CheckSquare size={13} color={filterOption === 'confirmed' ? '#15803d' : 'var(--text-muted)'} />
+            Confirmed ({sheets.filter((s) => s.isConfirmed).length})
+          </button>
+        </div>
       </div>
 
       {/* Sheets Table */}
@@ -235,8 +285,10 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
               No measurement sheets found
             </h4>
             <p style={{ fontSize: '0.9rem', margin: '0 0 1.25rem' }}>
-              {searchQuery || dateFilter !== 'all'
-                ? 'Try adjusting your search criteria or date filters.'
+              {searchQuery || filterOption !== 'all'
+                ? (filterOption === 'confirmed'
+                    ? 'No confirmed sheets found. Click the checkbox on any sheet to mark it as confirmed.'
+                    : 'Try adjusting your search criteria or filters.')
                 : 'Create your first measurement sheet in the calculator.'}
             </p>
             <button type="button" className="btn btn-primary btn-sm" onClick={onNewSheet}>
