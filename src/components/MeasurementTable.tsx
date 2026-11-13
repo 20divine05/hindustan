@@ -276,25 +276,6 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     onChange(reindexed);
   };
 
-  // Add an empty row
-  const handleAddEmptyRow = () => {
-    const rateNum = parseFloat(quickRate);
-    const defRate = !isNaN(rateNum) && rateNum > 0 ? rateNum : defaultRate;
-    const newRow: MeasurementItem = {
-      id: generateId(),
-      serialNumber: items.length + 1,
-      lengthFeet: '',
-      widthInches: '',
-      thicknessInches: '',
-      pieces: 1,
-      cft: 0,
-      sqft: 0,
-      rate: defRate,
-      amount: 0,
-      woodType: ''
-    };
-    onChange([...items, newRow]);
-  };
 
   // Add row via Quick-Add Bar
   const handleQuickAdd = (e?: React.FormEvent) => {
@@ -592,29 +573,11 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               justifyContent: 'center',
               gap: '0.25rem',
               fontWeight: 800,
-              fontSize: '0.82rem',
+              fontSize: '0.84rem',
               whiteSpace: 'nowrap'
             }}
           >
             <Plus size={15} /> <span>Add Row</span>
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm quick-blank-btn"
-            onClick={handleAddEmptyRow}
-            title="Add empty blank row"
-            style={{
-              height: '38px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <span>Blank Row</span>
           </button>
         </div>
 
@@ -1205,17 +1168,6 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         )}
       </div>
 
-      {/* Add Row Button below Table */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm"
-          onClick={handleAddEmptyRow}
-          style={{ flex: 1, justifyContent: 'center', fontWeight: 700, padding: '0.5rem' }}
-        >
-          <Plus size={15} /> Add Another Row
-        </button>
-      </div>
 
       {/* Summary Bar */}
       {items.length > 0 && (
