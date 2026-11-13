@@ -184,7 +184,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
       const wNum = typeof target.widthInches === 'number' ? target.widthInches : 0;
       if (field === 'widthInches') {
-        if (wNum >= 7 && target.rateUnit !== 'CFT') {
+        if (wNum >= 7) {
           target.rateUnit = 'SQFT';
           if (!target.rate || target.rate === defaultRate) {
             target.rate = 120;
