@@ -7,12 +7,13 @@ import {
   FileDown,
   Share2,
   Trash2,
-  Copy,
   ExternalLink,
   Edit2,
   Filter,
   FileSpreadsheet,
-  FileText
+  FileText,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import type { MeasurementSheet, BusinessSettings } from '../types';
 import { dbService } from '../services/db';
@@ -58,11 +59,20 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
     setLoading(false);
   };
 
-  const handleDuplicate = async (sheetId: string) => {
+  const handleToggleConfirmed = async (sheetId: string, currentStatus?: boolean) => {
+    const newStatus = !currentStatus;
+    setSheets((prev) =>
+      prev.map((s) => (s.id === sheetId ? { ...s, isConfirmed: newStatus } : s))
+    );
     const uid = user?.id || 'guest';
-    const duplicated = await dbService.duplicateSheet(sheetId, uid);
-    if (duplicated) {
-      loadSheets();
+    const target = await dbService.getSheetById(sheetId, uid, user?.role);
+    if (target) {
+      await dbService.saveSheet({ ...target, isConfirmed: newStatus }, uid);
+    } else {
+      const fallback = sheets.find((s) => s.id === sheetId);
+      if (fallback) {
+        await dbService.saveSheet({ ...fallback, isConfirmed: newStatus }, uid);
+      }
     }
   };
 
@@ -306,6 +316,24 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                             >
                               {sheet.sheetName}
                             </span>
+                            {sheet.isConfirmed && (
+                              <span
+                                style={{
+                                  fontSize: '0.65rem',
+                                  fontWeight: 800,
+                                  color: '#15803d',
+                                  backgroundColor: '#dcfce7',
+                                  border: '1px solid #86efac',
+                                  padding: '1px 5px',
+                                  borderRadius: '3px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '2px'
+                                }}
+                              >
+                                ✓ Confirmed
+                              </span>
+                            )}
                             <button
                               type="button"
                               className="btn btn-ghost btn-sm"
@@ -416,11 +444,16 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                         <button
                           type="button"
                           className="btn btn-ghost btn-sm"
-                          title="Duplicate sheet"
-                          style={{ padding: '5px' }}
-                          onClick={() => handleDuplicate(sheet.id)}
+                          title={sheet.isConfirmed ? "Confirmed (Buyer ready to buy) - Click to unmark" : "Mark as Confirmed (Buyer ready to buy)"}
+                          style={{
+                            padding: '5px',
+                            color: sheet.isConfirmed ? '#16a34a' : 'var(--text-muted)',
+                            backgroundColor: sheet.isConfirmed ? '#f0fdf4' : 'transparent',
+                            borderRadius: '4px'
+                          }}
+                          onClick={() => handleToggleConfirmed(sheet.id, sheet.isConfirmed)}
                         >
-                          <Copy size={14} />
+                          {sheet.isConfirmed ? <CheckSquare size={15} /> : <Square size={15} />}
                         </button>
 
                         <button
@@ -491,7 +524,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                       </button>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)' }}>
                         #{index + 1}
                       </span>
@@ -512,6 +545,24 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                       >
                         {sheet.sheetName}
                       </strong>
+                      {sheet.isConfirmed && (
+                        <span
+                          style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            color: '#15803d',
+                            backgroundColor: '#dcfce7',
+                            border: '1px solid #86efac',
+                            padding: '1px 5px',
+                            borderRadius: '3px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '2px'
+                          }}
+                        >
+                          ✓ Confirmed
+                        </span>
+                      )}
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
@@ -620,11 +671,16 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    title="Duplicate"
-                    style={{ padding: '0.35rem 0.5rem' }}
-                    onClick={() => handleDuplicate(sheet.id)}
+                    title={sheet.isConfirmed ? "Confirmed (Buyer ready to buy) - Click to unmark" : "Mark as Confirmed (Buyer ready to buy)"}
+                    style={{
+                      padding: '0.35rem 0.5rem',
+                      color: sheet.isConfirmed ? '#16a34a' : 'var(--text-muted)',
+                      backgroundColor: sheet.isConfirmed ? '#f0fdf4' : undefined,
+                      borderColor: sheet.isConfirmed ? '#86efac' : undefined
+                    }}
+                    onClick={() => handleToggleConfirmed(sheet.id, sheet.isConfirmed)}
                   >
-                    <Copy size={13} />
+                    {sheet.isConfirmed ? <CheckSquare size={13} /> : <Square size={13} />}
                   </button>
 
                   <button

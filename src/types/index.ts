@@ -58,6 +58,7 @@ export interface MeasurementSheet {
   discount?: SheetDiscount;
   customGstTaxableAmount?: number;
   gstPercent?: number;
+  isConfirmed?: boolean;
   finalGrandTotal?: number;
   totalEntries: number;
   totalPieces: number;

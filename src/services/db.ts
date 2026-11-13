@@ -76,6 +76,7 @@ export function sanitizeAndComputeSheet(
     discount: sheet.discount,
     customGstTaxableAmount: sheet.customGstTaxableAmount,
     gstPercent: sheet.gstPercent,
+    isConfirmed: Boolean(sheet.isConfirmed),
     finalGrandTotal: sheet.finalGrandTotal,
     totalEntries: totals.totalEntries,
     totalPieces: totals.totalPieces,
@@ -197,23 +198,35 @@ export const dbService = {
       }
 
       return (data || [])
-        .map((row) => ({
-          id: row.id,
-          userId: row.user_id,
-          sheetName: row.sheet_name,
-          customerName: row.customer_name || '',
-          projectName: row.project_name || '',
-          referenceNumber: row.reference_number || '',
-          measurementDate: row.measurement_date,
-          notes: row.notes || '',
-          items: [],
-          totalEntries: row.total_entries || 0,
-          totalPieces: Number(row.total_pieces) || 0,
-          totalCft: Number(row.total_cft) || 0,
-          totalSqft: Number(row.total_sqft) || 0,
-          createdAt: row.created_at,
-          updatedAt: row.updated_at
-        }))
+        .map((row) => {
+          let isConfirmed = Boolean(row.is_confirmed);
+          let cleanNotes = row.notes || '';
+          if (cleanNotes.startsWith('__TIMBER_META__')) {
+            try {
+              const meta = JSON.parse(cleanNotes.replace('__TIMBER_META__', ''));
+              if (meta.isConfirmed !== undefined) isConfirmed = Boolean(meta.isConfirmed);
+              cleanNotes = meta.rawNotes || '';
+            } catch {}
+          }
+          return {
+            id: row.id,
+            userId: row.user_id,
+            sheetName: row.sheet_name,
+            customerName: row.customer_name || '',
+            projectName: row.project_name || '',
+            referenceNumber: row.reference_number || '',
+            measurementDate: row.measurement_date,
+            notes: cleanNotes,
+            items: [],
+            isConfirmed,
+            totalEntries: row.total_entries || 0,
+            totalPieces: Number(row.total_pieces) || 0,
+            totalCft: Number(row.total_cft) || 0,
+            totalSqft: Number(row.total_sqft) || 0,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+          };
+        })
         .filter((s) => s.totalEntries > 0 || s.totalPieces > 0 || s.totalCft > 0);
     } catch (err) {
       console.error('Error fetching sheets:', err);
@@ -314,6 +327,7 @@ export const dbService = {
         discount: parsedMeta?.discount || localSheet?.discount,
         customGstTaxableAmount: parsedMeta?.customGstTaxableAmount !== undefined ? parsedMeta.customGstTaxableAmount : localSheet?.customGstTaxableAmount,
         gstPercent: parsedMeta?.gstPercent !== undefined ? parsedMeta.gstPercent : localSheet?.gstPercent,
+        isConfirmed: parsedMeta?.isConfirmed !== undefined ? Boolean(parsedMeta.isConfirmed) : (localSheet?.isConfirmed ?? Boolean(sheetData.is_confirmed) ?? false),
         finalGrandTotal: parsedMeta?.finalGrandTotal || localSheet?.finalGrandTotal,
         totalEntries: sheetData.total_entries || finalItems.length,
         totalPieces: Number(sheetData.total_pieces) || localSheet?.totalPieces || 0,
@@ -363,6 +377,7 @@ export const dbService = {
         discount: sanitized.discount,
         customGstTaxableAmount: sanitized.customGstTaxableAmount,
         gstPercent: sanitized.gstPercent,
+        isConfirmed: Boolean(sanitized.isConfirmed),
         finalGrandTotal: sanitized.finalGrandTotal,
         rawNotes: sanitized.notes || '',
         backupItems: sanitized.items
