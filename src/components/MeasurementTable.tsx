@@ -37,11 +37,11 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const [quickLength, setQuickLength] = useState<string>('');
   const [quickWidth, setQuickWidth] = useState<string>('');
   const [quickThickness, setQuickThickness] = useState<string>('');
-  const [quickPieces, setQuickPieces] = useState<string>('1');
-  const [quickRate, setQuickRate] = useState<string>(defaultRate.toString());
+  const [quickPieces, setQuickPieces] = useState<string>('');
+  const [quickRate, setQuickRate] = useState<string>('');
   const [quickRateUnit, setQuickRateUnit] = useState<'CFT' | 'SQFT'>('CFT');
-  const [quickRateCft, setQuickRateCft] = useState<string>(defaultRate.toString());
-  const [quickRateSqft, setQuickRateSqft] = useState<string>('120');
+  const [quickRateCft, setQuickRateCft] = useState<string>('');
+  const [quickRateSqft, setQuickRateSqft] = useState<string>('');
 
   // Modal state for editing price / rate of a row
   const [editPriceRowIndex, setEditPriceRowIndex] = useState<number | null>(null);
@@ -257,7 +257,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     const l = parseFloat(quickLength);
     const w = parseFloat(quickWidth);
     const t = parseFloat(quickThickness);
-    const p = parseFloat(quickPieces);
+    const pRaw = parseFloat(quickPieces);
+    const p = !isNaN(pRaw) && pRaw > 0 ? pRaw : 1;
 
     if (isNaN(l) || l <= 0) {
       setQuickError('Length must be greater than 0 feet');
@@ -269,10 +270,6 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     }
     if (isNaN(t) || t <= 0) {
       setQuickError('Thickness must be greater than 0 inches');
-      return;
-    }
-    if (isNaN(p) || p <= 0) {
-      setQuickError('Pieces count must be at least 1');
       return;
     }
 
@@ -288,12 +285,12 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       } else {
         // Width >= 7 directly defaults to SQFT
         finalRateUnit = 'SQFT';
-        const parsedSqftRate = parseFloat(quickRateSqft);
+        const parsedSqftRate = parseFloat(quickRateSqft) || parseFloat(quickRate);
         itemRate = !isNaN(parsedSqftRate) && parsedSqftRate > 0 ? parsedSqftRate : 120;
       }
     } else {
       finalRateUnit = 'CFT';
-      const parsedRate = parseFloat(quickRate);
+      const parsedRate = parseFloat(quickRate) || parseFloat(quickRateCft);
       itemRate = !isNaN(parsedRate) && parsedRate > 0 ? parsedRate : defaultRate;
     }
 
@@ -324,7 +321,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
     // Keep thickness, width and rate for rapid consecutive tallying, clear length & pieces
     setQuickLength('');
-    setQuickPieces('1');
+    setQuickPieces('');
 
     // Auto-refocus on length input for continuous fast entry
     setTimeout(() => {
@@ -416,7 +413,6 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               className="calc-input"
               value={quickPieces}
               onChange={(e) => setQuickPieces(e.target.value)}
-              required
             />
           </div>
 
