@@ -956,39 +956,45 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     printProformaInvoicePdf(current, businessSettings, exportData);
   };
 
-  // Share Invoice PDF directly to WhatsApp (as a real PDF document, not chat text)
-  const handleShareWhatsApp = async () => {
+  // Share Invoice PDF directly to customer's WhatsApp chat
+  const handleShareWhatsApp = () => {
     persistCurrentCustomer();
-    const cleanPhone = customerPhone.replace(/\D/g, '');
-    const targetPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : (cleanPhone.length > 10 ? cleanPhone : '');
+
+    // 1. Extract customer phone from invoice details
+    let rawPhone = (customerPhone || '').trim();
+    let digits = rawPhone.replace(/\D/g, '');
+    if (digits.startsWith('0') && digits.length === 11) {
+      digits = digits.slice(1);
+    }
+    if (digits.length === 10) {
+      digits = `91${digits}`;
+    }
+
+    if (!digits) {
+      const entered = window.prompt(
+        "Please enter the customer's 10-digit WhatsApp phone number:",
+        customerPhone || ''
+      );
+      if (!entered) return;
+      rawPhone = entered.trim();
+      digits = rawPhone.replace(/\D/g, '');
+      if (digits.startsWith('0') && digits.length === 11) {
+        digits = digits.slice(1);
+      }
+      if (digits.length === 10) {
+        digits = `91${digits}`;
+      }
+      if (!digits) {
+        alert("Please enter a valid phone number to share via WhatsApp.");
+        return;
+      }
+      setCustomerPhone(rawPhone);
+    }
 
     const { current, exportData } = getFullInvoiceExportData();
 
-    // 1. Generate the official Proforma Invoice PDF Blob & File
+    // 2. Generate and trigger instant download of the official Proforma Invoice PDF
     const { blob, filename } = getProformaInvoicePdfBlob(current, businessSettings, exportData);
-    const pdfFile = new File([blob], filename, { type: 'application/pdf' });
-
-    // 2. Mobile Native Web Share API with actual PDF File
-    // On Android/iOS, this attaches the real PDF file into WhatsApp!
-    if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-      try {
-        await navigator.share({
-          files: [pdfFile],
-          title: `Invoice #${invoiceNo}`,
-          text: `Proforma Invoice #${invoiceNo} for ${customerName || 'Customer'}`
-        });
-        return;
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          console.warn('Native file share error, proceeding to direct download:', err);
-        } else {
-          return;
-        }
-      }
-    }
-
-    // 3. Fallback for Desktop:
-    // Download the actual PDF file so user has it immediately
     const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = downloadUrl;
@@ -996,19 +1002,28 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(downloadUrl), 8000);
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 15000);
 
-    // Direct WhatsApp chat to that number with a clean invoice notice (not long chat text)
-    const shortMsg = `📄 *PROFORMA INVOICE #${invoiceNo}*\n` +
-      `Customer: *${customerName || 'Customer'}*\n` +
-      `Amount: *₹${formatIndianCurrency(finalGrandTotal)}*\n` +
-      `UPI ID: *hindustansawmill@icici*\n` +
+    // 3. Compose clean invoice message
+    const msg =
+      `📄 *PROFORMA INVOICE #${invoiceNo}*\n` +
+      `*Hindustan Saw Mills & Wood Industries*\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📎 Official PDF Invoice (*${filename}*) has been generated and downloaded. Please attach and send.`;
+      `👤 *Customer:* ${customerName || 'Valued Customer'}\n` +
+      `📅 *Date:* ${invoiceDate}\n` +
+      `🪵 *Total Quantity:* ${totals.totalPieces} PCS  •  ${totals.totalCft.toFixed(4)} CFT\n` +
+      `💰 *Total Payable:* *₹${formatIndianCurrency(finalGrandTotal)}*\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `🏦 *Payment Details (ICICI Bank):*\n` +
+      `• A/c Name: *HINDUSTAN SAW MILLS AND WOOD INDUSTRIES 2024-25*\n` +
+      `• A/c No: *464205000153*\n` +
+      `• IFSC: *ICIC0004642* (JP Nagar)\n` +
+      `• UPI ID: *hindustansawmill@icici*\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `📎 *Official PDF Invoice (${filename}) has been generated.*`;
 
-    const waUrl = targetPhone
-      ? `https://wa.me/${targetPhone}?text=${encodeURIComponent(shortMsg)}`
-      : `https://wa.me/?text=${encodeURIComponent(shortMsg)}`;
+    // 4. Directly open the customer's WhatsApp chat with the pre-filled invoice message
+    const waUrl = `https://api.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(msg)}`;
     window.open(waUrl, '_blank');
   };
 
