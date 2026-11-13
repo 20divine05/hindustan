@@ -217,69 +217,110 @@ export function createProformaInvoiceDoc(
   doc.line(105, 15, 105, 87); // Center vertical divider
 
   // --- LEFT COLUMN: Seller, Consignee, Buyer ---
-  // A. Seller Sub-box (y: 15 to 39)
+  // A. Seller Sub-box (y: 15 to 39.5, height = 24.5mm)
   try {
-    doc.addImage(LOGO_ICON_BASE64, 'PNG', 11, 16.5, 18, 11.2);
+    doc.addImage(LOGO_ICON_BASE64, 'PNG', 11.5, 17.5, 17, 11);
   } catch (e) {
     console.warn('Could not draw logo on PDF:', e);
   }
 
+  // Company Name on 2 lines so it never overflows past the center line at x=105
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9.5);
-  doc.text('HINDUSTAN SAW MILLS AND WOOD INDUSTRIES', 30.5, 19);
+  doc.setFontSize(8.4);
+  doc.setTextColor(0, 0, 0);
+  doc.text('HINDUSTAN SAW MILLS AND', 31.0, 18.8);
+  doc.text('WOOD INDUSTRIES', 31.0, 22.2);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.4);
-  doc.text('#99/C INDUSTRIAL SUBURB 2ND STAGE', 30.5, 22.4);
-  doc.text('VISHVESHWARA NAGAR MYSORE - 570008', 30.5, 25.6);
-  doc.text('ACCOUNTS DEPARTMENT - 7996222901', 30.5, 28.8);
+  doc.setFontSize(6.8);
+  doc.setTextColor(40, 40, 40);
+  doc.text('#99/C INDUSTRIAL SUBURB 2ND STAGE', 31.0, 25.5);
+  doc.text('VISHVESHWARA NAGAR, MYSORE - 570008', 31.0, 28.5);
+  doc.text('ACCOUNTS: 7996222901  |  hindustansawmill@gmail.com', 31.0, 31.5);
   doc.setFont('helvetica', 'bold');
-  doc.text('GSTIN/UIN: 29APYPK6256P1ZL', 30.5, 32.0);
+  doc.text('GSTIN: 29APYPK6256P1ZL', 31.0, 34.8);
   doc.setFont('helvetica', 'normal');
-  doc.text('State Name : Karnataka, Code : 29', 30.5, 35.2);
-  doc.text('E-Mail : hindustansawmill@gmail.com', 30.5, 38.3);
+  doc.text('State: Karnataka, Code : 29', 31.0, 37.8);
 
   doc.line(10, 39.5, 105, 39.5); // Divider below seller
 
-  // B. Consignee (Ship to) (y: 39.5 to 63)
+  // B. Consignee (Ship to) (y: 39.5 to 63.5, height = 24mm)
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text('Consignee (Ship to)', 11.5, 43);
+  doc.setFontSize(7.5);
+  doc.setTextColor(80, 80, 80);
+  doc.text('Consignee (Ship to)', 11.5, 43.5);
 
-  doc.text(consigneeName, 11.5, 46.8);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.4);
+  doc.setTextColor(0, 0, 0);
+  doc.text(consigneeName || 'New India Saw Mill', 11.5, 47.2);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  const splitConsigneeAddr = doc.splitTextToSize(consigneeAddress, 90);
-  let cY = 50.2;
-  for (let i = 0; i < Math.min(splitConsigneeAddr.length, 3); i++) {
+  doc.setFontSize(7.0);
+  doc.setTextColor(40, 40, 40);
+  const splitConsigneeAddr = doc.splitTextToSize(consigneeAddress || 'Local Mill Pickup', 90);
+  let cY = 50.8;
+  for (let i = 0; i < Math.min(splitConsigneeAddr.length, 2); i++) {
     doc.text(splitConsigneeAddr[i], 11.5, cY);
     cY += 3.3;
   }
 
-  doc.text(`GSTIN/UIN        : ${consigneeGstin}`, 11.5, 59.5);
-  doc.text(`State Name       : ${consigneeState}, Code : ${consigneeStateCode}`, 11.5, 62.5);
+  // Aligned GSTIN & State rows
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.8);
+  doc.setTextColor(70, 70, 70);
+  doc.text('GSTIN/UIN', 11.5, 58.2);
+  doc.text(':', 27.5, 58.2);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
+  doc.text(consigneeGstin || '', 29.5, 58.2);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(70, 70, 70);
+  doc.text('State Name', 11.5, 61.8);
+  doc.text(':', 27.5, 61.8);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`${consigneeState || ''}, Code : ${consigneeStateCode || ''}`, 29.5, 61.8);
 
   doc.line(10, 63.5, 105, 63.5); // Divider below consignee
 
-  // C. Buyer (Bill to) (y: 63.5 to 87)
+  // C. Buyer (Bill to) (y: 63.5 to 87, height = 23.5mm)
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text('Buyer (Bill to)', 11.5, 67);
+  doc.setFontSize(7.5);
+  doc.setTextColor(80, 80, 80);
+  doc.text('Buyer (Bill to)', 11.5, 67.5);
 
-  doc.text(buyerName, 11.5, 70.8);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.4);
+  doc.setTextColor(0, 0, 0);
+  doc.text(buyerName || consigneeName || 'New India Saw Mill', 11.5, 71.2);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  const splitBuyerAddr = doc.splitTextToSize(buyerAddress, 90);
-  let bY = 74.2;
-  for (let i = 0; i < Math.min(splitBuyerAddr.length, 3); i++) {
+  doc.setFontSize(7.0);
+  doc.setTextColor(40, 40, 40);
+  const splitBuyerAddr = doc.splitTextToSize(buyerAddress || consigneeAddress || 'Local Mill Pickup', 90);
+  let bY = 74.8;
+  for (let i = 0; i < Math.min(splitBuyerAddr.length, 2); i++) {
     doc.text(splitBuyerAddr[i], 11.5, bY);
     bY += 3.3;
   }
 
-  doc.text(`GSTIN/UIN        : ${buyerGstin}`, 11.5, 83.5);
-  doc.text(`State Name       : ${buyerState}, Code : ${buyerStateCode}`, 11.5, 86.5);
+  // Aligned GSTIN & State rows
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.8);
+  doc.setTextColor(70, 70, 70);
+  doc.text('GSTIN/UIN', 11.5, 82.2);
+  doc.text(':', 27.5, 82.2);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
+  doc.text(buyerGstin || '', 29.5, 82.2);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(70, 70, 70);
+  doc.text('State Name', 11.5, 85.8);
+  doc.text(':', 27.5, 85.8);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`${buyerState || ''}, Code : ${buyerStateCode || ''}`, 29.5, 85.8);
 
   // --- RIGHT COLUMN: Dispatch and Order Metadata Table ---
   const rightDividerX = 152.5;
@@ -290,60 +331,73 @@ export function createProformaInvoiceDoc(
   doc.line(105, 42, 200, 42);
   doc.line(105, 51, 200, 51);
 
-  // Vertical divider between left/right metadata cells (rows 0 to 2)
-  doc.line(rightDividerX, 15, rightDividerX, 42);
+  // Vertical dividers
+  doc.line(129, 15, 129, 24); // Separator between Invoice No and e-Way Bill No in row 0
+  doc.line(rightDividerX, 15, rightDividerX, 42); // Vertical divider between left/right metadata cells (rows 0 to 2)
 
-  // Row 0 (15 to 24): Invoice No / e-Way Bill No | Dated
+  // Row 0 (15 to 24): Invoice No | e-Way Bill No | Dated
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.2);
-  doc.text('Invoice No.', 106.5, 18);
-  doc.text('e-Way Bill No.', 130, 18);
-  doc.text('Dated', 154, 18);
+  doc.setFontSize(6.8);
+  doc.setTextColor(80, 80, 80);
+  doc.text('Invoice No.', 106.5, 18.2);
+  doc.text('e-Way Bill No.', 130.5, 18.2);
+  doc.text('Dated', 154.0, 18.2);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
-  doc.text(invoiceNo, 106.5, 22.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text(invoiceNo, 106.5, 22.2);
   doc.setFont('helvetica', 'normal');
-  doc.text(eWayBillNo, 130, 22.5);
+  doc.setFontSize(7.5);
+  doc.text(eWayBillNo || '', 130.5, 22.2);
   doc.setFont('helvetica', 'bold');
-  doc.text(formattedDate, 154, 22.5);
+  doc.setFontSize(8.2);
+  doc.text(formattedDate, 154.0, 22.2);
 
   // Row 1 (24 to 33): Mode/Terms of Payment | Destination
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.2);
-  doc.text('Mode/Terms of Payment', 106.5, 27);
-  doc.text('Destination', 154, 27);
+  doc.setFontSize(6.8);
+  doc.setTextColor(80, 80, 80);
+  doc.text('Mode/Terms of Payment', 106.5, 27.2);
+  doc.text('Destination', 154.0, 27.2);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.2);
-  doc.text(paymentTerms, 106.5, 31.5);
-  doc.text(destination, 154, 31.5);
+  doc.setFontSize(8.0);
+  doc.setTextColor(0, 0, 0);
+  doc.text(paymentTerms, 106.5, 31.2);
+  doc.text(destination, 154.0, 31.2);
 
   // Row 2 (33 to 42): Buyer's Order No. | Dated
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.2);
-  doc.text("Buyer's Order No.", 106.5, 36);
-  doc.text('Dated', 154, 36);
+  doc.setFontSize(6.8);
+  doc.setTextColor(80, 80, 80);
+  doc.text("Buyer's Order No.", 106.5, 36.2);
+  doc.text('Dated', 154.0, 36.2);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.2);
-  doc.text(buyerOrderNo || '', 106.5, 40.5);
-  doc.text(buyerOrderDate || '', 154, 40.5);
+  doc.setFontSize(7.8);
+  doc.setTextColor(0, 0, 0);
+  doc.text(buyerOrderNo || '', 106.5, 40.2);
+  doc.text(buyerOrderDate || '', 154.0, 40.2);
 
   // Row 3 (42 to 51): Motor Vehicle No.
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.2);
+  doc.setFontSize(6.8);
+  doc.setTextColor(80, 80, 80);
   doc.text('Motor Vehicle No.', 106.5, 45.5);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.2);
-  doc.text(motorVehicleNo || '', 106.5, 49.5);
+  doc.setFontSize(8.0);
+  doc.setTextColor(0, 0, 0);
+  doc.text(motorVehicleNo || '', 106.5, 49.2);
 
   // Row 4 (51 to 87): Terms of Delivery (BIG SPACIOUS BOX)
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.2);
+  doc.setFontSize(6.8);
+  doc.setTextColor(80, 80, 80);
   doc.text('Terms of Delivery', 106.5, 55.5);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.2);
+  doc.setFontSize(8.0);
+  doc.setTextColor(0, 0, 0);
   const termsLines = termsOfDelivery.split('\n');
   let tY = 60.5;
   for (const line of termsLines) {

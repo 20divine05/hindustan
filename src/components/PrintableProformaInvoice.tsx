@@ -256,7 +256,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                   {businessSettings?.companyName || 'HINDUSTAN SAW MILLS AND WOOD INDUSTRIES'}
                 </div>
                 <div className="p-seller-line">#99/C INDUSTRIAL SUBURB 2ND STAGE</div>
-                <div className="p-seller-line">VISHVESHWARA NAGAR MYSOREE - 570008</div>
+                <div className="p-seller-line">VISHVESHWARA NAGAR MYSORE - 570008</div>
                 <div className="p-seller-line">ACCOUNTS DEPARTMENT - 7996222901</div>
                 <div className="p-seller-line">
                   <strong>GSTIN/UIN:</strong> 29APYPK6256P1ZL
