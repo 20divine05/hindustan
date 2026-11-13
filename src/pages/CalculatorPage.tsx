@@ -2515,7 +2515,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </h3>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
                 {/* 1. Share via WhatsApp */}
                 <button
                   type="button"
@@ -2524,22 +2524,23 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   style={{
                     backgroundColor: '#25D366',
                     color: '#ffffff',
-                    padding: '0.85rem 1rem',
-                    fontSize: '0.98rem',
+                    minHeight: '62px',
+                    padding: '1.15rem 1.35rem',
+                    fontSize: '1.15rem',
                     fontWeight: 800,
-                    borderRadius: '8px',
+                    borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.55rem',
+                    gap: '0.65rem',
                     border: 'none',
                     cursor: 'pointer',
-                    boxShadow: '0 3px 10px rgba(37, 211, 102, 0.35)',
+                    boxShadow: '0 4px 14px rgba(37, 211, 102, 0.4)',
                     transition: 'all 0.15s ease'
                   }}
                   title="Directly opens customer's WhatsApp chat with the downloaded invoice PDF"
                 >
-                  <MessageCircle size={22} />
+                  <MessageCircle size={26} />
                   <span>Send PDF to WhatsApp</span>
                 </button>
 
@@ -2551,22 +2552,23 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   style={{
                     backgroundColor: '#dc2626',
                     color: '#ffffff',
-                    padding: '0.85rem 1rem',
-                    fontSize: '0.98rem',
+                    minHeight: '62px',
+                    padding: '1.15rem 1.35rem',
+                    fontSize: '1.15rem',
                     fontWeight: 800,
-                    borderRadius: '8px',
+                    borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.55rem',
+                    gap: '0.65rem',
                     border: 'none',
                     cursor: 'pointer',
-                    boxShadow: '0 3px 10px rgba(220, 38, 38, 0.3)',
+                    boxShadow: '0 4px 14px rgba(220, 38, 38, 0.35)',
                     transition: 'all 0.15s ease'
                   }}
                   title="Downloads official A4 Proforma Invoice PDF matching sawmill layout"
                 >
-                  <FileDown size={22} />
+                  <FileDown size={26} />
                   <span>Download PDF Invoice</span>
                 </button>
 
@@ -2578,45 +2580,46 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   style={{
                     backgroundColor: 'var(--primary-700, #4b3621)',
                     color: '#ffffff',
-                    padding: '0.85rem 1rem',
-                    fontSize: '0.98rem',
+                    minHeight: '62px',
+                    padding: '1.15rem 1.35rem',
+                    fontSize: '1.15rem',
                     fontWeight: 800,
-                    borderRadius: '8px',
+                    borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.55rem',
+                    gap: '0.65rem',
                     border: 'none',
                     cursor: 'pointer',
-                    boxShadow: '0 3px 10px rgba(15, 23, 42, 0.18)',
+                    boxShadow: '0 4px 14px rgba(15, 23, 42, 0.22)',
                     transition: 'all 0.15s ease'
                   }}
                   title="Sends official Proforma Invoice directly to printer"
                 >
-                  <Printer size={22} />
+                  <Printer size={26} />
                   <span>Print Sheet Invoice</span>
                 </button>
               </div>
 
               {/* Secondary Save & Full Proforma Modal trigger */}
-              <div style={{ display: 'flex', gap: '0.45rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.55rem', marginTop: '0.55rem', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={handleSave}
                   disabled={saveStatus === 'saving'}
-                  style={{ flex: 1, minWidth: '130px', justifyContent: 'center', fontWeight: 700, padding: '0.45rem 0.75rem', fontSize: '0.82rem' }}
+                  style={{ flex: 1, minWidth: '140px', justifyContent: 'center', fontWeight: 700, padding: '0.65rem 0.95rem', fontSize: '0.92rem', minHeight: '44px', borderRadius: '10px' }}
                 >
-                  <Save size={14} /> {saveStatus === 'saving' ? 'Saving...' : 'Save to Cloud DB'}
+                  <Save size={16} /> {saveStatus === 'saving' ? 'Saving...' : 'Save to Cloud DB'}
                 </button>
 
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => setIsProformaModalOpen(true)}
-                  style={{ flex: 1, minWidth: '130px', justifyContent: 'center', fontWeight: 700, padding: '0.45rem 0.75rem', fontSize: '0.82rem' }}
+                  style={{ flex: 1, minWidth: '140px', justifyContent: 'center', fontWeight: 700, padding: '0.65rem 0.95rem', fontSize: '0.92rem', minHeight: '44px', borderRadius: '10px' }}
                 >
-                  <FileText size={14} /> Full Invoice Preview
+                  <FileText size={16} /> Full Invoice Preview
                 </button>
               </div>
             </div>
