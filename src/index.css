@@ -2095,6 +2095,10 @@ input[type="number"] {
   margin: 0 auto 0.5rem auto;
 }
 
+.calc-charge-card .calc-prefixed-input {
+  padding-left: 2.2rem !important;
+}
+
 @media (max-width: 768px) {
   .calc-charges-grid {
     grid-template-columns: 1fr 1fr !important;
@@ -2115,6 +2119,9 @@ input[type="number"] {
     padding: 0.42rem 0.65rem !important;
     font-size: 1.12rem !important;
     font-weight: 700 !important;
+  }
+  .calc-charge-card .calc-prefixed-input {
+    padding-left: 2.2rem !important;
   }
 
   /* Keep quick buttons clean and usable on phone view */

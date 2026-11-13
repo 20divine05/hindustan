@@ -1530,10 +1530,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </span>
                 <input
                   type="number"
-                  placeholder="0"
+                  className="calc-prefixed-input"
                   value={carpentryCharges === 0 ? '' : carpentryCharges}
                   onChange={(e) => setCarpentryCharges(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, padding: '0.45rem 0.65rem 0.45rem 1.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                 />
               </div>
               <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
@@ -1609,10 +1609,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </span>
                 <input
                   type="number"
-                  placeholder="0"
+                  className="calc-prefixed-input"
                   value={transportationCharges === 0 ? '' : transportationCharges}
                   onChange={(e) => setTransportationCharges(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, padding: '0.45rem 0.65rem 0.45rem 1.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                 />
               </div>
               <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
@@ -1688,7 +1688,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </span>
                 <input
                   type="number"
-                  placeholder="0"
+                  className="calc-prefixed-input"
                   value={planingCharges === 0 ? '' : planingCharges}
                   onChange={(e) => {
                     const val = Math.max(0, Number(e.target.value) || 0);
@@ -1699,7 +1699,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setPlaningRatePerCft(0);
                     }
                   }}
-                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, padding: '0.45rem 0.65rem 0.45rem 1.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                 />
               </div>
 
@@ -1722,7 +1722,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <input
                     type="number"
                     step="any"
-                    placeholder="Rate / CFT"
+                    className="calc-prefixed-input"
                     value={planingRatePerCft === 0 ? '' : planingRatePerCft}
                     onChange={(e) => {
                       const rate = Math.max(0, parseFloat(e.target.value) || 0);
@@ -1730,7 +1730,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       const calculated = Math.round(totals.totalCft * rate * 100) / 100;
                       setPlaningCharges(calculated);
                     }}
-                    style={{ width: '100%', fontSize: '0.95rem', fontWeight: 700, padding: '0.35rem 0.55rem 0.35rem 1.65rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
+                    style={{ width: '100%', fontSize: '0.95rem', fontWeight: 700, borderRadius: '6px', border: '1px solid var(--border-medium)' }}
                   />
                 </div>
                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
@@ -1817,17 +1817,16 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   </span>
                   <input
                     type="number"
-                    placeholder="Enter Charge Amount (₹)"
+                    className="calc-prefixed-input"
                     value={otherCharges === 0 ? '' : otherCharges}
                     onChange={(e) => setOtherCharges(Math.max(0, Number(e.target.value) || 0))}
-                    style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, padding: '0.45rem 0.65rem 0.45rem 1.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                    style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                   />
                 </div>
 
                 <div>
                   <input
                     type="text"
-                    placeholder="Description (e.g. Loading/Unloading, Stacking...)"
                     value={otherChargesLabel}
                     onChange={(e) => setOtherChargesLabel(e.target.value)}
                     style={{ width: '100%', fontSize: '0.88rem', fontWeight: 600, padding: '0.4rem 0.65rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
@@ -1915,10 +1914,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </span>
                 <input
                   type="number"
-                  placeholder={formatIndianCurrency(subtotalWithCharges)}
+                  className="calc-prefixed-input"
                   value={customGstTaxableAmount === 0 ? '' : customGstTaxableAmount}
                   onChange={(e) => setCustomGstTaxableAmount(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, padding: '0.45rem 0.65rem 0.45rem 1.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                 />
               </div>
 
@@ -2068,10 +2067,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </span>
                 <input
                   type="number"
-                  placeholder="0"
+                  className="calc-prefixed-input"
                   value={discountValue === 0 ? '' : discountValue}
                   onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, padding: '0.45rem 0.65rem 0.45rem 1.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                 />
               </div>
 
