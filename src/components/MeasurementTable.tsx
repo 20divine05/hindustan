@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Trash2, Copy, AlertCircle, CornerDownLeft, X, Pencil } from 'lucide-react';
 import type { MeasurementItem } from '../types';
-import { calculateRow, calculateTotals, formatValue, sortTimberEntries } from '../utils/calculator';
+import { calculateRow, calculateTotals, formatValue } from '../utils/calculator';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
 import { generateId } from '../services/db';
 
@@ -65,6 +65,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const [quickError, setQuickError] = useState<string | null>(null);
 
   const lengthInputRef = useRef<HTMLInputElement>(null);
+  const listBottomRef = useRef<HTMLDivElement>(null);
 
   // Mobile virtual keyboard & calcy elevation tracking
   const [isCalcyFocused, setIsCalcyFocused] = useState<boolean>(false);
@@ -265,8 +266,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     };
 
     const updated = [...items.slice(0, index + 1), duplicate, ...items.slice(index + 1)];
-    const sorted = sortTimberEntries(updated);
-    onChange(sorted);
+    const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
+    onChange(reindexed);
   };
 
   // Delete a row
@@ -344,17 +345,24 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       woodType: finalWood
     };
 
-    const updated = sortTimberEntries([...items, newItem]);
-    onChange(updated);
+    // Add row sequentially one-by-one preserving exact entry order
+    const updated = [...items, newItem];
+    const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
+    onChange(reindexed);
 
     // Keep thickness, width and rate for rapid consecutive tallying, clear length & pieces
     setQuickLength('');
     setQuickPieces('');
 
+    // Smoothly scroll the newly added calculation into plain view right above the calcy
+    setTimeout(() => {
+      listBottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 60);
+
     // Auto-refocus on length input for continuous fast entry
     setTimeout(() => {
       lengthInputRef.current?.focus();
-    }, 50);
+    }, 120);
   };
 
   return (
@@ -930,7 +938,15 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     </div>
 
       {/* 2. Mobile View: Single-line rows (Measurements + Price beside PCS + Delete) */}
-      <div className="mobile-show measurement-mobile-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+      <div
+        className="mobile-show measurement-mobile-list"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.35rem',
+          paddingBottom: isCalcyFocused ? '160px' : '0.5rem'
+        }}
+      >
         {items.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '1.25rem 1rem', color: 'var(--text-muted)' }}>
             <p style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
@@ -1144,6 +1160,9 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                 </div>
               );
             })}
+
+            {/* Scroll anchor to bring newly added calculation into plain view right above calcy */}
+            <div ref={listBottomRef} style={{ height: '1px' }} />
 
             {/* Mobile Totals Footer */}
             <div style={{
