@@ -156,17 +156,19 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 }) => {
   const { user } = useAuth();
 
-  // 9-Step Linear Workflow State:
+  // 11-Step Linear Workflow State:
   // 1: Customer Type (B2B vs B2C)
   // 2: Customer / Business Details
   // 3: Timber Calculator
   // 4: Carpentry Charges (with image)
   // 5: Transportation Charges (with image)
   // 6: Planing Charges (with image)
-  // 7: GST & Other Charges
-  // 8: Timber Order / Sorting
-  // 9: Final Invoice & Share
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9>(1);
+  // 7: Other Miscellaneous Charges (with image)
+  // 8: GST Tax Configuration (with image)
+  // 9: Customer Discount (with image)
+  // 10: Timber Order / Sorting
+  // 11: Final Invoice & Share
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11>(1);
 
   // Sheet Metadata State
   const [sheetId, setSheetId] = useState<string>(sheetToEdit?.id || generateId());
@@ -1514,7 +1516,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
             <div className="calc-step-header">
               <h3 className="calc-step-title">
-                <Scissors size={17} color="var(--primary-600)" /> Carpentry Charges (₹)
+                <Scissors size={18} color="var(--primary-600)" /> Carpentry Charges (₹)
               </h3>
               <p className="calc-step-desc">
                 Add labour or fabrication charges for carpentry, joinery, and custom sizing
@@ -1522,29 +1524,35 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Input Card */}
-            <div className="calc-charge-card" style={{ maxWidth: '480px', margin: '0 auto 1rem auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Scissors size={14} color="var(--primary-600)" /> Carpentry Charges (₹):
+            <div className="calc-charge-card" style={{ maxWidth: '680px', margin: '0 auto 1.25rem auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                <label style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+                  <Scissors size={18} color="var(--primary-600)" /> Carpentry Charges (₹):
                 </label>
-                <span className="mobile-hide" style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-700)' }}>
                   ₹ {formatIndianCurrency(carpentryCharges)}
                 </span>
               </div>
-              <input
-                type="number"
-                value={carpentryCharges === 0 ? '' : carpentryCharges}
-                onChange={(e) => setCarpentryCharges(Math.max(0, Number(e.target.value) || 0))}
-                style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.5rem 0.65rem' }}
-              />
-              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.3rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-muted)' }}>
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={carpentryCharges === 0 ? '' : carpentryCharges}
+                  onChange={(e) => setCarpentryCharges(Math.max(0, Number(e.target.value) || 0))}
+                  style={{ width: '100%', fontSize: '1.35rem', fontWeight: 800, padding: '0.75rem 0.95rem 0.75rem 2.2rem', borderRadius: '10px', border: '1.5px solid var(--border-medium)' }}
+                />
+              </div>
+              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
                 {[500, 1000, 2000, 5000].map(amt => (
                   <button
                     key={amt}
                     type="button"
                     className="btn btn-ghost btn-sm"
                     onClick={() => setCarpentryCharges(amt)}
-                    style={{ fontSize: '0.74rem', padding: '0.22rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)' }}
+                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.7rem', background: 'var(--bg-card)', border: '1.5px solid var(--border-medium)', borderRadius: '6px' }}
                   >
                     +₹{amt}
                   </button>
@@ -1554,7 +1562,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="button"
                     className="btn btn-ghost btn-sm"
                     onClick={() => setCarpentryCharges(0)}
-                    style={{ fontSize: '0.74rem', padding: '0.22rem 0.45rem', color: 'var(--danger-400)' }}
+                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.65rem', color: 'var(--danger-500)', borderRadius: '6px' }}
                   >
                     Clear
                   </button>
@@ -1563,11 +1571,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Quick Running Total Banner */}
-            <div className="mobile-hide" style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '480px', margin: '0 auto' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Timber Subtotal: <strong>₹{formatIndianCurrency(timberSubtotal)}</strong>
+            <div style={{ background: 'var(--bg-card)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1.5px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '680px', margin: '0 auto' }}>
+              <span style={{ fontSize: '0.92rem', color: 'var(--text-muted)' }}>
+                Timber Subtotal: <strong style={{ color: 'var(--text-main)' }}>₹{formatIndianCurrency(timberSubtotal)}</strong>
               </span>
-              <strong style={{ fontSize: '0.9rem', color: 'var(--primary-800)' }}>
+              <strong style={{ fontSize: '1rem', color: 'var(--primary-800)' }}>
                 Carpentry: ₹{formatIndianCurrency(carpentryCharges)}
               </strong>
             </div>
@@ -1596,7 +1604,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
             <div className="calc-step-header">
               <h3 className="calc-step-title">
-                <Truck size={17} color="var(--primary-600)" /> Transportation Charges (₹)
+                <Truck size={18} color="var(--primary-600)" /> Transportation Charges (₹)
               </h3>
               <p className="calc-step-desc">
                 Add freight, truck transit, and site delivery charges for timber cargo
@@ -1604,29 +1612,35 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Input Card */}
-            <div className="calc-charge-card" style={{ maxWidth: '480px', margin: '0 auto 1rem auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Truck size={14} color="var(--primary-600)" /> Transportation Charges (₹):
+            <div className="calc-charge-card" style={{ maxWidth: '680px', margin: '0 auto 1.25rem auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                <label style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+                  <Truck size={18} color="var(--primary-600)" /> Transportation Charges (₹):
                 </label>
-                <span className="mobile-hide" style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-700)' }}>
                   ₹ {formatIndianCurrency(transportationCharges)}
                 </span>
               </div>
-              <input
-                type="number"
-                value={transportationCharges === 0 ? '' : transportationCharges}
-                onChange={(e) => setTransportationCharges(Math.max(0, Number(e.target.value) || 0))}
-                style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.5rem 0.65rem' }}
-              />
-              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.3rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-muted)' }}>
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={transportationCharges === 0 ? '' : transportationCharges}
+                  onChange={(e) => setTransportationCharges(Math.max(0, Number(e.target.value) || 0))}
+                  style={{ width: '100%', fontSize: '1.35rem', fontWeight: 800, padding: '0.75rem 0.95rem 0.75rem 2.2rem', borderRadius: '10px', border: '1.5px solid var(--border-medium)' }}
+                />
+              </div>
+              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
                 {[1000, 2000, 3500, 5000].map(amt => (
                   <button
                     key={amt}
                     type="button"
                     className="btn btn-ghost btn-sm"
                     onClick={() => setTransportationCharges(amt)}
-                    style={{ fontSize: '0.74rem', padding: '0.22rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)' }}
+                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.7rem', background: 'var(--bg-card)', border: '1.5px solid var(--border-medium)', borderRadius: '6px' }}
                   >
                     +₹{amt}
                   </button>
@@ -1636,7 +1650,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="button"
                     className="btn btn-ghost btn-sm"
                     onClick={() => setTransportationCharges(0)}
-                    style={{ fontSize: '0.74rem', padding: '0.22rem 0.45rem', color: 'var(--danger-400)' }}
+                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.65rem', color: 'var(--danger-500)', borderRadius: '6px' }}
                   >
                     Clear
                   </button>
@@ -1645,11 +1659,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Quick Running Total Banner */}
-            <div className="mobile-hide" style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '480px', margin: '0 auto' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Carpentry: <strong>₹{formatIndianCurrency(carpentryCharges)}</strong>
+            <div style={{ background: 'var(--bg-card)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1.5px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '680px', margin: '0 auto' }}>
+              <span style={{ fontSize: '0.92rem', color: 'var(--text-muted)' }}>
+                Carpentry: <strong style={{ color: 'var(--text-main)' }}>₹{formatIndianCurrency(carpentryCharges)}</strong>
               </span>
-              <strong style={{ fontSize: '0.9rem', color: 'var(--primary-800)' }}>
+              <strong style={{ fontSize: '1rem', color: 'var(--primary-800)' }}>
                 Transport: ₹{formatIndianCurrency(transportationCharges)}
               </strong>
             </div>
@@ -1678,7 +1692,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
             <div className="calc-step-header">
               <h3 className="calc-step-title">
-                <Sparkles size={17} color="var(--primary-600)" /> Planing Charges (₹)
+                <Sparkles size={18} color="var(--primary-600)" /> Planing Charges (₹)
               </h3>
               <p className="calc-step-desc">
                 Add surface planing and thickness dressing charges based on total CFT or flat fee
@@ -1686,57 +1700,64 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Input Card */}
-            <div className="calc-charge-card" style={{ maxWidth: '480px', margin: '0 auto 1rem auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Sparkles size={14} color="var(--primary-600)" /> Planing Charges (₹):
+            <div className="calc-charge-card" style={{ maxWidth: '680px', margin: '0 auto 1.25rem auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                <label style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+                  <Sparkles size={18} color="var(--primary-600)" /> Planing Charges (₹):
                 </label>
-                <span className="mobile-hide" style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-700)' }}>
                   ₹ {formatIndianCurrency(planingCharges)}
                 </span>
               </div>
-              <input
-                type="number"
-                value={planingCharges === 0 ? '' : planingCharges}
-                onChange={(e) => {
-                  const val = Math.max(0, Number(e.target.value) || 0);
-                  setPlaningCharges(val);
-                  if (totals.totalCft > 0 && val > 0) {
-                    setPlaningRatePerCft(Math.round((val / totals.totalCft) * 100) / 100);
-                  } else if (val === 0) {
-                    setPlaningRatePerCft(0);
-                  }
-                }}
-                style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.5rem 0.65rem' }}
-              />
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-muted)' }}>
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={planingCharges === 0 ? '' : planingCharges}
+                  onChange={(e) => {
+                    const val = Math.max(0, Number(e.target.value) || 0);
+                    setPlaningCharges(val);
+                    if (totals.totalCft > 0 && val > 0) {
+                      setPlaningRatePerCft(Math.round((val / totals.totalCft) * 100) / 100);
+                    } else if (val === 0) {
+                      setPlaningRatePerCft(0);
+                    }
+                  }}
+                  style={{ width: '100%', fontSize: '1.35rem', fontWeight: 800, padding: '0.75rem 0.95rem 0.75rem 2.2rem', borderRadius: '10px', border: '1.5px solid var(--border-medium)' }}
+                />
+              </div>
 
               {/* Extended details for Planing */}
-              <div className="mobile-hide" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', background: 'var(--primary-50, #f8f6f0)', border: '1px solid var(--border-light)', borderRadius: '6px', padding: '0.45rem 0.75rem', marginTop: '0.65rem', marginBottom: '0.65rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: 'var(--primary-50, #f8f6f0)', border: '1.5px solid var(--border-light)', borderRadius: '8px', padding: '0.65rem 0.95rem', marginTop: '0.85rem', marginBottom: '0.85rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
                     Total Timber Volume:
                   </span>
-                  <span style={{ fontSize: '0.86rem', fontWeight: 800, fontFamily: 'var(--font-mono, monospace)', color: 'var(--primary-800)' }}>
+                  <span style={{ fontSize: '0.98rem', fontWeight: 800, fontFamily: 'var(--font-mono, monospace)', color: 'var(--primary-800)' }}>
                     {totals.totalCft > 0 ? totals.totalCft.toFixed(4) : '0.0000'} CFT
                   </span>
                 </div>
               </div>
 
               {/* Input: Planing Rate per CFT */}
-              <div style={{ marginTop: '0.5rem', marginBottom: '0.45rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+              <div style={{ marginTop: '0.65rem', marginBottom: '0.65rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
                     Or Enter Rate (₹ / CFT):
                   </label>
                 </div>
-                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   <div style={{ position: 'relative', flex: 1 }}>
-                    <span style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    <span style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1rem', color: 'var(--text-muted)' }}>
                       ₹
                     </span>
                     <input
                       type="number"
                       step="any"
+                      placeholder="e.g. 15"
                       value={planingRatePerCft === 0 ? '' : planingRatePerCft}
                       onChange={(e) => {
                         const rate = Math.max(0, parseFloat(e.target.value) || 0);
@@ -1744,17 +1765,17 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         const calculated = Math.round(totals.totalCft * rate * 100) / 100;
                         setPlaningCharges(calculated);
                       }}
-                      style={{ width: '100%', fontSize: '0.88rem', fontWeight: 800, padding: '0.38rem 0.55rem 0.38rem 1.6rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
+                      style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.55rem 0.75rem 0.55rem 2rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                     />
                   </div>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                     / CFT
                   </span>
                 </div>
               </div>
 
               {/* Quick Rate Buttons */}
-              <div className="mobile-hide" style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                 {[10, 15, 20, 25, 30].map(r => (
                   <button
                     key={r}
@@ -1766,11 +1787,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setPlaningCharges(calculated);
                     }}
                     style={{
-                      fontSize: '0.74rem',
-                      padding: '0.2rem 0.5rem',
+                      fontSize: '0.82rem',
+                      padding: '0.35rem 0.7rem',
                       background: planingRatePerCft === r ? 'var(--primary-100, #eedfc8)' : 'var(--bg-card)',
                       borderColor: planingRatePerCft === r ? 'var(--primary-600)' : 'var(--border-medium)',
-                      fontWeight: planingRatePerCft === r ? 800 : 600
+                      fontWeight: planingRatePerCft === r ? 800 : 700,
+                      borderRadius: '6px'
                     }}
                   >
                     ₹{r}
@@ -1780,155 +1802,190 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Quick Running Total Banner */}
-            <div className="mobile-hide" style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '480px', margin: '0 auto' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            <div style={{ background: 'var(--bg-card)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1.5px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '680px', margin: '0 auto' }}>
+              <span style={{ fontSize: '0.92rem', color: 'var(--text-muted)' }}>
                 Timber + Extra Services
               </span>
-              <strong style={{ fontSize: '0.9rem', color: 'var(--primary-800)' }}>
+              <strong style={{ fontSize: '1rem', color: 'var(--primary-800)' }}>
                 Planing: ₹{formatIndianCurrency(planingCharges)}
               </strong>
             </div>
           </div>
         )}
+
         {/* =========================================================================
-            STEP 7: GST & OTHER CHARGES (OTHER CHARGES, DISCOUNT, GST & GRAND TOTAL)
+            STEP 7: OTHER CHARGES (WITH IMAGE)
             ========================================================================= */}
         {currentStep === 7 && (
           <div className="card calc-step-card">
+            {/* Visual Service Banner */}
+            <div className="calc-service-banner">
+              <img
+                src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80"
+                alt="Other Miscellaneous Charges"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+              <div className="calc-service-banner-overlay">
+                <span className="calc-service-banner-tag">
+                  <Layers size={12} /> Additional Handling &amp; Services
+                </span>
+                <h3 className="calc-service-banner-title">Other Miscellaneous Charges</h3>
+              </div>
+            </div>
+
             <div className="calc-step-header">
               <h3 className="calc-step-title">
-                <Percent size={17} color="var(--primary-600)" /> GST, Discounts &amp; Other Charges
+                <Layers size={18} color="var(--primary-600)" /> Other Charges (₹)
               </h3>
               <p className="calc-step-desc">
-                Add miscellaneous costs, apply discounts, and configure GST tax rate for final total
+                Add timber loading, unloading, crane handling, stacking, or seasoning fees
               </p>
             </div>
 
-            {/* Live Subtotal Display */}
-            <div className="calc-subtotal-banner" style={{ padding: '0.45rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap', gap: '0.5rem' }}>
-              <span className="calc-subtotal-label" style={{ fontSize: '0.82rem', fontWeight: 700, margin: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                Subtotal <span className="mobile-hide">(Timber + Services)</span>:
-              </span>
-              <span className="calc-subtotal-val" style={{ fontSize: '0.98rem', fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                ₹&nbsp;{formatIndianCurrency(subtotalWithCharges)}
-              </span>
-            </div>
-
-            {/* 1. Other Miscellaneous Charges (e.g. Loading / Seasoning) */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border-medium)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.25rem', margin: 0 }}>
-                  <Layers size={14} color="var(--primary-600)" /> Other Charges:
+            {/* Input Card */}
+            <div className="calc-charge-card" style={{ maxWidth: '680px', margin: '0 auto 1.25rem auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                <label style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+                  <Layers size={18} color="var(--primary-600)" /> Other Charges (₹):
                 </label>
                 {otherCharges > 0 && (
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                  <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-700)' }}>
                     ₹ {formatIndianCurrency(otherCharges)}
                   </span>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: '0.4rem', width: '100%' }}>
-                <input
-                  type="number"
-                  value={otherCharges === 0 ? '' : otherCharges}
-                  onChange={(e) => setOtherCharges(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ flex: 1, minWidth: '90px', fontSize: '0.88rem', fontWeight: 800, padding: '0.35rem 0.45rem' }}
-                />
-                <input
-                  type="text"
-                  value={otherChargesLabel}
-                  onChange={(e) => setOtherChargesLabel(e.target.value)}
-                  style={{ flex: 1, minWidth: '100px', fontSize: '0.82rem', fontWeight: 600, padding: '0.35rem 0.45rem' }}
-                />
-              </div>
-            </div>
 
-            {/* 2. Discount Section - Single Row Only */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border-medium)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', width: '100%' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.25rem', margin: 0, whiteSpace: 'nowrap' }}>
-                  <Tag size={14} color="var(--primary-600)" /> Discount:
-                </label>
-
-                {/* Mode Toggle: Rupees vs Percentage */}
-                <div style={{ display: 'inline-flex', borderRadius: '5px', border: '1px solid var(--border-medium)', overflow: 'hidden', flexShrink: 0 }}>
-                  <button
-                    type="button"
-                    onClick={() => setDiscountType('rupees')}
-                    style={{
-                      padding: '0.3rem 0.5rem',
-                      fontSize: '0.74rem',
-                      fontWeight: discountType === 'rupees' ? 800 : 600,
-                      backgroundColor: discountType === 'rupees' ? 'var(--primary-700)' : 'var(--bg-subtle)',
-                      color: discountType === 'rupees' ? '#fff' : 'var(--text-main)',
-                      border: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
+              {/* Amount input & Label input in a neat wide layout */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-muted)' }}>
                     ₹
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDiscountType('percentage')}
-                    style={{
-                      padding: '0.3rem 0.5rem',
-                      fontSize: '0.74rem',
-                      fontWeight: discountType === 'percentage' ? 800 : 600,
-                      backgroundColor: discountType === 'percentage' ? 'var(--primary-700)' : 'var(--bg-subtle)',
-                      color: discountType === 'percentage' ? '#fff' : 'var(--text-main)',
-                      border: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    %
-                  </button>
-                </div>
-
-                {/* Discount Input */}
-                <div style={{ position: 'relative', flex: 1, minWidth: '90px' }}>
-                  <span style={{ position: 'absolute', left: '7px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                    {discountType === 'percentage' ? '%' : '₹'}
                   </span>
                   <input
                     type="number"
-                    value={discountValue === 0 ? '' : discountValue}
-                    onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value) || 0))}
-                    style={{ width: '100%', paddingLeft: '20px', paddingRight: '6px', fontSize: '0.88rem', fontWeight: 800, padding: '0.35rem 0.4rem 0.35rem 20px' }}
+                    placeholder="Enter Charge Amount (₹)"
+                    value={otherCharges === 0 ? '' : otherCharges}
+                    onChange={(e) => setOtherCharges(Math.max(0, Number(e.target.value) || 0))}
+                    style={{ width: '100%', fontSize: '1.35rem', fontWeight: 800, padding: '0.75rem 0.95rem 0.75rem 2.2rem', borderRadius: '10px', border: '1.5px solid var(--border-medium)' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.35rem', display: 'block' }}>
+                    Charge Description / Label:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Loading & Unloading Charges, Stacking, Seasoning..."
+                    value={otherChargesLabel}
+                    onChange={(e) => setOtherChargesLabel(e.target.value)}
+                    style={{ width: '100%', fontSize: '1.05rem', fontWeight: 700, padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                   />
                 </div>
               </div>
+
+              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                {[500, 1000, 2000, 5000].map(amt => (
+                  <button
+                    key={amt}
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setOtherCharges(amt)}
+                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.7rem', background: 'var(--bg-card)', border: '1.5px solid var(--border-medium)', borderRadius: '6px' }}
+                  >
+                    +₹{amt}
+                  </button>
+                ))}
+                {otherCharges > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      setOtherCharges(0);
+                      setOtherChargesLabel('');
+                    }}
+                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.65rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* 3. GST Selection & Base Amount - Small Buttons Beside Placeholder */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border-medium)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Percent size={14} color="var(--primary-600)" /> GST Rate &amp; Base:
+            {/* Quick Running Total Banner */}
+            <div style={{ background: 'var(--bg-card)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1.5px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '680px', margin: '0 auto' }}>
+              <span style={{ fontSize: '0.92rem', color: 'var(--text-muted)' }}>
+                Subtotal before Other: <strong style={{ color: 'var(--text-main)' }}>₹{formatIndianCurrency(timberSubtotal + carpentryCharges + transportationCharges + planingCharges)}</strong>
+              </span>
+              <strong style={{ fontSize: '1rem', color: 'var(--primary-800)' }}>
+                Other: ₹{formatIndianCurrency(otherCharges)}
+              </strong>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            STEP 8: GST TAX (WITH IMAGE)
+            ========================================================================= */}
+        {currentStep === 8 && (
+          <div className="card calc-step-card">
+            {/* Visual Service Banner */}
+            <div className="calc-service-banner">
+              <img
+                src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80"
+                alt="GST Tax Calculation"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+              <div className="calc-service-banner-overlay">
+                <span className="calc-service-banner-tag">
+                  <Percent size={12} /> Tax Compliance &amp; Invoicing
+                </span>
+                <h3 className="calc-service-banner-title">Goods &amp; Services Tax (GST)</h3>
+              </div>
+            </div>
+
+            <div className="calc-step-header">
+              <h3 className="calc-step-title">
+                <Percent size={18} color="var(--primary-600)" /> GST Tax Configuration
+              </h3>
+              <p className="calc-step-desc">
+                Select applicable GST tax rate and customize taxable base amount if needed
+              </p>
+            </div>
+
+            {/* Input Card */}
+            <div className="calc-charge-card" style={{ maxWidth: '680px', margin: '0 auto 1.25rem auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                <label style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+                  <Percent size={18} color="var(--primary-600)" /> GST Taxable Base (₹):
                 </label>
                 {gstAmount > 0 && (
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-800)' }}>
+                  <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-800)' }}>
                     +₹{formatIndianCurrency(gstAmount)} ({gstPercent}%)
                   </span>
                 )}
               </div>
 
-              {/* Single Row: Input Placeholder + Small GST Buttons Beside It */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '100%' }}>
-                {/* Direct Input for Taxable Base Amount */}
-                <div style={{ position: 'relative', flex: '1 1 100px', minWidth: '95px' }}>
-                  <span style={{ position: 'absolute', left: '7px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                    ₹
-                  </span>
-                  <input
-                    type="number"
-                    value={customGstTaxableAmount === 0 ? '' : customGstTaxableAmount}
-                    onChange={(e) => setCustomGstTaxableAmount(Math.max(0, Number(e.target.value) || 0))}
-                    title="Taxable base amount for GST"
-                    style={{ width: '100%', paddingLeft: '18px', paddingRight: '4px', fontSize: '0.86rem', fontWeight: 800, padding: '0.35rem 0.35rem 0.35rem 18px' }}
-                  />
-                </div>
+              {/* Taxable Base Amount input */}
+              <div style={{ position: 'relative', width: '100%', marginBottom: '1rem' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-muted)' }}>
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  placeholder={formatIndianCurrency(subtotalWithCharges)}
+                  value={customGstTaxableAmount === 0 ? '' : customGstTaxableAmount}
+                  onChange={(e) => setCustomGstTaxableAmount(Math.max(0, Number(e.target.value) || 0))}
+                  style={{ width: '100%', fontSize: '1.35rem', fontWeight: 800, padding: '0.75rem 0.95rem 0.75rem 2.2rem', borderRadius: '10px', border: '1.5px solid var(--border-medium)' }}
+                />
+              </div>
 
-                {/* Small GST Rate Buttons beside the placeholder */}
-                <div className="calc-gst-pills-strip">
+              {/* GST Rate Selection Title & Buttons */}
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block' }}>
+                  Select GST Rate:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(85px, 1fr))', gap: '0.5rem' }}>
                   {[0, 5, 12, 18, 28].map((rate) => (
                     <button
                       key={rate}
@@ -1937,7 +1994,17 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         setIsCustomGstRate(false);
                         setGstPercent(rate);
                       }}
-                      className={`calc-gst-pill ${(!isCustomGstRate && gstPercent === rate) ? 'active' : ''}`}
+                      className="btn"
+                      style={{
+                        padding: '0.65rem 0.5rem',
+                        fontSize: '1.05rem',
+                        fontWeight: 800,
+                        borderRadius: '8px',
+                        backgroundColor: (!isCustomGstRate && gstPercent === rate) ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-card)',
+                        color: (!isCustomGstRate && gstPercent === rate) ? '#ffffff' : 'var(--text-main)',
+                        borderColor: (!isCustomGstRate && gstPercent === rate) ? 'var(--primary-800)' : 'var(--border-medium)',
+                        boxShadow: (!isCustomGstRate && gstPercent === rate) ? '0 4px 10px rgba(0,0,0,0.15)' : 'none'
+                      }}
                     >
                       {rate}%
                     </button>
@@ -1945,18 +2012,26 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsCustomGstRate(!isCustomGstRate)}
-                    className={`calc-gst-pill ${isCustomGstRate ? 'active' : ''}`}
-                    title="Custom GST Rate"
+                    className="btn"
+                    style={{
+                      padding: '0.65rem 0.5rem',
+                      fontSize: '1rem',
+                      fontWeight: 800,
+                      borderRadius: '8px',
+                      backgroundColor: isCustomGstRate ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-card)',
+                      color: isCustomGstRate ? '#ffffff' : 'var(--text-main)',
+                      borderColor: isCustomGstRate ? 'var(--primary-800)' : 'var(--border-medium)'
+                    }}
                   >
-                    {isCustomGstRate ? `${gstPercent}%` : 'Cst'}
+                    {isCustomGstRate ? `${gstPercent}%` : 'Custom'}
                   </button>
                 </div>
               </div>
 
-              {/* Custom GST % Input Field (Visible when Custom Rate is clicked) */}
+              {/* Custom GST % Input Field */}
               {isCustomGstRate && (
-                <div style={{ padding: '0.3rem 0.5rem', background: 'var(--bg-subtle)', borderRadius: '5px', border: '1px solid var(--primary-300)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-main)' }}>Custom %:</span>
+                <div style={{ padding: '0.65rem 0.85rem', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1.5px solid var(--primary-400)', display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.5rem' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)' }}>Enter Custom GST %:</span>
                   <input
                     type="number"
                     step="0.1"
@@ -1964,32 +2039,167 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     max="100"
                     value={gstPercent}
                     onChange={(e) => setGstPercent(Math.max(0, Number(e.target.value) || 0))}
-                    style={{ width: '70px', fontWeight: 800, fontSize: '0.84rem', textAlign: 'center', padding: '0.25rem 0.35rem' }}
+                    style={{ width: '90px', fontWeight: 800, fontSize: '1.1rem', textAlign: 'center', padding: '0.4rem 0.5rem', borderRadius: '6px', border: '1.5px solid var(--border-medium)' }}
                   />
-                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>% GST</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-muted)' }}>%</span>
                 </div>
               )}
             </div>
 
-            {/* 4. Final Grand Total Banner - Compact */}
-            <div className="calc-grand-total-banner">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                <span className="calc-grand-total-label">
-                  Total Payable:
-                </span>
-                <span className="calc-grand-total-amount">
-                  ₹ {formatIndianCurrency(finalGrandTotal)}
-                </span>
-              </div>
+            {/* Quick Running Total Banner */}
+            <div style={{ background: 'var(--bg-card)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1.5px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '680px', margin: '0 auto' }}>
+              <span style={{ fontSize: '0.92rem', color: 'var(--text-muted)' }}>
+                Taxable Base: <strong style={{ color: 'var(--text-main)' }}>₹{formatIndianCurrency(customGstTaxableAmount > 0 ? customGstTaxableAmount : subtotalWithCharges)}</strong>
+              </span>
+              <strong style={{ fontSize: '1rem', color: 'var(--primary-800)' }}>
+                GST ({gstPercent}%): +₹{formatIndianCurrency(gstAmount)}
+              </strong>
             </div>
           </div>
         )}
 
         {/* =========================================================================
-            STEP 8: ORDER / SORTING OF TIMBER ENTRIES
-            Width (IN) - Ascending, Length (FT) - Descending within each width group
+            STEP 9: DISCOUNT (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 8 && (
+        {currentStep === 9 && (
+          <div className="card calc-step-card">
+            {/* Visual Service Banner */}
+            <div className="calc-service-banner">
+              <img
+                src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1200&q=80"
+                alt="Discount & Offers"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+              <div className="calc-service-banner-overlay">
+                <span className="calc-service-banner-tag">
+                  <Tag size={12} /> Special Offers &amp; Concessions
+                </span>
+                <h3 className="calc-service-banner-title">Customer Discount &amp; Concession</h3>
+              </div>
+            </div>
+
+            <div className="calc-step-header">
+              <h3 className="calc-step-title">
+                <Tag size={18} color="var(--primary-600)" /> Customer Discount
+              </h3>
+              <p className="calc-step-desc">
+                Apply special discount as a flat rupee deduction (₹) or percentage (%)
+              </p>
+            </div>
+
+            {/* Input Card */}
+            <div className="calc-charge-card" style={{ maxWidth: '680px', margin: '0 auto 1.25rem auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <label style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+                  <Tag size={18} color="var(--primary-600)" /> Discount Value:
+                </label>
+
+                {/* Mode Toggle: Rupees vs Percentage */}
+                <div style={{ display: 'inline-flex', borderRadius: '8px', border: '1.5px solid var(--border-medium)', overflow: 'hidden', flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => setDiscountType('rupees')}
+                    style={{
+                      padding: '0.45rem 0.95rem',
+                      fontSize: '0.92rem',
+                      fontWeight: 800,
+                      backgroundColor: discountType === 'rupees' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
+                      color: discountType === 'rupees' ? '#fff' : 'var(--text-main)',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Flat ₹ (Rupees)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDiscountType('percentage')}
+                    style={{
+                      padding: '0.45rem 0.95rem',
+                      fontSize: '0.92rem',
+                      fontWeight: 800,
+                      backgroundColor: discountType === 'percentage' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
+                      color: discountType === 'percentage' ? '#fff' : 'var(--text-main)',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    % Percentage
+                  </button>
+                </div>
+              </div>
+
+              {/* Discount Input */}
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-muted)' }}>
+                  {discountType === 'percentage' ? '%' : '₹'}
+                </span>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={discountValue === 0 ? '' : discountValue}
+                  onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value) || 0))}
+                  style={{ width: '100%', fontSize: '1.35rem', fontWeight: 800, padding: '0.75rem 0.95rem 0.75rem 2.2rem', borderRadius: '10px', border: '1.5px solid var(--border-medium)' }}
+                />
+              </div>
+
+              {/* Quick Chips */}
+              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                {discountType === 'rupees' ? (
+                  [500, 1000, 2000, 5000, 10000].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setDiscountValue(amt)}
+                      style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.7rem', background: 'var(--bg-card)', border: '1.5px solid var(--border-medium)', borderRadius: '6px' }}
+                    >
+                      -₹{amt}
+                    </button>
+                  ))
+                ) : (
+                  [2, 5, 10, 15, 20].map(pct => (
+                    <button
+                      key={pct}
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setDiscountValue(pct)}
+                      style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.7rem', background: 'var(--bg-card)', border: '1.5px solid var(--border-medium)', borderRadius: '6px' }}
+                    >
+                      {pct}%
+                    </button>
+                  ))
+                )}
+                {discountValue > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setDiscountValue(0)}
+                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.65rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Running Total Banner */}
+            <div style={{ background: 'var(--bg-card)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1.5px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '680px', margin: '0 auto' }}>
+              <span style={{ fontSize: '0.92rem', color: 'var(--danger-600, #dc2626)', fontWeight: 800 }}>
+                Discount Deducted: -₹{formatIndianCurrency(discountAmount)}
+              </span>
+              <strong style={{ fontSize: '1.1rem', color: 'var(--primary-800)' }}>
+                Total Payable: ₹{formatIndianCurrency(finalGrandTotal)}
+              </strong>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            STEP 10: ORDER / SORTING OF TIMBER ENTRIES
+            Width (IN) - Ascending, Thickness (IN) - Descending, Length (FT) - Descending
+            ========================================================================= */}
+        {currentStep === 10 && (
           <div className="card calc-step-card">
             <div className="calc-step-header">
               <h3 className="calc-step-title">
@@ -2372,9 +2582,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 9: FINAL REVIEW, WHATSAPP SHARE, PDF DOWNLOAD & PRINT
+            STEP 11: FINAL REVIEW, WHATSAPP SHARE, PDF DOWNLOAD & PRINT
             ========================================================================= */}
-        {currentStep === 9 && (
+        {currentStep === 11 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
 
             {/* 3 High-Impact Primary Mobile Action Buttons (WhatsApp, PDF, Print) */}
@@ -2649,21 +2859,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               <button
                 type="button"
                 className="btn btn-secondary calc-dock-btn calc-dock-prev"
-                onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9)}
+                onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11)}
                 style={{ flex: '0 0 auto', padding: '0.45rem 0.85rem' }}
               >
                 <ArrowLeft size={15} /> Back
               </button>
             )}
 
-            {currentStep < 9 ? (
+            {currentStep < 11 ? (
               <button
                 type="button"
                 className="btn btn-primary calc-dock-btn calc-dock-next"
                 style={{ flex: 1 }}
                 onClick={() => {
                   if (currentStep === 2) persistCurrentCustomer();
-                  setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9);
+                  setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11);
                 }}
               >
                 <span>
@@ -2672,9 +2882,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   {currentStep === 3 && 'Next: Carpentry →'}
                   {currentStep === 4 && 'Next: Transport →'}
                   {currentStep === 5 && 'Next: Planing →'}
-                  {currentStep === 6 && 'Next: GST & Other →'}
-                  {currentStep === 7 && 'Next: Order Sorting →'}
-                  {currentStep === 8 && 'Next: Invoice & Share →'}
+                  {currentStep === 6 && 'Next: Other Charges →'}
+                  {currentStep === 7 && 'Next: GST Tax →'}
+                  {currentStep === 8 && 'Next: Discount →'}
+                  {currentStep === 9 && 'Next: Order Sorting →'}
+                  {currentStep === 10 && 'Next: Invoice & Share →'}
                 </span>
               </button>
             ) : (

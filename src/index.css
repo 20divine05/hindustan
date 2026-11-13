@@ -2058,10 +2058,14 @@ input[type="number"] {
 }
 
 .calc-charge-card {
-  background: var(--bg-subtle, #f8fafc);
-  padding: 0.75rem 0.85rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-light);
+  background: var(--bg-card, #ffffff);
+  padding: 1.25rem 1.4rem;
+  border-radius: 12px;
+  border: 1.5px solid var(--border-medium, #cbd5e1);
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto 1.25rem auto;
 }
 
 @media (max-width: 768px) {
@@ -2070,19 +2074,26 @@ input[type="number"] {
     gap: 0.35rem !important;
   }
   .calc-charge-card {
-    padding: 0.38rem 0.45rem !important;
+    padding: 1rem 1rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
   .calc-charge-card label {
-    font-size: 0.7rem !important;
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
   }
   .calc-charge-card input {
-    padding: 0.28rem 0.4rem !important;
-    font-size: 0.86rem !important;
+    padding: 0.65rem 0.85rem !important;
+    font-size: 1.25rem !important;
+    font-weight: 800 !important;
   }
 
-  /* Remove +500 +1000 quick buttons and clear on phone view */
+  /* Keep quick buttons clean and usable on phone view */
   .calc-charge-quick-chips {
-    display: none !important;
+    display: flex !important;
+    gap: 0.35rem !important;
+    margin-top: 0.65rem !important;
+    flex-wrap: wrap !important;
   }
 
   /* Remove unwanted volume and rate clutter text in Planing card on phone view */
@@ -2090,9 +2101,12 @@ input[type="number"] {
     display: none !important;
   }
 
-  /* Remove +500 +1000 discount chips on phone view */
+  /* Keep discount quick chips on phone view */
   .calc-discount-quick-chips {
-    display: none !important;
+    display: flex !important;
+    gap: 0.35rem !important;
+    margin-top: 0.65rem !important;
+    flex-wrap: wrap !important;
   }
 
   /* Utility class to hide verbose elements on mobile */
