@@ -960,7 +960,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   };
 
   // Share Invoice PDF directly to customer's WhatsApp chat
-  const handleShareWhatsApp = async () => {
+  const handleShareWhatsApp = () => {
     persistCurrentCustomer();
 
     // 1. Extract customer phone from invoice details
@@ -996,27 +996,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
     const { current, exportData } = getFullInvoiceExportData();
 
-    // 2. Generate the official Proforma Invoice PDF named after the client
+    // 2. Generate and download the official Proforma Invoice PDF named after the client
     const { blob, filename } = getProformaInvoicePdfBlob(current, businessSettings, exportData);
-    const pdfFile = new File([blob], filename, { type: 'application/pdf' });
-
-    // 3. Web Share API (Mobile Devices & Supporting Environments):
-    // Directly attaches and shares the ACTUAL PDF file into WhatsApp
-    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-      try {
-        await navigator.share({
-          files: [pdfFile],
-          title: filename,
-        });
-        return;
-      } catch (err: any) {
-        if (err.name === 'AbortError') return; // User closed share sheet
-        console.warn('Native file share failed, falling back to download & WhatsApp Web:', err);
-      }
-    }
-
-    // 4. Desktop Fallback (when Web Share API file attachment is not supported):
-    // Instantly downloads the PDF named after the client
     const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = downloadUrl;
@@ -1026,9 +1007,31 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(downloadUrl), 15000);
 
-    // Directly open WhatsApp chat to customer number WITHOUT that wall of text
+    // 3. Directly redirect to WhatsApp with the exact customer phone number auto-fetched
     const waUrl = `https://api.whatsapp.com/send?phone=${digits}`;
     window.open(waUrl, '_blank');
+  };
+
+  // Share PDF file attachment via native system share sheet
+  const handleShareFileNative = async () => {
+    persistCurrentCustomer();
+    const { current, exportData } = getFullInvoiceExportData();
+    const { blob, filename } = getProformaInvoicePdfBlob(current, businessSettings, exportData);
+    const pdfFile = new File([blob], filename, { type: 'application/pdf' });
+    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      try {
+        await navigator.share({
+          files: [pdfFile],
+          title: filename,
+        });
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.warn('Native share failed:', err);
+        }
+      }
+    } else {
+      handleExportPdf();
+    }
   };
 
   return (
@@ -2545,7 +2548,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     color: '#ffffff',
                     boxShadow: '0 2px 8px rgba(37, 211, 102, 0.25)'
                   }}
-                  title="Sends official Proforma Invoice PDF file directly to customer WhatsApp"
+                  title="Directly opens customer's WhatsApp chat with the downloaded invoice PDF"
                 >
                   <MessageCircle size={18} />
                   <span>Send PDF to WhatsApp</span>
@@ -2567,7 +2570,23 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <span>Download PDF Invoice</span>
                 </button>
 
-                {/* 3. Print Official Invoice */}
+                {/* 3. Share File Attachment */}
+                <button
+                  type="button"
+                  onClick={handleShareFileNative}
+                  className="calc-export-btn"
+                  style={{
+                    backgroundColor: '#0284c7',
+                    color: '#ffffff',
+                    boxShadow: '0 2px 8px rgba(2, 132, 199, 0.2)'
+                  }}
+                  title="Attach and share PDF file directly via system share sheet"
+                >
+                  <Share2 size={18} />
+                  <span>Share Attachment</span>
+                </button>
+
+                {/* 4. Print Official Invoice */}
                 <button
                   type="button"
                   onClick={handlePrint}
@@ -2878,7 +2897,22 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <MessageCircle size={18} color="#25D366" />
                   <div>
                     <strong style={{ color: '#128C7E' }}>Send PDF to WhatsApp</strong>
-                    <p>Send official PDF invoice to customer phone</p>
+                    <p>Open customer's WhatsApp chat with invoice PDF</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="action-menu-item"
+                  onClick={() => {
+                    setIsActionsModalOpen(false);
+                    handleShareFileNative();
+                  }}
+                >
+                  <Share2 size={18} color="#0284c7" />
+                  <div>
+                    <strong>Share PDF Attachment</strong>
+                    <p>Share PDF file to any app via system share sheet</p>
                   </div>
                 </button>
 
