@@ -241,6 +241,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   // Customer Autocomplete Suggestions State
   const [customerSuggestions, setCustomerSuggestions] = useState<SavedCustomer[]>([]);
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState<boolean>(false);
+  const [phoneSuggestions, setPhoneSuggestions] = useState<SavedCustomer[]>([]);
+  const [showPhoneSuggestions, setShowPhoneSuggestions] = useState<boolean>(false);
 
   // Status & Feedback State
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
@@ -339,6 +341,19 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     return Array.from(map.values());
   };
 
+  const handlePhoneInputChange = (val: string) => {
+    setCustomerPhone(val);
+    const digits = val.replace(/\D/g, '');
+    if (digits.length >= 2) {
+      const all = getAllKnownCustomers();
+      const matches = all.filter(c => (c.phone || '').replace(/\D/g, '').includes(digits));
+      setPhoneSuggestions(matches);
+      setShowPhoneSuggestions(matches.length > 0);
+    } else {
+      setShowPhoneSuggestions(false);
+    }
+  };
+
   const handleCustomerNameInputChange = (val: string) => {
     setCustomerName(val);
     if (val.trim().length >= 1) {
@@ -370,6 +385,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     if (c.stateCode) setCustomerStateCode(c.stateCode);
     if (c.projectName) setProjectName(c.projectName);
     setShowCustomerSuggestions(false);
+    setShowPhoneSuggestions(false);
   };
 
   const persistCurrentCustomer = () => {
@@ -1212,220 +1228,517 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
 
-            {/* If B2B: Show Live GSTIN Search Box */}
-            {customerType === 'b2b' && (
-              <div className="calc-gst-search-box" style={{ marginBottom: '0.75rem' }}>
-                <div className="calc-gst-search-header">
-                  <label className="calc-gst-search-label">
-                    <ShieldCheck size={15} color="var(--primary-600)" /> 15-Digit GST Number:
+            {/* Customer Inputs Form */}
+            {customerType === 'b2b' ? (
+              /* =========================================================================
+                 B2B ORDER:
+                 1. Phone Number (Top)
+                 2. GST Number Fetching
+                 3. Company / Firm Name
+                 4. Address / Delivery Site
+                 5. Remaining Things (State & Code, Ref Number & Date)
+                 ========================================================================= */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {/* 1. Phone Number (Top) */}
+                <div style={{ position: 'relative' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                    <Phone size={14} color="var(--primary-600)" /> Phone Number:
                   </label>
-                  <span className="calc-gst-live-badge">
-                    Live GSTIN API Powered
-                  </span>
-                </div>
-                <div className="calc-gst-search-row">
                   <input
-                    type="text"
-                    value={customerGstin}
-                    onChange={(e) => {
-                      const val = e.target.value.toUpperCase();
-                      setCustomerGstin(val);
-                      if (val.length === 15 && val !== customerGstin) {
-                        handleSearchGst(val);
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => handlePhoneInputChange(e.target.value)}
+                    onFocus={() => {
+                      if (customerPhone.trim().length >= 2) {
+                        const digits = customerPhone.replace(/\D/g, '');
+                        const all = getAllKnownCustomers();
+                        const matches = all.filter(c => (c.phone || '').replace(/\D/g, '').includes(digits));
+                        setPhoneSuggestions(matches);
+                        setShowPhoneSuggestions(matches.length > 0);
                       }
                     }}
-                    maxLength={15}
-                    className="calc-gst-input"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleSearchGst();
-                      }
+                    onBlur={() => {
+                      setTimeout(() => setShowPhoneSuggestions(false), 250);
+                      persistCurrentCustomer();
                     }}
+                    style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                    placeholder=""
                   />
-                  <button
-                    type="button"
-                    className="btn btn-primary calc-gst-btn"
-                    onClick={() => handleSearchGst()}
-                    disabled={isGstSearching || !customerGstin.trim()}
-                  >
-                    <Search size={15} />
-                    <span>{isGstSearching ? 'Fetching...' : 'Fetch Details'}</span>
-                  </button>
+                  {/* Phone Suggestions */}
+                  {showPhoneSuggestions && phoneSuggestions.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        zIndex: 99,
+                        backgroundColor: 'var(--bg-card, #ffffff)',
+                        border: '1.5px solid var(--border-medium, #cbd5e1)',
+                        borderRadius: '6px',
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.16)',
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        marginTop: '4px'
+                      }}
+                    >
+                      <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #f1f5f9)', borderBottom: '1px solid var(--border-light)' }}>
+                        Saved Contacts (Click to auto-fill)
+                      </div>
+                      {phoneSuggestions.map((c, i) => (
+                        <div
+                          key={i}
+                          onMouseDown={() => handleSelectCustomer(c)}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--primary-50, #f1f5f9)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          style={{
+                            padding: '0.5rem 0.65rem',
+                            cursor: 'pointer',
+                            borderBottom: i < phoneSuggestions.length - 1 ? '1px solid var(--border-light, #eee)' : 'none',
+                            transition: 'background 0.15s ease'
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                            {c.name}
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', gap: '0.65rem', marginTop: '0.1rem', flexWrap: 'wrap', fontWeight: 600 }}>
+                            {c.phone && <span>📞 {c.phone}</span>}
+                            {c.gstin && <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>GST: {c.gstin}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {gstSearchNotice && (
-                  <div style={{ marginTop: '0.4rem', fontSize: '0.78rem', fontWeight: 700, color: gstSearchNotice.startsWith('✓') ? '#15803d' : '#b45309' }}>
-                    {gstSearchNotice}
+                {/* 2. 15-Digit GST Number Fetching */}
+                <div className="calc-gst-search-box" style={{ margin: 0 }}>
+                  <div className="calc-gst-search-header">
+                    <label className="calc-gst-search-label" style={{ fontWeight: 800, fontSize: '0.85rem' }}>
+                      <ShieldCheck size={15} color="var(--primary-600)" /> 15-Digit GST Number:
+                    </label>
+                    <span className="calc-gst-live-badge" style={{ fontWeight: 800 }}>
+                      Live GSTIN API Powered
+                    </span>
                   </div>
-                )}
+                  <div className="calc-gst-search-row">
+                    <input
+                      type="text"
+                      value={customerGstin}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setCustomerGstin(val);
+                        if (val.length === 15 && val !== customerGstin) {
+                          handleSearchGst(val);
+                        }
+                      }}
+                      maxLength={15}
+                      className="calc-gst-input"
+                      style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)' }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleSearchGst();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-primary calc-gst-btn"
+                      onClick={() => handleSearchGst()}
+                      disabled={isGstSearching || !customerGstin.trim()}
+                      style={{ fontWeight: 800 }}
+                    >
+                      <Search size={15} />
+                      <span>{isGstSearching ? 'Fetching...' : 'Fetch Details'}</span>
+                    </button>
+                  </div>
+
+                  {gstSearchNotice && (
+                    <div style={{ marginTop: '0.4rem', fontSize: '0.78rem', fontWeight: 800, color: gstSearchNotice.startsWith('✓') ? '#15803d' : '#b45309' }}>
+                      {gstSearchNotice}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Company / Firm Name */}
+                <div style={{ position: 'relative' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                    <User size={14} color="var(--primary-600)" /> Company / Firm Name:
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => handleCustomerNameInputChange(e.target.value)}
+                    onFocus={() => {
+                      if (customerName.trim().length >= 1) {
+                        const all = getAllKnownCustomers();
+                        const q = customerName.trim().toLowerCase();
+                        const matches = all.filter(c => c.name.toLowerCase().includes(q));
+                        setCustomerSuggestions(matches);
+                        setShowCustomerSuggestions(matches.length > 0);
+                      }
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setShowCustomerSuggestions(false), 250);
+                      persistCurrentCustomer();
+                    }}
+                    autoComplete="off"
+                    style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                  />
+
+                  {/* Autocomplete Suggestions */}
+                  {showCustomerSuggestions && customerSuggestions.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        zIndex: 99,
+                        backgroundColor: 'var(--bg-card, #ffffff)',
+                        border: '1.5px solid var(--border-medium, #cbd5e1)',
+                        borderRadius: '6px',
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.16)',
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        marginTop: '4px'
+                      }}
+                    >
+                      <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #f1f5f9)', borderBottom: '1px solid var(--border-light)' }}>
+                        Saved Companies (Click to auto-fill)
+                      </div>
+                      {customerSuggestions.map((c, i) => (
+                        <div
+                          key={i}
+                          onMouseDown={() => handleSelectCustomer(c)}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--primary-50, #f1f5f9)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          style={{
+                            padding: '0.5rem 0.65rem',
+                            cursor: 'pointer',
+                            borderBottom: i < customerSuggestions.length - 1 ? '1px solid var(--border-light, #eee)' : 'none',
+                            transition: 'background 0.15s ease'
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                            {c.name}
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', gap: '0.65rem', marginTop: '0.1rem', flexWrap: 'wrap', fontWeight: 600 }}>
+                            {c.phone && <span>📞 {c.phone}</span>}
+                            {c.gstin && <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>GST: {c.gstin}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Address / Delivery Site */}
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                    <MapPin size={14} color="var(--primary-600)" /> Address / Delivery Site:
+                  </label>
+                  <textarea
+                    rows={1}
+                    className="calc-address-textarea"
+                    value={customerAddress}
+                    onChange={(e) => setCustomerAddress(e.target.value)}
+                    onBlur={persistCurrentCustomer}
+                    style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* 5. Remaining Things: State & Code, Ref & Date */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.65rem' }}>
+                  {/* State & Code */}
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                      <MapPin size={14} color="var(--primary-600)" /> State / Code:
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <input
+                        type="text"
+                        value={customerState}
+                        onChange={(e) => setCustomerState(e.target.value)}
+                        onBlur={persistCurrentCustomer}
+                        style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                      />
+                      <input
+                        type="text"
+                        value={customerStateCode}
+                        onChange={(e) => setCustomerStateCode(e.target.value)}
+                        onBlur={persistCurrentCustomer}
+                        style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Ref & Date */}
+                  <div className="calc-ref-date-row" style={{ margin: 0 }}>
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                        <Hash size={14} color="var(--primary-600)" /> Ref Number:
+                      </label>
+                      <input
+                        type="text"
+                        value={referenceNumber}
+                        onChange={(e) => setReferenceNumber(e.target.value)}
+                        style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                        <Calendar size={14} color="var(--primary-600)" /> Date:
+                      </label>
+                      <input
+                        type="date"
+                        value={measurementDate}
+                        onChange={(e) => setMeasurementDate(e.target.value)}
+                        style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* =========================================================================
+                 B2C ORDER:
+                 1. Phone Number (Top)
+                 2. Customer Name
+                 3. Address / Delivery Site
+                 4. Remaining Things (GST Number Optional, State / Code, Ref Number, Date)
+                 ========================================================================= */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {/* 1. Phone Number (Top) */}
+                <div style={{ position: 'relative' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                    <Phone size={14} color="var(--primary-600)" /> Phone Number:
+                  </label>
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => handlePhoneInputChange(e.target.value)}
+                    onFocus={() => {
+                      if (customerPhone.trim().length >= 2) {
+                        const digits = customerPhone.replace(/\D/g, '');
+                        const all = getAllKnownCustomers();
+                        const matches = all.filter(c => (c.phone || '').replace(/\D/g, '').includes(digits));
+                        setPhoneSuggestions(matches);
+                        setShowPhoneSuggestions(matches.length > 0);
+                      }
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setShowPhoneSuggestions(false), 250);
+                      persistCurrentCustomer();
+                    }}
+                    style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                    placeholder=""
+                  />
+                  {/* Phone Suggestions */}
+                  {showPhoneSuggestions && phoneSuggestions.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        zIndex: 99,
+                        backgroundColor: 'var(--bg-card, #ffffff)',
+                        border: '1.5px solid var(--border-medium, #cbd5e1)',
+                        borderRadius: '6px',
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.16)',
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        marginTop: '4px'
+                      }}
+                    >
+                      <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #f1f5f9)', borderBottom: '1px solid var(--border-light)' }}>
+                        Saved Contacts (Click to auto-fill)
+                      </div>
+                      {phoneSuggestions.map((c, i) => (
+                        <div
+                          key={i}
+                          onMouseDown={() => handleSelectCustomer(c)}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--primary-50, #f1f5f9)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          style={{
+                            padding: '0.5rem 0.65rem',
+                            cursor: 'pointer',
+                            borderBottom: i < phoneSuggestions.length - 1 ? '1px solid var(--border-light, #eee)' : 'none',
+                            transition: 'background 0.15s ease'
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                            {c.name}
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', gap: '0.65rem', marginTop: '0.1rem', flexWrap: 'wrap', fontWeight: 600 }}>
+                            {c.phone && <span>📞 {c.phone}</span>}
+                            {c.gstin && <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>GST: {c.gstin}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Customer Name (Below Phone) */}
+                <div style={{ position: 'relative' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                    <User size={14} color="var(--primary-600)" /> Customer Name:
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => handleCustomerNameInputChange(e.target.value)}
+                    onFocus={() => {
+                      if (customerName.trim().length >= 1) {
+                        const all = getAllKnownCustomers();
+                        const q = customerName.trim().toLowerCase();
+                        const matches = all.filter(c => c.name.toLowerCase().includes(q));
+                        setCustomerSuggestions(matches);
+                        setShowCustomerSuggestions(matches.length > 0);
+                      }
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setShowCustomerSuggestions(false), 250);
+                      persistCurrentCustomer();
+                    }}
+                    autoComplete="off"
+                    style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                  />
+
+                  {/* Autocomplete Suggestions */}
+                  {showCustomerSuggestions && customerSuggestions.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        zIndex: 99,
+                        backgroundColor: 'var(--bg-card, #ffffff)',
+                        border: '1.5px solid var(--border-medium, #cbd5e1)',
+                        borderRadius: '6px',
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.16)',
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        marginTop: '4px'
+                      }}
+                    >
+                      <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #f1f5f9)', borderBottom: '1px solid var(--border-light)' }}>
+                        Saved Customers (Click to auto-fill)
+                      </div>
+                      {customerSuggestions.map((c, i) => (
+                        <div
+                          key={i}
+                          onMouseDown={() => handleSelectCustomer(c)}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--primary-50, #f1f5f9)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          style={{
+                            padding: '0.5rem 0.65rem',
+                            cursor: 'pointer',
+                            borderBottom: i < customerSuggestions.length - 1 ? '1px solid var(--border-light, #eee)' : 'none',
+                            transition: 'background 0.15s ease'
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                            {c.name}
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', gap: '0.65rem', marginTop: '0.1rem', flexWrap: 'wrap', fontWeight: 600 }}>
+                            {c.phone && <span>📞 {c.phone}</span>}
+                            {c.gstin && <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>GST: {c.gstin}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Address / Delivery Site (Below Name) */}
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                    <MapPin size={14} color="var(--primary-600)" /> Address / Delivery Site:
+                  </label>
+                  <textarea
+                    rows={1}
+                    className="calc-address-textarea"
+                    value={customerAddress}
+                    onChange={(e) => setCustomerAddress(e.target.value)}
+                    onBlur={persistCurrentCustomer}
+                    style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* 4. Remaining Things: Optional GST, State & Code, Ref & Date */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.65rem' }}>
+                  {/* B2C Optional GST Number */}
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                      <FileText size={14} color="var(--primary-600)" /> GST Number (Optional):
+                    </label>
+                    <input
+                      type="text"
+                      value={customerGstin}
+                      onChange={(e) => setCustomerGstin(e.target.value.toUpperCase())}
+                      onBlur={persistCurrentCustomer}
+                      style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                    />
+                  </div>
+
+                  {/* State & Code */}
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                      <MapPin size={14} color="var(--primary-600)" /> State / Code:
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <input
+                        type="text"
+                        value={customerState}
+                        onChange={(e) => setCustomerState(e.target.value)}
+                        onBlur={persistCurrentCustomer}
+                        style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                      />
+                      <input
+                        type="text"
+                        value={customerStateCode}
+                        onChange={(e) => setCustomerStateCode(e.target.value)}
+                        onBlur={persistCurrentCustomer}
+                        style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Ref Number & Date */}
+                  <div className="calc-ref-date-row" style={{ margin: 0 }}>
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                        <Hash size={14} color="var(--primary-600)" /> Ref Number:
+                      </label>
+                      <input
+                        type="text"
+                        value={referenceNumber}
+                        onChange={(e) => setReferenceNumber(e.target.value)}
+                        style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                        <Calendar size={14} color="var(--primary-600)" /> Date:
+                      </label>
+                      <input
+                        type="date"
+                        value={measurementDate}
+                        onChange={(e) => setMeasurementDate(e.target.value)}
+                        style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
-
-            {/* Customer Inputs Form Grid */}
-            <div className="calc-customer-grid">
-              {/* Customer / Company Name with Autocomplete */}
-              <div style={{ position: 'relative' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                  <User size={13} color="var(--primary-600)" /> {customerType === 'b2b' ? 'Company / Firm Name:' : 'Customer Name:'}
-                </label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => handleCustomerNameInputChange(e.target.value)}
-                  onFocus={() => {
-                    if (customerName.trim().length >= 1) {
-                      const all = getAllKnownCustomers();
-                      const q = customerName.trim().toLowerCase();
-                      const matches = all.filter(c => c.name.toLowerCase().includes(q));
-                      setCustomerSuggestions(matches);
-                      setShowCustomerSuggestions(matches.length > 0);
-                    }
-                  }}
-                  onBlur={() => {
-                    setTimeout(() => setShowCustomerSuggestions(false), 250);
-                    persistCurrentCustomer();
-                  }}
-                  autoComplete="off"
-                />
-
-                {/* Autocomplete Suggestions */}
-                {showCustomerSuggestions && customerSuggestions.length > 0 && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      zIndex: 99,
-                      backgroundColor: 'var(--bg-card, #ffffff)',
-                      border: '1px solid var(--border-medium, #cbd5e1)',
-                      borderRadius: '6px',
-                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.16)',
-                      maxHeight: '200px',
-                      overflowY: 'auto',
-                      marginTop: '4px'
-                    }}
-                  >
-                    <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #f1f5f9)', borderBottom: '1px solid var(--border-light)' }}>
-                      Saved Customers (Click to auto-fill)
-                    </div>
-                    {customerSuggestions.map((c, i) => (
-                      <div
-                        key={i}
-                        onMouseDown={() => handleSelectCustomer(c)}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--primary-50, #f1f5f9)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                        style={{
-                          padding: '0.5rem 0.65rem',
-                          cursor: 'pointer',
-                          borderBottom: i < customerSuggestions.length - 1 ? '1px solid var(--border-light, #eee)' : 'none',
-                          transition: 'background 0.15s ease'
-                        }}
-                      >
-                        <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)' }}>
-                          {c.name}
-                        </div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', gap: '0.65rem', marginTop: '0.1rem', flexWrap: 'wrap' }}>
-                          {c.phone && <span>📞 {c.phone}</span>}
-                          {c.gstin && <span style={{ fontWeight: 600, color: 'var(--primary-700)' }}>GST: {c.gstin}</span>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Phone Number */}
-              <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                  <Phone size={13} color="var(--primary-600)" /> Phone Number:
-                </label>
-                <input
-                  type="tel"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  onBlur={persistCurrentCustomer}
-                />
-              </div>
-
-              {/* Delivery / Billing Address */}
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                  <MapPin size={13} color="var(--primary-600)" /> Address / Delivery Site:
-                </label>
-                <textarea
-                  rows={1}
-                  className="calc-address-textarea"
-                  value={customerAddress}
-                  onChange={(e) => setCustomerAddress(e.target.value)}
-                  onBlur={persistCurrentCustomer}
-                />
-              </div>
-
-              {/* B2C Optional GST Number */}
-              {customerType === 'b2c' && (
-                <div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                    <FileText size={13} color="var(--primary-600)" /> GST Number (Optional):
-                  </label>
-                  <input
-                    type="text"
-                    value={customerGstin}
-                    onChange={(e) => setCustomerGstin(e.target.value.toUpperCase())}
-                    onBlur={persistCurrentCustomer}
-                  />
-                </div>
-              )}
-
-              {/* State & Code */}
-              <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                  <MapPin size={13} color="var(--primary-600)" /> State / Code:
-                </label>
-                <div style={{ display: 'flex', gap: '0.4rem' }}>
-                  <input
-                    type="text"
-                    value={customerState}
-                    onChange={(e) => setCustomerState(e.target.value)}
-                    onBlur={persistCurrentCustomer}
-                    style={{ flex: 2 }}
-                  />
-                  <input
-                    type="text"
-                    value={customerStateCode}
-                    onChange={(e) => setCustomerStateCode(e.target.value)}
-                    onBlur={persistCurrentCustomer}
-                    style={{ width: '55px', textAlign: 'center' }}
-                  />
-                </div>
-              </div>
-
-              {/* Reference Number & Measurement Date in 1 Row */}
-              <div className="calc-ref-date-row">
-                <div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                    <Hash size={13} color="var(--primary-600)" /> Ref Number:
-                  </label>
-                  <input
-                    type="text"
-                    value={referenceNumber}
-                    onChange={(e) => setReferenceNumber(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                    <Calendar size={13} color="var(--primary-600)" /> Date:
-                  </label>
-                  <input
-                    type="date"
-                    value={measurementDate}
-                    onChange={(e) => setMeasurementDate(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
           </div>
         )}
         {/* =========================================================================

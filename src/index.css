@@ -2146,20 +2146,23 @@ input[type="number"] {
     gap: 0.3rem 0.45rem !important;
   }
   .calc-customer-grid label {
-    font-size: 0.72rem !important;
-    margin-bottom: 0.1rem !important;
+    font-size: 0.76rem !important;
+    font-weight: 800 !important;
+    margin-bottom: 0.15rem !important;
     white-space: nowrap !important;
   }
   .calc-customer-grid input {
-    padding: 0.32rem 0.45rem !important;
-    font-size: 0.84rem !important;
+    padding: 0.38rem 0.5rem !important;
+    font-size: 0.88rem !important;
+    font-weight: 700 !important;
   }
   .calc-customer-grid textarea,
   .calc-address-textarea {
-    min-height: 36px !important;
-    height: 36px !important;
-    padding: 0.32rem 0.45rem !important;
-    font-size: 0.82rem !important;
+    min-height: 38px !important;
+    height: 38px !important;
+    padding: 0.38rem 0.5rem !important;
+    font-size: 0.88rem !important;
+    font-weight: 700 !important;
     resize: none !important;
   }
 }
