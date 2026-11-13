@@ -1514,27 +1514,18 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
 
-            <div className="calc-step-header">
-              <h3 className="calc-step-title">
-                <Scissors size={18} color="var(--primary-600)" /> Carpentry Charges (₹)
-              </h3>
-              <p className="calc-step-desc">
-                Add labour or fabrication charges for carpentry, joinery, and custom sizing
-              </p>
-            </div>
-
             {/* Input Card */}
-            <div className="calc-charge-card" style={{ maxWidth: '680px', margin: '0 auto 1.25rem auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                <label style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
-                  <Scissors size={18} color="var(--primary-600)" /> Carpentry Charges (₹):
+            <div className="calc-charge-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+                  <Scissors size={15} color="var(--primary-600)" /> Carpentry Charges (₹):
                 </label>
-                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-700)' }}>
                   ₹ {formatIndianCurrency(carpentryCharges)}
                 </span>
               </div>
               <div style={{ position: 'relative', width: '100%' }}>
-                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-muted)' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
                   ₹
                 </span>
                 <input
@@ -1542,17 +1533,17 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   placeholder="0"
                   value={carpentryCharges === 0 ? '' : carpentryCharges}
                   onChange={(e) => setCarpentryCharges(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: '100%', fontSize: '1.35rem', fontWeight: 800, padding: '0.75rem 0.95rem 0.75rem 2.2rem', borderRadius: '10px', border: '1.5px solid var(--border-medium)' }}
+                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, padding: '0.45rem 0.65rem 0.45rem 1.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                 />
               </div>
-              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
                 {[500, 1000, 2000, 5000].map(amt => (
                   <button
                     key={amt}
                     type="button"
                     className="btn btn-ghost btn-sm"
                     onClick={() => setCarpentryCharges(amt)}
-                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.7rem', background: 'var(--bg-card)', border: '1.5px solid var(--border-medium)', borderRadius: '6px' }}
+                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
                   >
                     +₹{amt}
                   </button>
@@ -1562,7 +1553,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="button"
                     className="btn btn-ghost btn-sm"
                     onClick={() => setCarpentryCharges(0)}
-                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.65rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
                   >
                     Clear
                   </button>
@@ -1571,11 +1562,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Quick Running Total Banner */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1.5px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '680px', margin: '0 auto' }}>
-              <span style={{ fontSize: '0.92rem', color: 'var(--text-muted)' }}>
-                Timber Subtotal: <strong style={{ color: 'var(--text-main)' }}>₹{formatIndianCurrency(timberSubtotal)}</strong>
+            <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
+              <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                Timber Subtotal: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(timberSubtotal)}</strong>
               </span>
-              <strong style={{ fontSize: '1rem', color: 'var(--primary-800)' }}>
+              <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
                 Carpentry: ₹{formatIndianCurrency(carpentryCharges)}
               </strong>
             </div>
@@ -1602,27 +1593,18 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
 
-            <div className="calc-step-header">
-              <h3 className="calc-step-title">
-                <Truck size={18} color="var(--primary-600)" /> Transportation Charges (₹)
-              </h3>
-              <p className="calc-step-desc">
-                Add freight, truck transit, and site delivery charges for timber cargo
-              </p>
-            </div>
-
             {/* Input Card */}
-            <div className="calc-charge-card" style={{ maxWidth: '680px', margin: '0 auto 1.25rem auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                <label style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
-                  <Truck size={18} color="var(--primary-600)" /> Transportation Charges (₹):
+            <div className="calc-charge-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+                  <Truck size={15} color="var(--primary-600)" /> Transportation Charges (₹):
                 </label>
-                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-700)' }}>
                   ₹ {formatIndianCurrency(transportationCharges)}
                 </span>
               </div>
               <div style={{ position: 'relative', width: '100%' }}>
-                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-muted)' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
                   ₹
                 </span>
                 <input
@@ -1630,17 +1612,17 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   placeholder="0"
                   value={transportationCharges === 0 ? '' : transportationCharges}
                   onChange={(e) => setTransportationCharges(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: '100%', fontSize: '1.35rem', fontWeight: 800, padding: '0.75rem 0.95rem 0.75rem 2.2rem', borderRadius: '10px', border: '1.5px solid var(--border-medium)' }}
+                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, padding: '0.45rem 0.65rem 0.45rem 1.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                 />
               </div>
-              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
                 {[1000, 2000, 3500, 5000].map(amt => (
                   <button
                     key={amt}
                     type="button"
                     className="btn btn-ghost btn-sm"
                     onClick={() => setTransportationCharges(amt)}
-                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.7rem', background: 'var(--bg-card)', border: '1.5px solid var(--border-medium)', borderRadius: '6px' }}
+                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
                   >
                     +₹{amt}
                   </button>
@@ -1650,7 +1632,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="button"
                     className="btn btn-ghost btn-sm"
                     onClick={() => setTransportationCharges(0)}
-                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.65rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
                   >
                     Clear
                   </button>
@@ -1659,11 +1641,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Quick Running Total Banner */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1.5px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '680px', margin: '0 auto' }}>
-              <span style={{ fontSize: '0.92rem', color: 'var(--text-muted)' }}>
-                Carpentry: <strong style={{ color: 'var(--text-main)' }}>₹{formatIndianCurrency(carpentryCharges)}</strong>
+            <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
+              <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                Carpentry: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(carpentryCharges)}</strong>
               </span>
-              <strong style={{ fontSize: '1rem', color: 'var(--primary-800)' }}>
+              <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
                 Transport: ₹{formatIndianCurrency(transportationCharges)}
               </strong>
             </div>
@@ -1690,27 +1672,18 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
 
-            <div className="calc-step-header">
-              <h3 className="calc-step-title">
-                <Sparkles size={18} color="var(--primary-600)" /> Planing Charges (₹)
-              </h3>
-              <p className="calc-step-desc">
-                Add surface planing and thickness dressing charges based on total CFT or flat fee
-              </p>
-            </div>
-
             {/* Input Card */}
-            <div className="calc-charge-card" style={{ maxWidth: '680px', margin: '0 auto 1.25rem auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                <label style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
-                  <Sparkles size={18} color="var(--primary-600)" /> Planing Charges (₹):
+            <div className="calc-charge-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+                  <Sparkles size={15} color="var(--primary-600)" /> Planing Charges (₹):
                 </label>
-                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-700)' }}>
                   ₹ {formatIndianCurrency(planingCharges)}
                 </span>
               </div>
               <div style={{ position: 'relative', width: '100%' }}>
-                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-muted)' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
                   ₹
                 </span>
                 <input
@@ -1726,56 +1699,47 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setPlaningRatePerCft(0);
                     }
                   }}
-                  style={{ width: '100%', fontSize: '1.35rem', fontWeight: 800, padding: '0.75rem 0.95rem 0.75rem 2.2rem', borderRadius: '10px', border: '1.5px solid var(--border-medium)' }}
+                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, padding: '0.45rem 0.65rem 0.45rem 1.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                 />
               </div>
 
-              {/* Extended details for Planing */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: 'var(--primary-50, #f8f6f0)', border: '1.5px solid var(--border-light)', borderRadius: '8px', padding: '0.65rem 0.95rem', marginTop: '0.85rem', marginBottom: '0.85rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
-                    Total Timber Volume:
-                  </span>
-                  <span style={{ fontSize: '0.98rem', fontWeight: 800, fontFamily: 'var(--font-mono, monospace)', color: 'var(--primary-800)' }}>
-                    {totals.totalCft > 0 ? totals.totalCft.toFixed(4) : '0.0000'} CFT
-                  </span>
-                </div>
+              {/* Compact Volume & Rate info */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--primary-50, #f8f6f0)', border: '1px solid var(--border-light)', borderRadius: '6px', padding: '0.35rem 0.65rem', marginTop: '0.5rem', marginBottom: '0.45rem' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  Total Timber Volume:
+                </span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, fontFamily: 'var(--font-mono, monospace)', color: 'var(--primary-800)' }}>
+                  {totals.totalCft > 0 ? totals.totalCft.toFixed(3) : '0.000'} CFT
+                </span>
               </div>
 
-              {/* Input: Planing Rate per CFT */}
-              <div style={{ marginTop: '0.65rem', marginBottom: '0.65rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                  <label style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                    Or Enter Rate (₹ / CFT):
-                  </label>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <div style={{ position: 'relative', flex: 1 }}>
-                    <span style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1rem', color: 'var(--text-muted)' }}>
-                      ₹
-                    </span>
-                    <input
-                      type="number"
-                      step="any"
-                      placeholder="e.g. 15"
-                      value={planingRatePerCft === 0 ? '' : planingRatePerCft}
-                      onChange={(e) => {
-                        const rate = Math.max(0, parseFloat(e.target.value) || 0);
-                        setPlaningRatePerCft(rate);
-                        const calculated = Math.round(totals.totalCft * rate * 100) / 100;
-                        setPlaningCharges(calculated);
-                      }}
-                      style={{ width: '100%', fontSize: '1.05rem', fontWeight: 800, padding: '0.55rem 0.75rem 0.55rem 2rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
-                    />
-                  </div>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                    / CFT
+              {/* Compact Rate per CFT */}
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginBottom: '0.45rem' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <span style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                    ₹
                   </span>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="Rate / CFT"
+                    value={planingRatePerCft === 0 ? '' : planingRatePerCft}
+                    onChange={(e) => {
+                      const rate = Math.max(0, parseFloat(e.target.value) || 0);
+                      setPlaningRatePerCft(rate);
+                      const calculated = Math.round(totals.totalCft * rate * 100) / 100;
+                      setPlaningCharges(calculated);
+                    }}
+                    style={{ width: '100%', fontSize: '0.95rem', fontWeight: 700, padding: '0.35rem 0.55rem 0.35rem 1.65rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
+                  />
                 </div>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                  / CFT
+                </span>
               </div>
 
               {/* Quick Rate Buttons */}
-              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
                 {[10, 15, 20, 25, 30].map(r => (
                   <button
                     key={r}
@@ -1787,12 +1751,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setPlaningCharges(calculated);
                     }}
                     style={{
-                      fontSize: '0.82rem',
-                      padding: '0.35rem 0.7rem',
+                      fontSize: '0.78rem',
+                      padding: '0.2rem 0.5rem',
                       background: planingRatePerCft === r ? 'var(--primary-100, #eedfc8)' : 'var(--bg-card)',
                       borderColor: planingRatePerCft === r ? 'var(--primary-600)' : 'var(--border-medium)',
-                      fontWeight: planingRatePerCft === r ? 800 : 700,
-                      borderRadius: '6px'
+                      fontWeight: planingRatePerCft === r ? 700 : 600,
+                      borderRadius: '5px'
                     }}
                   >
                     ₹{r}
@@ -1802,11 +1766,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Quick Running Total Banner */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1.5px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '680px', margin: '0 auto' }}>
-              <span style={{ fontSize: '0.92rem', color: 'var(--text-muted)' }}>
+            <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
+              <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
                 Timber + Extra Services
               </span>
-              <strong style={{ fontSize: '1rem', color: 'var(--primary-800)' }}>
+              <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
                 Planing: ₹{formatIndianCurrency(planingCharges)}
               </strong>
             </div>
@@ -1833,32 +1797,22 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
 
-            <div className="calc-step-header">
-              <h3 className="calc-step-title">
-                <Layers size={18} color="var(--primary-600)" /> Other Charges (₹)
-              </h3>
-              <p className="calc-step-desc">
-                Add timber loading, unloading, crane handling, stacking, or seasoning fees
-              </p>
-            </div>
-
             {/* Input Card */}
-            <div className="calc-charge-card" style={{ maxWidth: '680px', margin: '0 auto 1.25rem auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                <label style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
-                  <Layers size={18} color="var(--primary-600)" /> Other Charges (₹):
+            <div className="calc-charge-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+                  <Layers size={15} color="var(--primary-600)" /> Other Charges (₹):
                 </label>
                 {otherCharges > 0 && (
-                  <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-700)' }}>
+                  <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-700)' }}>
                     ₹ {formatIndianCurrency(otherCharges)}
                   </span>
                 )}
               </div>
 
-              {/* Amount input & Label input in a neat wide layout */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', width: '100%' }}>
                 <div style={{ position: 'relative', width: '100%' }}>
-                  <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-muted)' }}>
+                  <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
                     ₹
                   </span>
                   <input
@@ -1866,32 +1820,29 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     placeholder="Enter Charge Amount (₹)"
                     value={otherCharges === 0 ? '' : otherCharges}
                     onChange={(e) => setOtherCharges(Math.max(0, Number(e.target.value) || 0))}
-                    style={{ width: '100%', fontSize: '1.35rem', fontWeight: 800, padding: '0.75rem 0.95rem 0.75rem 2.2rem', borderRadius: '10px', border: '1.5px solid var(--border-medium)' }}
+                    style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, padding: '0.45rem 0.65rem 0.45rem 1.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.35rem', display: 'block' }}>
-                    Charge Description / Label:
-                  </label>
                   <input
                     type="text"
-                    placeholder="e.g. Loading & Unloading Charges, Stacking, Seasoning..."
+                    placeholder="Description (e.g. Loading/Unloading, Stacking...)"
                     value={otherChargesLabel}
                     onChange={(e) => setOtherChargesLabel(e.target.value)}
-                    style={{ width: '100%', fontSize: '1.05rem', fontWeight: 700, padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                    style={{ width: '100%', fontSize: '0.88rem', fontWeight: 600, padding: '0.4rem 0.65rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
                   />
                 </div>
               </div>
 
-              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
                 {[500, 1000, 2000, 5000].map(amt => (
                   <button
                     key={amt}
                     type="button"
                     className="btn btn-ghost btn-sm"
                     onClick={() => setOtherCharges(amt)}
-                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.7rem', background: 'var(--bg-card)', border: '1.5px solid var(--border-medium)', borderRadius: '6px' }}
+                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
                   >
                     +₹{amt}
                   </button>
@@ -1904,7 +1855,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setOtherCharges(0);
                       setOtherChargesLabel('');
                     }}
-                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.65rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
                   >
                     Clear
                   </button>
@@ -1913,11 +1864,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Quick Running Total Banner */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1.5px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '680px', margin: '0 auto' }}>
-              <span style={{ fontSize: '0.92rem', color: 'var(--text-muted)' }}>
-                Subtotal before Other: <strong style={{ color: 'var(--text-main)' }}>₹{formatIndianCurrency(timberSubtotal + carpentryCharges + transportationCharges + planingCharges)}</strong>
+            <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
+              <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                Subtotal before Other: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(timberSubtotal + carpentryCharges + transportationCharges + planingCharges)}</strong>
               </span>
-              <strong style={{ fontSize: '1rem', color: 'var(--primary-800)' }}>
+              <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
                 Other: ₹{formatIndianCurrency(otherCharges)}
               </strong>
             </div>
@@ -1944,31 +1895,22 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
 
-            <div className="calc-step-header">
-              <h3 className="calc-step-title">
-                <Percent size={18} color="var(--primary-600)" /> GST Tax Configuration
-              </h3>
-              <p className="calc-step-desc">
-                Select applicable GST tax rate and customize taxable base amount if needed
-              </p>
-            </div>
-
             {/* Input Card */}
-            <div className="calc-charge-card" style={{ maxWidth: '680px', margin: '0 auto 1.25rem auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                <label style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
-                  <Percent size={18} color="var(--primary-600)" /> GST Taxable Base (₹):
+            <div className="calc-charge-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+                  <Percent size={15} color="var(--primary-600)" /> GST Taxable Base (₹):
                 </label>
                 {gstAmount > 0 && (
-                  <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-800)' }}>
+                  <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-800)' }}>
                     +₹{formatIndianCurrency(gstAmount)} ({gstPercent}%)
                   </span>
                 )}
               </div>
 
               {/* Taxable Base Amount input */}
-              <div style={{ position: 'relative', width: '100%', marginBottom: '1rem' }}>
-                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-muted)' }}>
+              <div style={{ position: 'relative', width: '100%', marginBottom: '0.5rem' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
                   ₹
                 </span>
                 <input
@@ -1976,16 +1918,16 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   placeholder={formatIndianCurrency(subtotalWithCharges)}
                   value={customGstTaxableAmount === 0 ? '' : customGstTaxableAmount}
                   onChange={(e) => setCustomGstTaxableAmount(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: '100%', fontSize: '1.35rem', fontWeight: 800, padding: '0.75rem 0.95rem 0.75rem 2.2rem', borderRadius: '10px', border: '1.5px solid var(--border-medium)' }}
+                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, padding: '0.45rem 0.65rem 0.45rem 1.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                 />
               </div>
 
               {/* GST Rate Selection Title & Buttons */}
-              <div style={{ marginBottom: '0.75rem' }}>
-                <label style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block' }}>
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem', display: 'block' }}>
                   Select GST Rate:
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(85px, 1fr))', gap: '0.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(60px, 1fr))', gap: '0.35rem' }}>
                   {[0, 5, 12, 18, 28].map((rate) => (
                     <button
                       key={rate}
@@ -1996,14 +1938,13 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       }}
                       className="btn"
                       style={{
-                        padding: '0.65rem 0.5rem',
-                        fontSize: '1.05rem',
-                        fontWeight: 800,
-                        borderRadius: '8px',
+                        padding: '0.4rem 0.35rem',
+                        fontSize: '0.92rem',
+                        fontWeight: 700,
+                        borderRadius: '6px',
                         backgroundColor: (!isCustomGstRate && gstPercent === rate) ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-card)',
                         color: (!isCustomGstRate && gstPercent === rate) ? '#ffffff' : 'var(--text-main)',
-                        borderColor: (!isCustomGstRate && gstPercent === rate) ? 'var(--primary-800)' : 'var(--border-medium)',
-                        boxShadow: (!isCustomGstRate && gstPercent === rate) ? '0 4px 10px rgba(0,0,0,0.15)' : 'none'
+                        borderColor: (!isCustomGstRate && gstPercent === rate) ? 'var(--primary-800)' : 'var(--border-medium)'
                       }}
                     >
                       {rate}%
@@ -2014,10 +1955,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     onClick={() => setIsCustomGstRate(!isCustomGstRate)}
                     className="btn"
                     style={{
-                      padding: '0.65rem 0.5rem',
-                      fontSize: '1rem',
-                      fontWeight: 800,
-                      borderRadius: '8px',
+                      padding: '0.4rem 0.35rem',
+                      fontSize: '0.88rem',
+                      fontWeight: 700,
+                      borderRadius: '6px',
                       backgroundColor: isCustomGstRate ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-card)',
                       color: isCustomGstRate ? '#ffffff' : 'var(--text-main)',
                       borderColor: isCustomGstRate ? 'var(--primary-800)' : 'var(--border-medium)'
@@ -2030,8 +1971,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
               {/* Custom GST % Input Field */}
               {isCustomGstRate && (
-                <div style={{ padding: '0.65rem 0.85rem', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1.5px solid var(--primary-400)', display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.5rem' }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)' }}>Enter Custom GST %:</span>
+                <div style={{ padding: '0.45rem 0.65rem', background: 'var(--bg-subtle)', borderRadius: '6px', border: '1px solid var(--primary-400)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>Enter Custom GST %:</span>
                   <input
                     type="number"
                     step="0.1"
@@ -2039,19 +1980,19 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     max="100"
                     value={gstPercent}
                     onChange={(e) => setGstPercent(Math.max(0, Number(e.target.value) || 0))}
-                    style={{ width: '90px', fontWeight: 800, fontSize: '1.1rem', textAlign: 'center', padding: '0.4rem 0.5rem', borderRadius: '6px', border: '1.5px solid var(--border-medium)' }}
+                    style={{ width: '75px', fontWeight: 700, fontSize: '0.95rem', textAlign: 'center', padding: '0.3rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border-medium)' }}
                   />
-                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-muted)' }}>%</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-muted)' }}>%</span>
                 </div>
               )}
             </div>
 
             {/* Quick Running Total Banner */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1.5px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '680px', margin: '0 auto' }}>
-              <span style={{ fontSize: '0.92rem', color: 'var(--text-muted)' }}>
-                Taxable Base: <strong style={{ color: 'var(--text-main)' }}>₹{formatIndianCurrency(customGstTaxableAmount > 0 ? customGstTaxableAmount : subtotalWithCharges)}</strong>
+            <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
+              <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                Taxable Base: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(customGstTaxableAmount > 0 ? customGstTaxableAmount : subtotalWithCharges)}</strong>
               </span>
-              <strong style={{ fontSize: '1rem', color: 'var(--primary-800)' }}>
+              <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
                 GST ({gstPercent}%): +₹{formatIndianCurrency(gstAmount)}
               </strong>
             </div>
@@ -2078,31 +2019,22 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
 
-            <div className="calc-step-header">
-              <h3 className="calc-step-title">
-                <Tag size={18} color="var(--primary-600)" /> Customer Discount
-              </h3>
-              <p className="calc-step-desc">
-                Apply special discount as a flat rupee deduction (₹) or percentage (%)
-              </p>
-            </div>
-
             {/* Input Card */}
-            <div className="calc-charge-card" style={{ maxWidth: '680px', margin: '0 auto 1.25rem auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <label style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
-                  <Tag size={18} color="var(--primary-600)" /> Discount Value:
+            <div className="calc-charge-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+                  <Tag size={15} color="var(--primary-600)" /> Discount Value:
                 </label>
 
                 {/* Mode Toggle: Rupees vs Percentage */}
-                <div style={{ display: 'inline-flex', borderRadius: '8px', border: '1.5px solid var(--border-medium)', overflow: 'hidden', flexShrink: 0 }}>
+                <div style={{ display: 'inline-flex', borderRadius: '6px', border: '1px solid var(--border-medium)', overflow: 'hidden', flexShrink: 0 }}>
                   <button
                     type="button"
                     onClick={() => setDiscountType('rupees')}
                     style={{
-                      padding: '0.45rem 0.95rem',
-                      fontSize: '0.92rem',
-                      fontWeight: 800,
+                      padding: '0.3rem 0.65rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
                       backgroundColor: discountType === 'rupees' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
                       color: discountType === 'rupees' ? '#fff' : 'var(--text-main)',
                       border: 'none',
@@ -2115,9 +2047,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="button"
                     onClick={() => setDiscountType('percentage')}
                     style={{
-                      padding: '0.45rem 0.95rem',
-                      fontSize: '0.92rem',
-                      fontWeight: 800,
+                      padding: '0.3rem 0.65rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
                       backgroundColor: discountType === 'percentage' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
                       color: discountType === 'percentage' ? '#fff' : 'var(--text-main)',
                       border: 'none',
@@ -2131,7 +2063,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
               {/* Discount Input */}
               <div style={{ position: 'relative', width: '100%' }}>
-                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-muted)' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
                   {discountType === 'percentage' ? '%' : '₹'}
                 </span>
                 <input
@@ -2139,12 +2071,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   placeholder="0"
                   value={discountValue === 0 ? '' : discountValue}
                   onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: '100%', fontSize: '1.35rem', fontWeight: 800, padding: '0.75rem 0.95rem 0.75rem 2.2rem', borderRadius: '10px', border: '1.5px solid var(--border-medium)' }}
+                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, padding: '0.45rem 0.65rem 0.45rem 1.85rem', borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                 />
               </div>
 
               {/* Quick Chips */}
-              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
                 {discountType === 'rupees' ? (
                   [500, 1000, 2000, 5000, 10000].map(amt => (
                     <button
@@ -2152,7 +2084,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       type="button"
                       className="btn btn-ghost btn-sm"
                       onClick={() => setDiscountValue(amt)}
-                      style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.7rem', background: 'var(--bg-card)', border: '1.5px solid var(--border-medium)', borderRadius: '6px' }}
+                      style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
                     >
                       -₹{amt}
                     </button>
@@ -2164,7 +2096,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       type="button"
                       className="btn btn-ghost btn-sm"
                       onClick={() => setDiscountValue(pct)}
-                      style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.7rem', background: 'var(--bg-card)', border: '1.5px solid var(--border-medium)', borderRadius: '6px' }}
+                      style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
                     >
                       {pct}%
                     </button>
@@ -2175,7 +2107,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="button"
                     className="btn btn-ghost btn-sm"
                     onClick={() => setDiscountValue(0)}
-                    style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.35rem 0.65rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
                   >
                     Clear
                   </button>
@@ -2184,11 +2116,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             {/* Quick Running Total Banner */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1.5px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', maxWidth: '680px', margin: '0 auto' }}>
-              <span style={{ fontSize: '0.92rem', color: 'var(--danger-600, #dc2626)', fontWeight: 800 }}>
+            <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
+              <span style={{ fontSize: '0.84rem', color: 'var(--danger-600, #dc2626)', fontWeight: 700 }}>
                 Discount Deducted: -₹{formatIndianCurrency(discountAmount)}
               </span>
-              <strong style={{ fontSize: '1.1rem', color: 'var(--primary-800)' }}>
+              <strong style={{ fontSize: '0.92rem', color: 'var(--primary-800)', fontWeight: 700 }}>
                 Total Payable: ₹{formatIndianCurrency(finalGrandTotal)}
               </strong>
             </div>
