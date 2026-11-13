@@ -1012,28 +1012,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     window.open(waUrl, '_blank');
   };
 
-  // Share PDF file attachment via native system share sheet
-  const handleShareFileNative = async () => {
-    persistCurrentCustomer();
-    const { current, exportData } = getFullInvoiceExportData();
-    const { blob, filename } = getProformaInvoicePdfBlob(current, businessSettings, exportData);
-    const pdfFile = new File([blob], filename, { type: 'application/pdf' });
-    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-      try {
-        await navigator.share({
-          files: [pdfFile],
-          title: filename,
-        });
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          console.warn('Native share failed:', err);
-        }
-      }
-    } else {
-      handleExportPdf();
-    }
-  };
-
   return (
     <>
       {/* On-Screen Calculator Workspace (Hidden during print) */}
@@ -2537,7 +2515,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </h3>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem' }}>
                 {/* 1. Share via WhatsApp */}
                 <button
                   type="button"
@@ -2546,11 +2524,22 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   style={{
                     backgroundColor: '#25D366',
                     color: '#ffffff',
-                    boxShadow: '0 2px 8px rgba(37, 211, 102, 0.25)'
+                    padding: '0.85rem 1rem',
+                    fontSize: '0.98rem',
+                    fontWeight: 800,
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.55rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(37, 211, 102, 0.35)',
+                    transition: 'all 0.15s ease'
                   }}
                   title="Directly opens customer's WhatsApp chat with the downloaded invoice PDF"
                 >
-                  <MessageCircle size={18} />
+                  <MessageCircle size={22} />
                   <span>Send PDF to WhatsApp</span>
                 </button>
 
@@ -2562,31 +2551,26 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   style={{
                     backgroundColor: '#dc2626',
                     color: '#ffffff',
-                    boxShadow: '0 2px 8px rgba(220, 38, 38, 0.2)'
+                    padding: '0.85rem 1rem',
+                    fontSize: '0.98rem',
+                    fontWeight: 800,
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.55rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(220, 38, 38, 0.3)',
+                    transition: 'all 0.15s ease'
                   }}
                   title="Downloads official A4 Proforma Invoice PDF matching sawmill layout"
                 >
-                  <FileDown size={18} />
+                  <FileDown size={22} />
                   <span>Download PDF Invoice</span>
                 </button>
 
-                {/* 3. Share File Attachment */}
-                <button
-                  type="button"
-                  onClick={handleShareFileNative}
-                  className="calc-export-btn"
-                  style={{
-                    backgroundColor: '#0284c7',
-                    color: '#ffffff',
-                    boxShadow: '0 2px 8px rgba(2, 132, 199, 0.2)'
-                  }}
-                  title="Attach and share PDF file directly via system share sheet"
-                >
-                  <Share2 size={18} />
-                  <span>Share Attachment</span>
-                </button>
-
-                {/* 4. Print Official Invoice */}
+                {/* 3. Print Official Invoice */}
                 <button
                   type="button"
                   onClick={handlePrint}
@@ -2594,11 +2578,22 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   style={{
                     backgroundColor: 'var(--primary-700, #4b3621)',
                     color: '#ffffff',
-                    boxShadow: 'var(--shadow-sm)'
+                    padding: '0.85rem 1rem',
+                    fontSize: '0.98rem',
+                    fontWeight: 800,
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.55rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(15, 23, 42, 0.18)',
+                    transition: 'all 0.15s ease'
                   }}
                   title="Sends official Proforma Invoice directly to printer"
                 >
-                  <Printer size={18} />
+                  <Printer size={22} />
                   <span>Print Sheet Invoice</span>
                 </button>
               </div>
@@ -2898,21 +2893,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <div>
                     <strong style={{ color: '#128C7E' }}>Send PDF to WhatsApp</strong>
                     <p>Open customer's WhatsApp chat with invoice PDF</p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  className="action-menu-item"
-                  onClick={() => {
-                    setIsActionsModalOpen(false);
-                    handleShareFileNative();
-                  }}
-                >
-                  <Share2 size={18} color="#0284c7" />
-                  <div>
-                    <strong>Share PDF Attachment</strong>
-                    <p>Share PDF file to any app via system share sheet</p>
                   </div>
                 </button>
 
