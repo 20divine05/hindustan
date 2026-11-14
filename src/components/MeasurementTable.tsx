@@ -65,6 +65,10 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const [quickError, setQuickError] = useState<string | null>(null);
 
   const lengthInputRef = useRef<HTMLInputElement>(null);
+  const widthInputRef = useRef<HTMLInputElement>(null);
+  const thickInputRef = useRef<HTMLInputElement>(null);
+  const piecesInputRef = useRef<HTMLInputElement>(null);
+  const rateInputRef = useRef<HTMLInputElement>(null);
   const listBottomRef = useRef<HTMLDivElement>(null);
 
   // Mobile virtual keyboard & calcy elevation tracking
@@ -350,8 +354,10 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
     onChange(reindexed);
 
-    // Keep thickness, width and rate for rapid consecutive tallying, clear length & pieces
+    // Keep price/rate unchanged, reset length, width, thickness & pieces
     setQuickLength('');
+    setQuickWidth('');
+    setQuickThickness('');
     setQuickPieces('');
 
     // Smoothly scroll the newly added calculation into plain view right above the calcy
@@ -419,6 +425,14 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               className="calc-input"
               value={quickLength}
               onChange={(e) => setQuickLength(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                  e.preventDefault();
+                  widthInputRef.current?.focus();
+                  widthInputRef.current?.select();
+                }
+              }}
+              enterKeyHint="next"
               required
             />
           </div>
@@ -429,6 +443,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               <span className="dim-label-mobile">Width</span>
             </label>
             <input
+              ref={widthInputRef}
               type="number"
               step="any"
               min="0"
@@ -445,6 +460,14 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                   setQuickRateUnit('CFT');
                 }
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                  e.preventDefault();
+                  thickInputRef.current?.focus();
+                  thickInputRef.current?.select();
+                }
+              }}
+              enterKeyHint="next"
               required
             />
           </div>
@@ -455,6 +478,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               <span className="dim-label-mobile">Thick</span>
             </label>
             <input
+              ref={thickInputRef}
               type="number"
               step="any"
               min="0"
@@ -462,6 +486,14 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               className="calc-input"
               value={quickThickness}
               onChange={(e) => setQuickThickness(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                  e.preventDefault();
+                  piecesInputRef.current?.focus();
+                  piecesInputRef.current?.select();
+                }
+              }}
+              enterKeyHint="next"
               required
             />
           </div>
@@ -472,6 +504,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               <span className="dim-label-mobile">Pieces</span>
             </label>
             <input
+              ref={piecesInputRef}
               type="number"
               step="1"
               min="1"
@@ -479,6 +512,14 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               className="calc-input"
               value={quickPieces}
               onChange={(e) => setQuickPieces(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                  e.preventDefault();
+                  rateInputRef.current?.focus();
+                  rateInputRef.current?.select();
+                }
+              }}
+              enterKeyHint="next"
             />
           </div>
 
@@ -516,6 +557,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               )}
             </label>
             <input
+              ref={rateInputRef}
               type="number"
               step="any"
               min="0"
@@ -536,6 +578,13 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                   setQuickRateCft(val);
                 }
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                  e.preventDefault();
+                  handleQuickAdd();
+                }
+              }}
+              enterKeyHint="done"
               style={{ fontWeight: 700, color: 'var(--primary-800)', textAlign: 'center' }}
             />
           </div>
