@@ -650,25 +650,25 @@ export function createProformaInvoiceDoc(
     tableBody.push(chargeRow('PLANING CHARGES', formatIndianCurrency(ac.planing)));
   }
 
-  // 2. Next: GST Line immediately after Planing Charges
-  if (invoiceData?.gstAmount && invoiceData.gstAmount > 0) {
-    tableBody.push(chargeRow('GST', formatIndianCurrency(invoiceData.gstAmount)));
-  }
-
-  // 3. Next: CARPENTRY WORKS (Carpenter Charges) after GST
+  // 2. Next: CARPENTRY WORKS (Carpenter Charges)
   const totalCarpentry = (ac?.carpentry || 0) + (ac?.sawing || 0);
   if (totalCarpentry > 0) {
     tableBody.push(chargeRow('CARPENTRY WORKS', formatIndianCurrency(totalCarpentry)));
   }
 
-  // 4. Next: TRANSPORTATION & DELIVERY CHARGES (Transport Charges) after Carpentry
+  // 3. Next: TRANSPORTATION & DELIVERY CHARGES (Transport Charges)
   if (ac?.transportation && ac.transportation > 0) {
     tableBody.push(chargeRow('TRANSPORTATION & DELIVERY CHARGES', formatIndianCurrency(ac.transportation)));
   }
 
-  // 5. Next: OTHER CHARGES (if any)
+  // 4. Next: OTHER CHARGES (if any)
   if (ac?.other && ac.other > 0) {
     tableBody.push(chargeRow((ac.otherLabel || 'OTHER CHARGES').toUpperCase(), formatIndianCurrency(ac.other)));
+  }
+
+  // 5. Next: GST Line
+  if (invoiceData?.gstAmount && invoiceData.gstAmount > 0) {
+    tableBody.push(chargeRow('GST', formatIndianCurrency(invoiceData.gstAmount)));
   }
 
   // 6. Next: DISCOUNT (if any)

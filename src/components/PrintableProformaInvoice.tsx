@@ -533,20 +533,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       </tr>
                     )}
 
-                    {/* 2. Next: GST Line immediately after Planing Charges */}
-                    {gstAmount > 0 && (
-                      <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                        <td className="text-center"></td>
-                        <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
-                          GST
-                        </td>
-                        <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
-                          {renderWithSmallDecimalHtml(formatIndianCurrency(gstAmount))}
-                        </td>
-                      </tr>
-                    )}
-
-                    {/* 3. Next: Carpentry Charges after GST */}
+                    {/* 2. Next: Carpentry Charges */}
                     {totalCarpentryWorks > 0 && (
                       <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                         <td className="text-center"></td>
@@ -559,7 +546,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       </tr>
                     )}
 
-                    {/* 4. Next: Transport Charges after Carpentry */}
+                    {/* 3. Next: Transportation Charges */}
                     {totalTransportation > 0 && (
                       <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                         <td className="text-center"></td>
@@ -572,7 +559,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       </tr>
                     )}
 
-                    {/* 5. Next: Other Miscellaneous Charges (if any) */}
+                    {/* 4. Next: Other Miscellaneous Charges (if any) */}
                     {totalOther > 0 && (
                       <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                         <td className="text-center"></td>
@@ -581,6 +568,19 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         </td>
                         <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
                           {renderWithSmallDecimalHtml(formatIndianCurrency(totalOther))}
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* 5. Next: GST Line */}
+                    {gstAmount > 0 && (
+                      <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                        <td className="text-center"></td>
+                        <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          GST
+                        </td>
+                        <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                          {renderWithSmallDecimalHtml(formatIndianCurrency(gstAmount))}
                         </td>
                       </tr>
                     )}

@@ -160,9 +160,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   // 1: Customer Type (B2B vs B2C)
   // 2: Customer / Business Details
   // 3: Timber Calculator
-  // 4: Carpentry Charges (with image)
-  // 5: Transportation Charges (with image)
-  // 6: Planing Charges (with image)
+  // 4: Planing Charges (with image)
+  // 5: Carpentry Charges (with image)
+  // 6: Transportation Charges (with image)
   // 7: Other Miscellaneous Charges (with image)
   // 8: GST Tax Configuration (with image)
   // 9: Customer Discount (with image)
@@ -1791,167 +1791,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 4: CARPENTRY CHARGES (WITH IMAGE)
+            STEP 4: PLANING CHARGES (WITH IMAGE)
             ========================================================================= */}
         {currentStep === 4 && (
-          <div className="card calc-step-card">
-            {/* Visual Service Banner */}
-            <div className="calc-service-banner">
-              <img
-                src="https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=1200&q=80"
-                alt="Carpentry Works"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-              <div className="calc-service-banner-overlay">
-                <span className="calc-service-banner-tag">
-                  <Scissors size={12} /> Carpentry &amp; Woodcraft
-                </span>
-                <h3 className="calc-service-banner-title">Carpentry &amp; Woodworking</h3>
-              </div>
-            </div>
-
-            {/* Input Card */}
-            <div className="calc-charge-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
-                  <Scissors size={15} color="var(--primary-600)" /> Carpentry Charges (₹):
-                </label>
-                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-700)' }}>
-                  ₹ {formatIndianCurrency(carpentryCharges)}
-                </span>
-              </div>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
-                  ₹
-                </span>
-                <input
-                  type="number"
-                  className="calc-prefixed-input"
-                  value={carpentryCharges === 0 ? '' : carpentryCharges}
-                  onChange={(e) => setCarpentryCharges(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
-                />
-              </div>
-              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
-                {[500, 1000, 2000, 5000].map(amt => (
-                  <button
-                    key={amt}
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setCarpentryCharges(amt)}
-                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
-                  >
-                    +₹{amt}
-                  </button>
-                ))}
-                {carpentryCharges > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setCarpentryCharges(0)}
-                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Quick Running Total Banner */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
-              <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                Timber Subtotal: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(timberSubtotal)}</strong>
-              </span>
-              <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
-                Carpentry: ₹{formatIndianCurrency(carpentryCharges)}
-              </strong>
-            </div>
-          </div>
-        )}
-
-        {/* =========================================================================
-            STEP 5: TRANSPORTATION CHARGES (WITH IMAGE)
-            ========================================================================= */}
-        {currentStep === 5 && (
-          <div className="card calc-step-card">
-            {/* Visual Service Banner */}
-            <div className="calc-service-banner">
-              <img
-                src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=800&q=80"
-                alt="Transportation & Delivery"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-              <div className="calc-service-banner-overlay">
-                <span className="calc-service-banner-tag">
-                  <Truck size={12} /> Logistics &amp; Transport
-                </span>
-                <h3 className="calc-service-banner-title">Transportation &amp; Delivery</h3>
-              </div>
-            </div>
-
-            {/* Input Card */}
-            <div className="calc-charge-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
-                  <Truck size={15} color="var(--primary-600)" /> Transportation Charges (₹):
-                </label>
-                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-700)' }}>
-                  ₹ {formatIndianCurrency(transportationCharges)}
-                </span>
-              </div>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
-                  ₹
-                </span>
-                <input
-                  type="number"
-                  className="calc-prefixed-input"
-                  value={transportationCharges === 0 ? '' : transportationCharges}
-                  onChange={(e) => setTransportationCharges(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
-                />
-              </div>
-              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
-                {[1000, 2000, 3500, 5000].map(amt => (
-                  <button
-                    key={amt}
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setTransportationCharges(amt)}
-                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
-                  >
-                    +₹{amt}
-                  </button>
-                ))}
-                {transportationCharges > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setTransportationCharges(0)}
-                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Quick Running Total Banner */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
-              <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                Carpentry: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(carpentryCharges)}</strong>
-              </span>
-              <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
-                Transport: ₹{formatIndianCurrency(transportationCharges)}
-              </strong>
-            </div>
-          </div>
-        )}
-
-        {/* =========================================================================
-            STEP 6: PLANING CHARGES (WITH IMAGE)
-            ========================================================================= */}
-        {currentStep === 6 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2064,10 +1906,168 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             {/* Quick Running Total Banner */}
             <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
               <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                Timber + Extra Services
+                Timber Subtotal: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(timberSubtotal)}</strong>
               </span>
               <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
                 Planing: ₹{formatIndianCurrency(planingCharges)}
+              </strong>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            STEP 5: CARPENTRY CHARGES (WITH IMAGE)
+            ========================================================================= */}
+        {currentStep === 5 && (
+          <div className="card calc-step-card">
+            {/* Visual Service Banner */}
+            <div className="calc-service-banner">
+              <img
+                src="https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=1200&q=80"
+                alt="Carpentry Works"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+              <div className="calc-service-banner-overlay">
+                <span className="calc-service-banner-tag">
+                  <Scissors size={12} /> Carpentry &amp; Woodcraft
+                </span>
+                <h3 className="calc-service-banner-title">Carpentry &amp; Woodworking</h3>
+              </div>
+            </div>
+
+            {/* Input Card */}
+            <div className="calc-charge-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+                  <Scissors size={15} color="var(--primary-600)" /> Carpentry Charges (₹):
+                </label>
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-700)' }}>
+                  ₹ {formatIndianCurrency(carpentryCharges)}
+                </span>
+              </div>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  className="calc-prefixed-input"
+                  value={carpentryCharges === 0 ? '' : carpentryCharges}
+                  onChange={(e) => setCarpentryCharges(Math.max(0, Number(e.target.value) || 0))}
+                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                />
+              </div>
+              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
+                {[500, 1000, 2000, 5000].map(amt => (
+                  <button
+                    key={amt}
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setCarpentryCharges(amt)}
+                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
+                  >
+                    +₹{amt}
+                  </button>
+                ))}
+                {carpentryCharges > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setCarpentryCharges(0)}
+                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Running Total Banner */}
+            <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
+              <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                Subtotal before Carpentry: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(timberSubtotal + planingCharges)}</strong>
+              </span>
+              <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
+                Carpentry: ₹{formatIndianCurrency(carpentryCharges)}
+              </strong>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            STEP 6: TRANSPORTATION CHARGES (WITH IMAGE)
+            ========================================================================= */}
+        {currentStep === 6 && (
+          <div className="card calc-step-card">
+            {/* Visual Service Banner */}
+            <div className="calc-service-banner">
+              <img
+                src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=800&q=80"
+                alt="Transportation & Delivery"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+              <div className="calc-service-banner-overlay">
+                <span className="calc-service-banner-tag">
+                  <Truck size={12} /> Logistics &amp; Transport
+                </span>
+                <h3 className="calc-service-banner-title">Transportation &amp; Delivery</h3>
+              </div>
+            </div>
+
+            {/* Input Card */}
+            <div className="calc-charge-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+                  <Truck size={15} color="var(--primary-600)" /> Transportation Charges (₹):
+                </label>
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-700)' }}>
+                  ₹ {formatIndianCurrency(transportationCharges)}
+                </span>
+              </div>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  className="calc-prefixed-input"
+                  value={transportationCharges === 0 ? '' : transportationCharges}
+                  onChange={(e) => setTransportationCharges(Math.max(0, Number(e.target.value) || 0))}
+                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                />
+              </div>
+              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
+                {[1000, 2000, 3500, 5000].map(amt => (
+                  <button
+                    key={amt}
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setTransportationCharges(amt)}
+                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
+                  >
+                    +₹{amt}
+                  </button>
+                ))}
+                {transportationCharges > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setTransportationCharges(0)}
+                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Running Total Banner */}
+            <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
+              <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                Subtotal before Transport: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(timberSubtotal + planingCharges + carpentryCharges)}</strong>
+              </span>
+              <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
+                Transport: ₹{formatIndianCurrency(transportationCharges)}
               </strong>
             </div>
           </div>
@@ -2982,12 +2982,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     <span className="preview-val font-bold">+₹ {formatIndianCurrency(planingCharges)}</span>
                   </div>
                 )}
-                {gstAmount > 0 && (
-                  <div className="summary-preview-item">
-                    <span className="preview-label">GST ({gstPercent}%):</span>
-                    <span className="preview-val font-bold">+₹ {formatIndianCurrency(gstAmount)}</span>
-                  </div>
-                )}
                 {carpentryCharges > 0 && (
                   <div className="summary-preview-item">
                     <span className="preview-label">Carpenter Charges:</span>
@@ -3004,6 +2998,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <div className="summary-preview-item">
                     <span className="preview-label">{otherChargesLabel}:</span>
                     <span className="preview-val font-bold">+₹ {formatIndianCurrency(otherCharges)}</span>
+                  </div>
+                )}
+                {gstAmount > 0 && (
+                  <div className="summary-preview-item">
+                    <span className="preview-label">GST ({gstPercent}%):</span>
+                    <span className="preview-val font-bold">+₹ {formatIndianCurrency(gstAmount)}</span>
                   </div>
                 )}
                 {discountAmount > 0 && (
@@ -3148,9 +3148,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <span>
                   {currentStep === 1 && 'Next: Details →'}
                   {currentStep === 2 && 'Next: Calculator →'}
-                  {currentStep === 3 && 'Next: Carpentry →'}
-                  {currentStep === 4 && 'Next: Transport →'}
-                  {currentStep === 5 && 'Next: Planing →'}
+                  {currentStep === 3 && 'Next: Planing →'}
+                  {currentStep === 4 && 'Next: Carpentry →'}
+                  {currentStep === 5 && 'Next: Transport →'}
                   {currentStep === 6 && 'Next: Other Charges →'}
                   {currentStep === 7 && 'Next: GST Tax →'}
                   {currentStep === 8 && 'Next: Discount →'}
