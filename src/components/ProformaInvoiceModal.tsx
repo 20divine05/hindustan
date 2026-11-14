@@ -820,7 +820,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                         const dimOnly = item.description.split(/\s+/)[0] || item.description;
                         const originalIdx = item.slNo - 1;
                         const isSqftBilled = item.rateUnit !== 'CFT' && (item.widthInches || 0) >= 7;
-                        const slStr = item.slNo < 10 ? `0${item.slNo}` : item.slNo;
+                        const slStr = String(item.slNo);
                         return (
                           <tr key={item.slNo} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                             <td className="text-center">{slStr}</td>

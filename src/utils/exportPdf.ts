@@ -494,7 +494,8 @@ export function createProformaInvoiceDoc(
     let itemIdx = 0;
 
     for (const it of group.items) {
-      const dimOnly = (it.description || '').split(/\s+/)[0] || it.description;
+      const rawDim = (it.description || '').split(/\s+/)[0] || it.description;
+      const dimOnly = rawDim.split(/([xX×])/).map(p => p.trim().replace(/^0+(\d)/, '$1')).join('');
       const isSqftBilled = it.rateUnit === 'SQFT' || it.per === 'SQFT';
       const zebraBg = (itemIdx++ % 2 === 0) ? [243, 244, 246] : [255, 255, 255];
 
@@ -513,7 +514,7 @@ export function createProformaInvoiceDoc(
         ? (it.sqft && it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : `${(it.cft * 12).toFixed(2)} SQFT`)
         : '';
 
-      const slStr = slCounter < 10 ? `0${slCounter}` : `${slCounter}`;
+      const slStr = `${slCounter}`;
       slCounter++;
 
       tableBody.push([
@@ -718,8 +719,7 @@ export function createProformaInvoiceDoc(
       const rawParts = trimmed.split(/([xX×])/);
       return rawParts.map(p => {
         if (p.toLowerCase() === 'x' || p === '×') return 'x';
-        if (/^\d+$/.test(p)) return p.padStart(2, '0');
-        return p;
+        return p.trim().replace(/^0+(\d)/, '$1');
       });
     }
     return null;

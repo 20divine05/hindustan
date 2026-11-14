@@ -8,8 +8,8 @@ export const renderDimensionHtml = (dim: string) => {
   if (!dim) return null;
   const parts = dim.trim().split(/([xX×])/);
   if (parts.length <= 1) {
-    const formatted = /^\d+$/.test(dim.trim()) ? dim.trim().padStart(2, '0') : dim;
-    return <span className="p-dim-num">{formatted}</span>;
+    const clean = dim.trim().replace(/^0+(\d)/, '$1');
+    return <span className="p-dim-num">{clean}</span>;
   }
   return (
     <span>
@@ -21,10 +21,10 @@ export const renderDimensionHtml = (dim: string) => {
             </span>
           );
         }
-        const formatted = /^\d+$/.test(p) ? p.padStart(2, '0') : p;
+        const clean = p.trim().replace(/^0+(\d)/, '$1');
         return (
           <span key={idx} className="p-dim-num">
-            {formatted}
+            {clean}
           </span>
         );
       })}
@@ -446,7 +446,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
                       const mult = isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft;
                       const amount = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * itemRate * 100) / 100;
-                      const slStr = currentSl < 10 ? `0${currentSl}` : currentSl;
+                      const slStr = String(currentSl);
 
                       return (
                         <tr key={`item-${currentSl}`} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
