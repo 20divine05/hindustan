@@ -70,7 +70,6 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const piecesInputRef = useRef<HTMLInputElement>(null);
   const rateInputRef = useRef<HTMLInputElement>(null);
   const listBottomRef = useRef<HTMLDivElement>(null);
-  const lastAddTimestampRef = useRef<number>(0);
 
   // Mobile virtual keyboard & calcy elevation tracking
   const [isCalcyFocused, setIsCalcyFocused] = useState<boolean>(false);
@@ -283,17 +282,69 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   };
 
 
+  // Fast sequential field focus helper for both mobile keyboards and desktop
+  const lastKeyNavTime = useRef<number>(0);
+
+  const focusField = (targetRef: React.RefObject<HTMLInputElement | null>) => {
+    if (!targetRef.current) return;
+    const target = targetRef.current;
+    target.focus();
+    setTimeout(() => {
+      target.focus();
+      try {
+        target.select();
+      } catch {}
+    }, 25);
+  };
+
+  const handleKeyNav = (
+    e: React.KeyboardEvent,
+    nextRef?: React.RefObject<HTMLInputElement | null>,
+    isFinal?: boolean
+  ) => {
+    if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
+      e.preventDefault();
+      e.stopPropagation();
+      const now = Date.now();
+      if (now - lastKeyNavTime.current < 180) return;
+      lastKeyNavTime.current = now;
+
+      if (isFinal) {
+        handleQuickAdd();
+      } else if (nextRef) {
+        focusField(nextRef);
+      }
+    }
+  };
+
+  // Form submit handler that intercepts mobile keyboard "Next" actions and navigates sequentially
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const active = document.activeElement;
+
+    if (active === lengthInputRef.current) {
+      focusField(widthInputRef);
+      return;
+    }
+    if (active === widthInputRef.current) {
+      focusField(thickInputRef);
+      return;
+    }
+    if (active === thickInputRef.current) {
+      focusField(piecesInputRef);
+      return;
+    }
+    if (active === piecesInputRef.current) {
+      focusField(rateInputRef);
+      return;
+    }
+
+    handleQuickAdd();
+  };
+
   // Add row via Quick-Add Bar
   const handleQuickAdd = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-
-    // Guard against rapid duplicate firing between keyboard action and form submit
-    const now = Date.now();
-    if (now - lastAddTimestampRef.current < 250) {
-      return;
-    }
-    lastAddTimestampRef.current = now;
-
     setQuickError(null);
 
     const l = parseFloat(quickLength);
@@ -319,24 +370,20 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     let finalRateUnit: 'CFT' | 'SQFT' = 'CFT';
     let itemRate = defaultRate;
 
-    // Check direct DOM input value to prevent mobile async state lag
-    const directRateInput = rateInputRef.current?.value?.trim();
-    const domRateVal = directRateInput !== undefined && directRateInput !== '' ? parseFloat(directRateInput) : NaN;
-
     if (isWide) {
       if (quickRateUnit === 'CFT') {
         finalRateUnit = 'CFT';
-        const parsedCftRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : (parseFloat(quickRateCft) || parseFloat(quickRate));
+        const parsedCftRate = parseFloat(quickRateCft) || parseFloat(quickRate);
         itemRate = !isNaN(parsedCftRate) && parsedCftRate > 0 ? parsedCftRate : defaultRate;
       } else {
         // Width >= 7 directly defaults to SQFT
         finalRateUnit = 'SQFT';
-        const parsedSqftRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : (parseFloat(quickRateSqft) || parseFloat(quickRate));
+        const parsedSqftRate = parseFloat(quickRateSqft) || parseFloat(quickRate);
         itemRate = !isNaN(parsedSqftRate) && parsedSqftRate > 0 ? parsedSqftRate : 120;
       }
     } else {
       finalRateUnit = 'CFT';
-      const parsedRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : (parseFloat(quickRate) || parseFloat(quickRateCft));
+      const parsedRate = parseFloat(quickRate) || parseFloat(quickRateCft);
       itemRate = !isNaN(parsedRate) && parsedRate > 0 ? parsedRate : defaultRate;
     }
 
@@ -367,7 +414,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
     onChange(reindexed);
 
-    // Empty price/rate, length, width, thickness & pieces every time as requested
+    // Empty ALL fields including price/rate every time
     setQuickLength('');
     setQuickWidth('');
     setQuickThickness('');
@@ -375,9 +422,6 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     setQuickRate('');
     setQuickRateCft('');
     setQuickRateSqft('');
-    if (rateInputRef.current) {
-      rateInputRef.current.value = '';
-    }
 
     // Smoothly scroll the newly added calculation into plain view right above the calcy
     setTimeout(() => {
@@ -385,9 +429,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     }, 60);
 
     // Auto-refocus on length input for continuous fast entry
-    lengthInputRef.current?.focus();
     setTimeout(() => {
-      lengthInputRef.current?.focus();
+      focusField(lengthInputRef);
     }, 100);
   };
 
@@ -400,8 +443,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       >
         <form
           ref={calcyRef}
-          onSubmit={handleQuickAdd}
-          noValidate
+          onSubmit={handleFormSubmit}
           onFocusCapture={handleCalcyFocus}
           onBlurCapture={handleCalcyBlur}
           className={`quick-add-bar no-print ${isCalcyFocused ? 'is-elevated-keyboard' : ''}`}
@@ -440,29 +482,17 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             <input
               ref={lengthInputRef}
               type="number"
+              inputMode="decimal"
               step="any"
               min="0"
-              inputMode="decimal"
               placeholder=""
               className="calc-input"
               value={quickLength}
               onChange={(e) => setQuickLength(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
-                  e.preventDefault();
-                  widthInputRef.current?.focus();
-                  widthInputRef.current?.select();
-                }
-              }}
-              onKeyUp={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
-                  e.preventDefault();
-                  widthInputRef.current?.focus();
-                  widthInputRef.current?.select();
-                }
-              }}
+              onKeyDown={(e) => handleKeyNav(e, widthInputRef)}
+              onKeyUp={(e) => handleKeyNav(e, widthInputRef)}
               enterKeyHint="next"
-              required
+              tabIndex={1}
             />
           </div>
 
@@ -474,9 +504,9 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             <input
               ref={widthInputRef}
               type="number"
+              inputMode="decimal"
               step="any"
               min="0"
-              inputMode="decimal"
               placeholder=""
               className="calc-input"
               value={quickWidth}
@@ -490,22 +520,10 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                   setQuickRateUnit('CFT');
                 }
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
-                  e.preventDefault();
-                  thickInputRef.current?.focus();
-                  thickInputRef.current?.select();
-                }
-              }}
-              onKeyUp={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
-                  e.preventDefault();
-                  thickInputRef.current?.focus();
-                  thickInputRef.current?.select();
-                }
-              }}
+              onKeyDown={(e) => handleKeyNav(e, thickInputRef)}
+              onKeyUp={(e) => handleKeyNav(e, thickInputRef)}
               enterKeyHint="next"
-              required
+              tabIndex={2}
             />
           </div>
 
@@ -517,29 +535,17 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             <input
               ref={thickInputRef}
               type="number"
+              inputMode="decimal"
               step="any"
               min="0"
-              inputMode="decimal"
               placeholder=""
               className="calc-input"
               value={quickThickness}
               onChange={(e) => setQuickThickness(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
-                  e.preventDefault();
-                  piecesInputRef.current?.focus();
-                  piecesInputRef.current?.select();
-                }
-              }}
-              onKeyUp={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
-                  e.preventDefault();
-                  piecesInputRef.current?.focus();
-                  piecesInputRef.current?.select();
-                }
-              }}
+              onKeyDown={(e) => handleKeyNav(e, piecesInputRef)}
+              onKeyUp={(e) => handleKeyNav(e, piecesInputRef)}
               enterKeyHint="next"
-              required
+              tabIndex={3}
             />
           </div>
 
@@ -551,28 +557,17 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             <input
               ref={piecesInputRef}
               type="number"
+              inputMode="numeric"
               step="1"
               min="1"
-              inputMode="numeric"
               placeholder=""
               className="calc-input"
               value={quickPieces}
               onChange={(e) => setQuickPieces(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
-                  e.preventDefault();
-                  rateInputRef.current?.focus();
-                  rateInputRef.current?.select();
-                }
-              }}
-              onKeyUp={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
-                  e.preventDefault();
-                  rateInputRef.current?.focus();
-                  rateInputRef.current?.select();
-                }
-              }}
+              onKeyDown={(e) => handleKeyNav(e, rateInputRef)}
+              onKeyUp={(e) => handleKeyNav(e, rateInputRef)}
               enterKeyHint="next"
+              tabIndex={4}
             />
           </div>
 
@@ -587,6 +582,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               {wVal >= 7 && (
                 <button
                   type="button"
+                  tabIndex={-1}
                   onClick={(e) => {
                     e.preventDefault();
                     setQuickRateUnit(prev => (prev === 'SQFT' ? 'CFT' : 'SQFT'));
@@ -612,9 +608,9 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             <input
               ref={rateInputRef}
               type="number"
+              inputMode="decimal"
               step="any"
               min="0"
-              inputMode="decimal"
               placeholder=""
               className="calc-input"
               value={wVal >= 7 ? (quickRateUnit === 'SQFT' ? quickRateSqft : (quickRateCft || quickRate)) : quickRate}
@@ -632,19 +628,10 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                   setQuickRateCft(val);
                 }
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
-                  e.preventDefault();
-                  handleQuickAdd();
-                }
-              }}
-              onKeyUp={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
-                  e.preventDefault();
-                  handleQuickAdd();
-                }
-              }}
-              enterKeyHint="go"
+              onKeyDown={(e) => handleKeyNav(e, undefined, true)}
+              onKeyUp={(e) => handleKeyNav(e, undefined, true)}
+              enterKeyHint="done"
+              tabIndex={5}
               style={{ fontWeight: 700, color: 'var(--primary-800)', textAlign: 'center' }}
             />
           </div>
