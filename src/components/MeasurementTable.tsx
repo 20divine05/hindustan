@@ -282,60 +282,64 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   };
 
 
-  // Fast sequential field focus helper for both mobile keyboards and desktop
-  const lastKeyNavTime = useRef<number>(0);
+  // Sequential field navigation locking to prevent double-hop / box skipping
+  const isNavigatingRef = useRef<boolean>(false);
 
-  const focusField = (targetRef: React.RefObject<HTMLInputElement | null>) => {
-    if (!targetRef.current) return;
-    const target = targetRef.current;
-    target.focus();
+  const advanceFrom = (source: 'length' | 'width' | 'thick' | 'pieces' | 'rate') => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
     setTimeout(() => {
-      target.focus();
-      try {
-        target.select();
-      } catch {}
-    }, 25);
+      isNavigatingRef.current = false;
+    }, 280);
+
+    if (source === 'length') {
+      widthInputRef.current?.focus();
+    } else if (source === 'width') {
+      thickInputRef.current?.focus();
+    } else if (source === 'thick') {
+      piecesInputRef.current?.focus();
+    } else if (source === 'pieces') {
+      rateInputRef.current?.focus();
+    } else if (source === 'rate') {
+      handleQuickAdd();
+    }
   };
 
   const handleKeyNav = (
     e: React.KeyboardEvent,
-    nextRef?: React.RefObject<HTMLInputElement | null>,
-    isFinal?: boolean
+    source: 'length' | 'width' | 'thick' | 'pieces' | 'rate'
   ) => {
     if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
       e.preventDefault();
       e.stopPropagation();
-      const now = Date.now();
-      if (now - lastKeyNavTime.current < 180) return;
-      lastKeyNavTime.current = now;
-
-      if (isFinal) {
-        handleQuickAdd();
-      } else if (nextRef) {
-        focusField(nextRef);
-      }
+      advanceFrom(source);
     }
   };
 
-  // Form submit handler that intercepts mobile keyboard "Next" actions and navigates sequentially
+  // Form submit handler that intercepts mobile keyboard actions without double-triggering
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const active = document.activeElement;
+    if (isNavigatingRef.current) return;
 
+    const active = document.activeElement;
     if (active === lengthInputRef.current) {
-      focusField(widthInputRef);
+      advanceFrom('length');
       return;
     }
     if (active === widthInputRef.current) {
-      focusField(thickInputRef);
+      advanceFrom('width');
       return;
     }
     if (active === thickInputRef.current) {
-      focusField(piecesInputRef);
+      advanceFrom('thick');
       return;
     }
     if (active === piecesInputRef.current) {
-      focusField(rateInputRef);
+      advanceFrom('pieces');
+      return;
+    }
+    if (active === rateInputRef.current) {
+      advanceFrom('rate');
       return;
     }
 
@@ -430,7 +434,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
     // Auto-refocus on length input for continuous fast entry
     setTimeout(() => {
-      focusField(lengthInputRef);
+      lengthInputRef.current?.focus();
     }, 100);
   };
 
@@ -489,8 +493,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               className="calc-input"
               value={quickLength}
               onChange={(e) => setQuickLength(e.target.value)}
-              onKeyDown={(e) => handleKeyNav(e, widthInputRef)}
-              onKeyUp={(e) => handleKeyNav(e, widthInputRef)}
+              onKeyDown={(e) => handleKeyNav(e, 'length')}
               enterKeyHint="next"
               tabIndex={1}
             />
@@ -520,8 +523,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                   setQuickRateUnit('CFT');
                 }
               }}
-              onKeyDown={(e) => handleKeyNav(e, thickInputRef)}
-              onKeyUp={(e) => handleKeyNav(e, thickInputRef)}
+              onKeyDown={(e) => handleKeyNav(e, 'width')}
               enterKeyHint="next"
               tabIndex={2}
             />
@@ -542,8 +544,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               className="calc-input"
               value={quickThickness}
               onChange={(e) => setQuickThickness(e.target.value)}
-              onKeyDown={(e) => handleKeyNav(e, piecesInputRef)}
-              onKeyUp={(e) => handleKeyNav(e, piecesInputRef)}
+              onKeyDown={(e) => handleKeyNav(e, 'thick')}
               enterKeyHint="next"
               tabIndex={3}
             />
@@ -564,8 +565,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               className="calc-input"
               value={quickPieces}
               onChange={(e) => setQuickPieces(e.target.value)}
-              onKeyDown={(e) => handleKeyNav(e, rateInputRef)}
-              onKeyUp={(e) => handleKeyNav(e, rateInputRef)}
+              onKeyDown={(e) => handleKeyNav(e, 'pieces')}
               enterKeyHint="next"
               tabIndex={4}
             />
@@ -628,8 +628,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                   setQuickRateCft(val);
                 }
               }}
-              onKeyDown={(e) => handleKeyNav(e, undefined, true)}
-              onKeyUp={(e) => handleKeyNav(e, undefined, true)}
+              onKeyDown={(e) => handleKeyNav(e, 'rate')}
               enterKeyHint="done"
               tabIndex={5}
               style={{ fontWeight: 700, color: 'var(--primary-800)', textAlign: 'center' }}
