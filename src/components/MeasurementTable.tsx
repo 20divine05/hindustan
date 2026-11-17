@@ -284,9 +284,13 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
   // Sequential field navigation locking to prevent double-hop / box skipping
   const isNavigatingRef = useRef<boolean>(false);
+  const rateFocusedAtRef = useRef<number>(0);
 
   const advanceFrom = (source: 'length' | 'width' | 'thick' | 'pieces' | 'rate') => {
     if (source === 'rate') {
+      if (Date.now() - rateFocusedAtRef.current < 450) {
+        return; // Ignore ghost Enter keystrokes transitioning from pieces
+      }
       handleQuickAdd();
       return;
     }
@@ -304,6 +308,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     } else if (source === 'thick') {
       piecesInputRef.current?.focus();
     } else if (source === 'pieces') {
+      rateFocusedAtRef.current = Date.now();
       rateInputRef.current?.focus();
     }
   };
@@ -323,6 +328,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isNavigatingRef.current) return;
+    if (Date.now() - rateFocusedAtRef.current < 450) return;
 
     const active = document.activeElement;
 
@@ -344,7 +350,9 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     }
 
     // Only submit if user is in rate input or explicitly activated submit
-    handleQuickAdd();
+    if (active === rateInputRef.current) {
+      handleQuickAdd();
+    }
   };
 
   // Add row via Quick-Add Bar
@@ -623,6 +631,9 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               placeholder=""
               className="calc-input"
               value={wVal >= 7 && quickRateUnit === 'SQFT' ? quickRateSqft : (quickRateCft || quickRate)}
+              onFocus={() => {
+                rateFocusedAtRef.current = Date.now();
+              }}
               onChange={(e) => {
                 const val = e.target.value;
                 setQuickRate(val);
@@ -633,13 +644,6 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                 }
               }}
               onKeyDown={(e) => handleKeyNav(e, 'rate')}
-              onKeyUp={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleQuickAdd();
-                }
-              }}
               enterKeyHint="go"
               tabIndex={5}
               style={{ fontWeight: 700, color: 'var(--primary-800)', textAlign: 'center' }}
