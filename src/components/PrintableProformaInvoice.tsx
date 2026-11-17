@@ -221,7 +221,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
   const planingRate = (additionalCharges?.planingRatePerCft && additionalCharges.planingRatePerCft > 0)
     ? additionalCharges.planingRatePerCft
     : (totalPlaning > 0 && totalCft > 0 ? Math.round((totalPlaning / totalCft) * 100) / 100 : 0);
-  const planingLabel = planingRate > 0 ? `PLANING CHARGES (₹${planingRate}/CFT)` : 'PLANING CHARGES';
+  const planingLabel = planingRate > 0 ? `PLANING CHARGES (Rs. ${planingRate}/CFT)` : 'PLANING CHARGES';
   const totalOther = additionalCharges?.other || 0;
   const additionalChargesSum = totalCarpentryWorks + totalTransportation + totalPlaning + totalOther;
 

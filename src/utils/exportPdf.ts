@@ -651,7 +651,7 @@ export function createProformaInvoiceDoc(
     const planingRate = (ac?.planingRatePerCft && ac.planingRatePerCft > 0)
       ? ac.planingRatePerCft
       : (totalCft > 0 ? Math.round((ac.planing / totalCft) * 100) / 100 : 0);
-    const planingLabel = planingRate > 0 ? `PLANING CHARGES (₹${planingRate}/CFT)` : 'PLANING CHARGES';
+    const planingLabel = planingRate > 0 ? `PLANING CHARGES (Rs. ${planingRate}/CFT)` : 'PLANING CHARGES';
     tableBody.push(chargeRow(planingLabel, formatIndianCurrency(ac.planing)));
   }
 
