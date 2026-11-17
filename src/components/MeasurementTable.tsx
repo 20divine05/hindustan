@@ -70,6 +70,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const piecesInputRef = useRef<HTMLInputElement>(null);
   const rateInputRef = useRef<HTMLInputElement>(null);
   const listBottomRef = useRef<HTMLDivElement>(null);
+  const lastAddTimestampRef = useRef<number>(0);
 
   // Mobile virtual keyboard & calcy elevation tracking
   const [isCalcyFocused, setIsCalcyFocused] = useState<boolean>(false);
@@ -285,6 +286,14 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   // Add row via Quick-Add Bar
   const handleQuickAdd = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+
+    // Guard against rapid duplicate firing between keyboard action and form submit
+    const now = Date.now();
+    if (now - lastAddTimestampRef.current < 250) {
+      return;
+    }
+    lastAddTimestampRef.current = now;
+
     setQuickError(null);
 
     const l = parseFloat(quickLength);
@@ -310,20 +319,24 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     let finalRateUnit: 'CFT' | 'SQFT' = 'CFT';
     let itemRate = defaultRate;
 
+    // Check direct DOM input value to prevent mobile async state lag
+    const directRateInput = rateInputRef.current?.value?.trim();
+    const domRateVal = directRateInput !== undefined && directRateInput !== '' ? parseFloat(directRateInput) : NaN;
+
     if (isWide) {
       if (quickRateUnit === 'CFT') {
         finalRateUnit = 'CFT';
-        const parsedCftRate = parseFloat(quickRateCft) || parseFloat(quickRate);
+        const parsedCftRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : (parseFloat(quickRateCft) || parseFloat(quickRate));
         itemRate = !isNaN(parsedCftRate) && parsedCftRate > 0 ? parsedCftRate : defaultRate;
       } else {
         // Width >= 7 directly defaults to SQFT
         finalRateUnit = 'SQFT';
-        const parsedSqftRate = parseFloat(quickRateSqft) || parseFloat(quickRate);
+        const parsedSqftRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : (parseFloat(quickRateSqft) || parseFloat(quickRate));
         itemRate = !isNaN(parsedSqftRate) && parsedSqftRate > 0 ? parsedSqftRate : 120;
       }
     } else {
       finalRateUnit = 'CFT';
-      const parsedRate = parseFloat(quickRate) || parseFloat(quickRateCft);
+      const parsedRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : (parseFloat(quickRate) || parseFloat(quickRateCft));
       itemRate = !isNaN(parsedRate) && parsedRate > 0 ? parsedRate : defaultRate;
     }
 
@@ -354,11 +367,17 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
     onChange(reindexed);
 
-    // Keep price/rate unchanged, reset length, width, thickness & pieces
+    // Empty price/rate, length, width, thickness & pieces every time as requested
     setQuickLength('');
     setQuickWidth('');
     setQuickThickness('');
     setQuickPieces('');
+    setQuickRate('');
+    setQuickRateCft('');
+    setQuickRateSqft('');
+    if (rateInputRef.current) {
+      rateInputRef.current.value = '';
+    }
 
     // Smoothly scroll the newly added calculation into plain view right above the calcy
     setTimeout(() => {
@@ -366,9 +385,10 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     }, 60);
 
     // Auto-refocus on length input for continuous fast entry
+    lengthInputRef.current?.focus();
     setTimeout(() => {
       lengthInputRef.current?.focus();
-    }, 120);
+    }, 100);
   };
 
   return (
@@ -381,6 +401,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         <form
           ref={calcyRef}
           onSubmit={handleQuickAdd}
+          noValidate
           onFocusCapture={handleCalcyFocus}
           onBlurCapture={handleCalcyBlur}
           className={`quick-add-bar no-print ${isCalcyFocused ? 'is-elevated-keyboard' : ''}`}
@@ -421,12 +442,20 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               type="number"
               step="any"
               min="0"
+              inputMode="decimal"
               placeholder=""
               className="calc-input"
               value={quickLength}
               onChange={(e) => setQuickLength(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13) {
+                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
+                  e.preventDefault();
+                  widthInputRef.current?.focus();
+                  widthInputRef.current?.select();
+                }
+              }}
+              onKeyUp={(e) => {
+                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
                   e.preventDefault();
                   widthInputRef.current?.focus();
                   widthInputRef.current?.select();
@@ -447,6 +476,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               type="number"
               step="any"
               min="0"
+              inputMode="decimal"
               placeholder=""
               className="calc-input"
               value={quickWidth}
@@ -461,7 +491,14 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                 }
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13) {
+                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
+                  e.preventDefault();
+                  thickInputRef.current?.focus();
+                  thickInputRef.current?.select();
+                }
+              }}
+              onKeyUp={(e) => {
+                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
                   e.preventDefault();
                   thickInputRef.current?.focus();
                   thickInputRef.current?.select();
@@ -482,12 +519,20 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               type="number"
               step="any"
               min="0"
+              inputMode="decimal"
               placeholder=""
               className="calc-input"
               value={quickThickness}
               onChange={(e) => setQuickThickness(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13) {
+                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
+                  e.preventDefault();
+                  piecesInputRef.current?.focus();
+                  piecesInputRef.current?.select();
+                }
+              }}
+              onKeyUp={(e) => {
+                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
                   e.preventDefault();
                   piecesInputRef.current?.focus();
                   piecesInputRef.current?.select();
@@ -508,12 +553,20 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               type="number"
               step="1"
               min="1"
+              inputMode="numeric"
               placeholder=""
               className="calc-input"
               value={quickPieces}
               onChange={(e) => setQuickPieces(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13) {
+                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
+                  e.preventDefault();
+                  rateInputRef.current?.focus();
+                  rateInputRef.current?.select();
+                }
+              }}
+              onKeyUp={(e) => {
+                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
                   e.preventDefault();
                   rateInputRef.current?.focus();
                   rateInputRef.current?.select();
@@ -561,6 +614,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               type="number"
               step="any"
               min="0"
+              inputMode="decimal"
               placeholder=""
               className="calc-input"
               value={wVal >= 7 ? (quickRateUnit === 'SQFT' ? quickRateSqft : (quickRateCft || quickRate)) : quickRate}
@@ -579,12 +633,18 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                 }
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.keyCode === 13) {
+                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
                   e.preventDefault();
                   handleQuickAdd();
                 }
               }}
-              enterKeyHint="done"
+              onKeyUp={(e) => {
+                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
+                  e.preventDefault();
+                  handleQuickAdd();
+                }
+              }}
+              enterKeyHint="go"
               style={{ fontWeight: 700, color: 'var(--primary-800)', textAlign: 'center' }}
             />
           </div>
