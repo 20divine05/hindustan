@@ -284,8 +284,15 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
   // Sequential field navigation locking to prevent double-hop / box skipping
   const isNavigatingRef = useRef<boolean>(false);
+  const isUserTouchingSelect = useRef<boolean>(false);
+  const isUserTouchingAddBtn = useRef<boolean>(false);
 
   const advanceFrom = (source: 'length' | 'width' | 'thick' | 'pieces' | 'rate') => {
+    if (source === 'rate') {
+      handleQuickAdd();
+      return;
+    }
+
     if (isNavigatingRef.current) return;
     isNavigatingRef.current = true;
     setTimeout(() => {
@@ -300,8 +307,6 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       piecesInputRef.current?.focus();
     } else if (source === 'pieces') {
       rateInputRef.current?.focus();
-    } else if (source === 'rate') {
-      handleQuickAdd();
     }
   };
 
@@ -316,12 +321,11 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     }
   };
 
-  // Form submit handler that intercepts mobile keyboard actions without double-triggering
+  // Form submit handler that intercepts mobile keyboard actions and adds row on Rate
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isNavigatingRef.current) return;
-
     const active = document.activeElement;
+
     if (active === lengthInputRef.current) {
       advanceFrom('length');
       return;
@@ -338,11 +342,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       advanceFrom('pieces');
       return;
     }
-    if (active === rateInputRef.current) {
-      advanceFrom('rate');
-      return;
-    }
 
+    // If on rate input or clicked submit or blurred from keyboard:
     handleQuickAdd();
   };
 
@@ -374,20 +375,24 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     let finalRateUnit: 'CFT' | 'SQFT' = 'CFT';
     let itemRate = defaultRate;
 
+    // Check direct input value in DOM to ensure no React state lag on mobile
+    const directRateInput = rateInputRef.current?.value?.trim();
+    const domRateVal = directRateInput !== undefined && directRateInput !== '' ? parseFloat(directRateInput) : NaN;
+
     if (isWide) {
       if (quickRateUnit === 'CFT') {
         finalRateUnit = 'CFT';
-        const parsedCftRate = parseFloat(quickRateCft) || parseFloat(quickRate);
+        const parsedCftRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : (parseFloat(quickRateCft) || parseFloat(quickRate));
         itemRate = !isNaN(parsedCftRate) && parsedCftRate > 0 ? parsedCftRate : defaultRate;
       } else {
         // Width >= 7 directly defaults to SQFT
         finalRateUnit = 'SQFT';
-        const parsedSqftRate = parseFloat(quickRateSqft) || parseFloat(quickRate);
+        const parsedSqftRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : (parseFloat(quickRateSqft) || parseFloat(quickRate));
         itemRate = !isNaN(parsedSqftRate) && parsedSqftRate > 0 ? parsedSqftRate : 120;
       }
     } else {
       finalRateUnit = 'CFT';
-      const parsedRate = parseFloat(quickRate) || parseFloat(quickRateCft);
+      const parsedRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : (parseFloat(quickRate) || parseFloat(quickRateCft));
       itemRate = !isNaN(parsedRate) && parsedRate > 0 ? parsedRate : defaultRate;
     }
 
@@ -426,16 +431,20 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     setQuickRate('');
     setQuickRateCft('');
     setQuickRateSqft('');
+    if (rateInputRef.current) {
+      rateInputRef.current.value = '';
+    }
 
     // Smoothly scroll the newly added calculation into plain view right above the calcy
     setTimeout(() => {
       listBottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 60);
 
-    // Auto-refocus on length input for continuous fast entry
+    // Auto-refocus on length input immediately and on tick to keep mobile keyboard open
+    lengthInputRef.current?.focus();
     setTimeout(() => {
       lengthInputRef.current?.focus();
-    }, 100);
+    }, 60);
   };
 
   return (
@@ -629,7 +638,14 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                 }
               }}
               onKeyDown={(e) => handleKeyNav(e, 'rate')}
-              enterKeyHint="done"
+              onKeyUp={(e) => {
+                if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleQuickAdd();
+                }
+              }}
+              enterKeyHint="go"
               tabIndex={5}
               style={{ fontWeight: 700, color: 'var(--primary-800)', textAlign: 'center' }}
             />
@@ -640,7 +656,20 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           <div className="quick-add-species">
             <select
               className="calc-input"
+              tabIndex={-1}
               value={selectedWoodOption}
+              onTouchStart={() => { isUserTouchingSelect.current = true; }}
+              onMouseDown={() => { isUserTouchingSelect.current = true; }}
+              onFocus={() => {
+                if (!isUserTouchingSelect.current) {
+                  const l = parseFloat(quickLength);
+                  const w = parseFloat(quickWidth);
+                  if (!isNaN(l) && l > 0 && !isNaN(w) && w > 0) {
+                    handleQuickAdd();
+                  }
+                }
+                isUserTouchingSelect.current = false;
+              }}
               onChange={(e) => {
                 setSelectedWoodOption(e.target.value);
               }}
@@ -667,6 +696,19 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
           <button
             type="submit"
+            tabIndex={-1}
+            onTouchStart={() => { isUserTouchingAddBtn.current = true; }}
+            onMouseDown={() => { isUserTouchingAddBtn.current = true; }}
+            onFocus={() => {
+              if (!isUserTouchingAddBtn.current) {
+                const l = parseFloat(quickLength);
+                const w = parseFloat(quickWidth);
+                if (!isNaN(l) && l > 0 && !isNaN(w) && w > 0) {
+                  handleQuickAdd();
+                }
+              }
+              isUserTouchingAddBtn.current = false;
+            }}
             className="btn btn-primary btn-sm quick-add-btn"
             title="Add measurement row (Enter)"
             style={{
