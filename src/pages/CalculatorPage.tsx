@@ -2945,23 +2945,13 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </button>
               </div>
 
-              {/* Secondary Save & Full Proforma Modal trigger */}
-              <div style={{ display: 'flex', gap: '0.55rem', marginTop: '0.55rem', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleSave}
-                  disabled={saveStatus === 'saving'}
-                  style={{ flex: 1, minWidth: '140px', justifyContent: 'center', fontWeight: 700, padding: '0.65rem 0.95rem', fontSize: '0.92rem', minHeight: '44px', borderRadius: '10px' }}
-                >
-                  <Save size={16} /> {saveStatus === 'saving' ? 'Saving...' : 'Save to Cloud DB'}
-                </button>
-
+              {/* Full Proforma Modal trigger */}
+              <div style={{ marginTop: '0.55rem' }}>
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => setIsProformaModalOpen(true)}
-                  style={{ flex: 1, minWidth: '140px', justifyContent: 'center', fontWeight: 700, padding: '0.65rem 0.95rem', fontSize: '0.92rem', minHeight: '44px', borderRadius: '10px' }}
+                  style={{ width: '100%', justifyContent: 'center', fontWeight: 700, padding: '0.65rem 0.95rem', fontSize: '0.92rem', minHeight: '44px', borderRadius: '10px' }}
                 >
                   <FileText size={16} /> Full Invoice Preview
                 </button>
