@@ -648,7 +648,11 @@ export function createProformaInvoiceDoc(
 
   // 1. Next: PLANING CHARGES immediately after wood
   if (ac?.planing && ac.planing > 0) {
-    tableBody.push(chargeRow('PLANING CHARGES', formatIndianCurrency(ac.planing)));
+    const planingRate = (ac?.planingRatePerCft && ac.planingRatePerCft > 0)
+      ? ac.planingRatePerCft
+      : (totalCft > 0 ? Math.round((ac.planing / totalCft) * 100) / 100 : 0);
+    const planingLabel = planingRate > 0 ? `PLANING CHARGES (₹${planingRate}/CFT)` : 'PLANING CHARGES';
+    tableBody.push(chargeRow(planingLabel, formatIndianCurrency(ac.planing)));
   }
 
   // 2. Next: CARPENTRY WORKS (Carpenter Charges)

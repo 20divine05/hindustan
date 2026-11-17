@@ -304,6 +304,10 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const totalCarpentryWorks = (ac?.carpentry || 0) + (ac?.sawing || 0);
   const totalTransportation = ac?.transportation || 0;
   const totalPlaning = ac?.planing || 0;
+  const planingRate = (ac?.planingRatePerCft && ac.planingRatePerCft > 0)
+    ? ac.planingRatePerCft
+    : (totalPlaning > 0 && totalCft > 0 ? Math.round((totalPlaning / totalCft) * 100) / 100 : 0);
+  const planingLabel = planingRate > 0 ? `PLANING CHARGES (₹${planingRate}/CFT)` : 'PLANING CHARGES';
   const totalOther = ac?.other || 0;
   const additionalChargesSum = totalCarpentryWorks + totalTransportation + totalPlaning + totalOther;
   const discAmount = sheet?.discount?.amount || 0;
@@ -908,7 +912,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td className="text-center"></td>
                           <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
-                            PLANING CHARGES
+                            {planingLabel}
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
                             {renderWithSmallDecimalHtml(formatIndianCurrency(totalPlaning))}
