@@ -976,7 +976,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   };
 
   // Share Invoice PDF directly to customer's WhatsApp chat
-  const handleShareWhatsApp = () => {
+  const handleShareWhatsApp = async () => {
     persistCurrentCustomer();
 
     // 1. Extract customer phone from invoice details
@@ -1012,8 +1012,40 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
     const { current, exportData } = getFullInvoiceExportData();
 
-    // 2. Generate and download the official Proforma Invoice PDF named after the client
+    // 2. Generate the official Proforma Invoice PDF named after the client
     const { blob, filename } = getProformaInvoicePdfBlob(current, businessSettings, exportData);
+    const pdfFile = new File([blob], filename, { type: 'application/pdf' });
+
+    const invoiceNo = exportData.invoiceNo || 'Invoice';
+    const clientName = (customerName || '').trim() || 'Valued Customer';
+    const totalPayable = formatIndianCurrency(finalGrandTotal > 0 ? finalGrandTotal : fullAmountBeforeGst);
+
+    const shareMessage = `🌲 *HINDUSTAN SAW MILL & WOOD WORKS* 🌲\n` +
+      `📄 *Proforma Invoice:* ${invoiceNo}\n` +
+      `👤 *Customer:* ${clientName}\n` +
+      `💰 *Grand Total:* Rs. ${totalPayable}\n\n` +
+      `Please find your official Timber Proforma Invoice PDF attached.\n` +
+      `Thank you for your business!`;
+
+    // 3. Option 1: Mobile Web Share API with PDF attached directly
+    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      try {
+        await navigator.share({
+          files: [pdfFile],
+          title: `${invoiceNo} - ${clientName}`,
+          text: shareMessage
+        });
+        return; // Successfully presented to WhatsApp with PDF attached!
+      } catch (err: any) {
+        if (err?.name === 'AbortError') {
+          // User closed the share menu without sending
+          return;
+        }
+        console.warn('Native file share failed, falling back to download + WhatsApp link', err);
+      }
+    }
+
+    // 4. Desktop / Fallback flow: Download PDF and open customer's WhatsApp chat with pre-filled message
     const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = downloadUrl;
@@ -1023,8 +1055,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(downloadUrl), 15000);
 
-    // 3. Directly redirect to WhatsApp with the exact customer phone number auto-fetched
-    const waUrl = `https://api.whatsapp.com/send?phone=${digits}`;
+    const waUrl = `https://api.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(shareMessage)}`;
     window.open(waUrl, '_blank');
   };
 
