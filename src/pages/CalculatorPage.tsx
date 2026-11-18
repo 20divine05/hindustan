@@ -1086,7 +1086,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       paymentTerms,
       buyerOrderNo,
       buyerOrderDate,
-      destination: consigneeState || destination || 'Karnataka',
+      destination: consigneeDistrict?.toUpperCase() || consigneeState?.toUpperCase() || destination?.toUpperCase() || 'KARNATAKA',
       motorVehicleNo,
       termsOfDelivery,
       consigneeName: consigneeName || customerName || 'New India Saw Mill',
@@ -1365,24 +1365,15 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             ========================================================================= */}
         {currentStep === 2 && (
           <div className="card calc-step-card">
-            <div className="calc-step-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <div>
-                <h3 className="calc-step-title">
-                  {customerType === 'b2b' ? (
-                    <>
-                      <Building size={16} color="var(--primary-600)" /> Buyer (Bill to) Details (B2B)
-                    </>
-                  ) : (
-                    <>
-                      <User size={16} color="var(--primary-600)" /> Buyer (Bill to) Details (Retail / B2C)
-                    </>
-                  )}
-                </h3>
-                <p className="calc-step-desc">
-                  {customerType === 'b2b'
-                    ? 'Enter 15-digit GST number, company billing credentials and registered address'
-                    : 'Enter buyer name, phone, billing address and tax details'}
-                </p>
+            {/* Top Indicator: Bill to (Always visible on mobile & desktop) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.45rem', borderBottom: '1.5px solid var(--border-light, #e2e8f0)', marginBottom: '0.35rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--primary-700)', background: 'var(--primary-100, #e2e8f0)', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--primary-300)' }}>
+                  Bill to
+                </span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  {customerType === 'b2b' ? 'Buyer Business GST Details' : 'Buyer Customer Details'}
+                </span>
               </div>
 
               {/* Pill to switch customer type if needed */}
@@ -1646,18 +1637,18 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
                 {/* 5. Remaining Things: State & Code, Ref & Date */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.65rem' }}>
-                  {/* District & Code */}
+                  {/* State & Code */}
                   <div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <MapPin size={14} color="var(--primary-600)" /> District / Code:
+                      <Truck size={14} color="var(--primary-600)" /> State / Code:
                     </label>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
                       <input
                         type="text"
-                        value={customerState}
-                        onChange={(e) => setCustomerState(e.target.value)}
+                        value={destination}
+                        placeholder="State"
+                        onChange={(e) => setDestination(e.target.value)}
                         onBlur={persistCurrentCustomer}
-                        placeholder="District"
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                       <input
@@ -1669,21 +1660,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
-                  </div>
-
-                  {/* State */}
-                  <div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <Truck size={14} color="var(--primary-600)" /> State:
-                    </label>
-                    <input
-                      type="text"
-                      value={destination}
-                      placeholder="State"
-                      onChange={(e) => setDestination(e.target.value)}
-                      onBlur={persistCurrentCustomer}
-                      style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
-                    />
                   </div>
 
                   {/* Ref & Date */}
@@ -1903,18 +1879,18 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     />
                   </div>
 
-                  {/* District & Code */}
+                  {/* State & Code */}
                   <div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <MapPin size={14} color="var(--primary-600)" /> District / Code:
+                      <Truck size={14} color="var(--primary-600)" /> State / Code:
                     </label>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
                       <input
                         type="text"
-                        value={customerState}
-                        onChange={(e) => setCustomerState(e.target.value)}
+                        value={destination}
+                        placeholder="State"
+                        onChange={(e) => setDestination(e.target.value)}
                         onBlur={persistCurrentCustomer}
-                        placeholder="District"
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                       <input
@@ -1926,21 +1902,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
-                  </div>
-
-                  {/* State */}
-                  <div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <Truck size={14} color="var(--primary-600)" /> State:
-                    </label>
-                    <input
-                      type="text"
-                      value={destination}
-                      placeholder="State"
-                      onChange={(e) => setDestination(e.target.value)}
-                      onBlur={persistCurrentCustomer}
-                      style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
-                    />
                   </div>
 
                   {/* Ref Number & Date */}
@@ -1981,14 +1942,15 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             ========================================================================= */}
         {currentStep === 3 && (
           <div className="card calc-step-card">
-            <div className="calc-step-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <div>
-                <h3 className="calc-step-title">
-                  <Truck size={16} color="var(--primary-600)" /> Consignee (Ship to) Details
-                </h3>
-                <p className="calc-step-desc">
-                  Shipping delivery address and receiver information for the invoice
-                </p>
+            {/* Top Indicator: Ship to (Always visible on mobile & desktop) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.45rem', borderBottom: '1.5px solid var(--border-light, #e2e8f0)', marginBottom: '0.35rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#0369a1', background: '#e0f2fe', padding: '2px 8px', borderRadius: '4px', border: '1px solid #7dd3fc' }}>
+                  Ship to
+                </span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  Consignee Shipping Details
+                </span>
               </div>
 
               {/* Action: Copy from Bill To Button */}
@@ -2000,13 +1962,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   setConsigneePhone(customerPhone);
                   setConsigneeAddress(customerAddress);
                   setConsigneeGstin(customerGstin);
-                  setConsigneeDistrict(customerState);
-                  setConsigneeStateCode(customerStateCode);
-                  setConsigneeState(destination);
-                  setShipToCopyNotice('✓ Copied all details from Bill To');
+                  setConsigneeStateCode(customerStateCode || '29');
+                  setConsigneeState(destination || 'Karnataka');
+                  setShipToCopyNotice('✓ Copied from Bill To');
                   setTimeout(() => setShipToCopyNotice(null), 2500);
                 }}
-                style={{ fontSize: '0.74rem', padding: '0.3rem 0.65rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
               >
                 <span>📋 Copy from Bill To</span>
               </button>
@@ -2124,21 +2085,37 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   />
                 </div>
 
-                {/* 5. District, Code, State */}
+                {/* 5. District & State / Code */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.65rem' }}>
                   <div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <MapPin size={14} color="var(--primary-600)" /> District / Code:
+                      <MapPin size={14} color="var(--primary-600)" /> District:
+                    </label>
+                    <input
+                      type="text"
+                      value={consigneeDistrict}
+                      onChange={(e) => {
+                        setIsShipToTouched(true);
+                        setConsigneeDistrict(e.target.value);
+                      }}
+                      placeholder="District"
+                      style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                      <Truck size={14} color="var(--primary-600)" /> State / Code:
                     </label>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
                       <input
                         type="text"
-                        value={consigneeDistrict}
+                        value={consigneeState}
+                        placeholder="State"
                         onChange={(e) => {
                           setIsShipToTouched(true);
-                          setConsigneeDistrict(e.target.value);
+                          setConsigneeState(e.target.value);
                         }}
-                        placeholder="District"
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                       <input
@@ -2148,26 +2125,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                           setIsShipToTouched(true);
                           setConsigneeStateCode(e.target.value);
                         }}
-                        placeholder="Code"
+                        placeholder="29"
                         style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <Truck size={14} color="var(--primary-600)" /> State:
-                    </label>
-                    <input
-                      type="text"
-                      value={consigneeState}
-                      placeholder="State"
-                      onChange={(e) => {
-                        setIsShipToTouched(true);
-                        setConsigneeState(e.target.value);
-                      }}
-                      style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
-                    />
                   </div>
                 </div>
               </div>
@@ -2225,7 +2186,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   />
                 </div>
 
-                {/* 4. GST Number Optional, District & Code, State */}
+                {/* 4. GST Number Optional, District & State / Code */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.65rem' }}>
                   <div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
@@ -2245,17 +2206,33 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
                   <div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <MapPin size={14} color="var(--primary-600)" /> District / Code:
+                      <MapPin size={14} color="var(--primary-600)" /> District:
+                    </label>
+                    <input
+                      type="text"
+                      value={consigneeDistrict}
+                      onChange={(e) => {
+                        setIsShipToTouched(true);
+                        setConsigneeDistrict(e.target.value);
+                      }}
+                      placeholder="District"
+                      style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                      <Truck size={14} color="var(--primary-600)" /> State / Code:
                     </label>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
                       <input
                         type="text"
-                        value={consigneeDistrict}
+                        value={consigneeState}
+                        placeholder="State"
                         onChange={(e) => {
                           setIsShipToTouched(true);
-                          setConsigneeDistrict(e.target.value);
+                          setConsigneeState(e.target.value);
                         }}
-                        placeholder="District"
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                       <input
@@ -2265,26 +2242,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                           setIsShipToTouched(true);
                           setConsigneeStateCode(e.target.value);
                         }}
-                        placeholder="Code"
+                        placeholder="29"
                         style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <Truck size={14} color="var(--primary-600)" /> State:
-                    </label>
-                    <input
-                      type="text"
-                      value={consigneeState}
-                      placeholder="State"
-                      onChange={(e) => {
-                        setIsShipToTouched(true);
-                        setConsigneeState(e.target.value);
-                      }}
-                      style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
-                    />
                   </div>
                 </div>
               </div>
@@ -3877,7 +3838,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           paymentTerms={paymentTerms}
           buyerOrderNo={buyerOrderNo}
           buyerOrderDate={buyerOrderDate}
-          destination={consigneeState || destination || 'Karnataka'}
+          destination={consigneeDistrict?.toUpperCase() || consigneeState?.toUpperCase() || destination?.toUpperCase() || 'KARNATAKA'}
           motorVehicleNo={motorVehicleNo}
           termsOfDelivery={termsOfDelivery}
           consigneeName={consigneeName || customerName || 'New India Saw Mill'}
