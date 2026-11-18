@@ -487,7 +487,6 @@ export function createProformaInvoiceDoc(
     let groupPieces = 0;
     let groupCft = 0;
     let groupSqftBilled = 0;
-    let groupCftBilled = 0;
     let groupAmount = 0;
 
     const itemBorder = { top: 0, bottom: 0, left: 0.2, right: 0.2 };
@@ -505,11 +504,9 @@ export function createProformaInvoiceDoc(
 
       if (isSqftBilled) {
         groupSqftBilled += (typeof it.sqft === 'number' ? it.sqft : it.cft * 12);
-      } else {
-        groupCftBilled += (typeof it.cft === 'number' ? it.cft : 0);
       }
 
-      const cftText = isSqftBilled ? '' : (it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : '');
+      const cftText = it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : '';
       const sqftText = isSqftBilled
         ? (it.sqft && it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : `${(it.cft * 12).toFixed(2)} SQFT`)
         : '';
@@ -549,7 +546,7 @@ export function createProformaInvoiceDoc(
         styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor }
       },
       {
-        content: groupCftBilled > 0 ? `${groupCftBilled.toFixed(4)} CFT` : (groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : ''),
+        content: groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '',
         styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor }
       },
       {
@@ -588,7 +585,7 @@ export function createProformaInvoiceDoc(
         styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {
-        content: totalCftBilled > 0 ? `${totalCftBilled.toFixed(4)} CFT` : `${totalCft.toFixed(4)} CFT`,
+        content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '',
         styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
       },
       {

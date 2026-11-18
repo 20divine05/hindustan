@@ -202,10 +202,6 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
     .filter((it) => (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT')
     .reduce((acc, it) => acc + (typeof it.sqft === 'number' ? it.sqft : 0), 0);
 
-  const totalCftBilled = validItems
-    .filter((it) => !((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT'))
-    .reduce((acc, it) => acc + (typeof it.cft === 'number' ? it.cft : 0), 0);
-
   const timberTotalAmount = validItems.reduce((acc, it) => {
     const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
     const defaultRowRate = isSqft ? 120 : ratePerCft;
@@ -413,9 +409,6 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                 const groupSqftBilled = group.items
                   .filter((it) => (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT')
                   .reduce((acc, it) => acc + (typeof it.sqft === 'number' ? it.sqft : 0), 0);
-                const groupCftBilled = group.items
-                  .filter((it) => !((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT'))
-                  .reduce((acc, it) => acc + (typeof it.cft === 'number' ? it.cft : 0), 0);
                 const groupAmount = group.items.reduce((acc, it) => {
                   const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
                   const defaultRowRate = isSqft ? 120 : ratePerCft;
@@ -459,7 +452,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                             {renderDimensionHtml(`${it.lengthFeet}X${it.widthInches}X${it.thicknessInches}`)}
                           </td>
                           <td className="text-right p-mono">{Number(it.pieces) > 0 ? `${it.pieces} PCS` : ''}</td>
-                          <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? '' : (it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : ''))}</td>
+                          <td className="text-right p-mono">{renderWithSmallDecimalHtml(it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : '')}</td>
                           <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? (it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : '') : '')}</td>
                           <td className="text-right p-mono">{renderWithSmallDecimalHtml(itemRate.toFixed(2))}</td>
                           <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{isSqftBilled ? 'SQFT' : 'CFT'}</td>
@@ -480,7 +473,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         {groupPieces} PCS
                       </td>
                       <td className="text-right p-mono" style={{ fontWeight: 800, color: '#000000' }}>
-                        {renderWithSmallDecimalHtml(groupCftBilled > 0 ? `${groupCftBilled.toFixed(4)} CFT` : (groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : ''))}
+                        {renderWithSmallDecimalHtml(groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '')}
                       </td>
                       <td className="text-right p-mono" style={{ fontWeight: 800, color: '#000000' }}>
                         {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '')}
@@ -506,7 +499,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                     {totalPieces} PCS
                   </td>
                   <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                    {renderWithSmallDecimalHtml(totalCftBilled > 0 ? `${totalCftBilled.toFixed(4)} CFT` : `${totalCft.toFixed(4)} CFT`)}
+                    {renderWithSmallDecimalHtml(totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '')}
                   </td>
                   <td className="text-right p-mono" style={{ fontWeight: 800 }}>
                     {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '')}
