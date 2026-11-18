@@ -208,7 +208,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     sheetToEdit?.consigneeGstin || sheetToEdit?.customerGstin || ''
   );
   const [consigneeDistrict, setConsigneeDistrict] = useState<string>(
-    sheetToEdit?.consigneeDistrict || sheetToEdit?.customerState || ''
+    sheetToEdit?.consigneeDistrict || ''
   );
   const [consigneeStateCode, setConsigneeStateCode] = useState<string>(
     sheetToEdit?.consigneeStateCode || sheetToEdit?.customerStateCode || ''
@@ -340,7 +340,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       setConsigneePhone(sheetToEdit.consigneePhone || sheetToEdit.customerPhone || '');
       setConsigneeAddress(sheetToEdit.consigneeAddress || sheetToEdit.customerAddress || '');
       setConsigneeGstin(sheetToEdit.consigneeGstin || sheetToEdit.customerGstin || '');
-      setConsigneeDistrict(sheetToEdit.consigneeDistrict || sheetToEdit.customerState || '');
+      setConsigneeDistrict(sheetToEdit.consigneeDistrict || '');
       setConsigneeStateCode(sheetToEdit.consigneeStateCode || sheetToEdit.customerStateCode || '');
       setConsigneeState(sheetToEdit.consigneeState || sheetToEdit.destination || 'Karnataka');
       setIsShipToTouched(Boolean(sheetToEdit.consigneeName && sheetToEdit.consigneeName !== sheetToEdit.customerName));
@@ -935,6 +935,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     customerGstin,
     customerState,
     customerStateCode,
+    destination,
+    consigneeName,
+    consigneePhone,
+    consigneeAddress,
+    consigneeGstin,
+    consigneeDistrict,
+    consigneeState,
+    consigneeStateCode,
     projectName,
     referenceNumber,
     measurementDate,
@@ -1611,7 +1619,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         type="text"
                         value={destination}
                         placeholder="State"
-                        onChange={(e) => setDestination(e.target.value)}
+                        onChange={(e) => {
+                          setDestination(e.target.value);
+                          setCustomerState(e.target.value);
+                        }}
                         onBlur={persistCurrentCustomer}
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
@@ -1853,7 +1864,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         type="text"
                         value={destination}
                         placeholder="State"
-                        onChange={(e) => setDestination(e.target.value)}
+                        onChange={(e) => {
+                          setDestination(e.target.value);
+                          setCustomerState(e.target.value);
+                        }}
                         onBlur={persistCurrentCustomer}
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
@@ -1927,7 +1941,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   setConsigneeAddress(customerAddress);
                   setConsigneeGstin(customerGstin);
                   setConsigneeStateCode(customerStateCode || '29');
-                  setConsigneeState(destination || 'Karnataka');
+                  setConsigneeState(destination || customerState || 'Karnataka');
+                  setIsShipToTouched(true);
                   setShipToCopyNotice('✓ Copied from Bill To');
                   setTimeout(() => setShipToCopyNotice(null), 2500);
                 }}
@@ -3610,14 +3625,13 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 onClick={() => {
                   if (currentStep === 2) {
                     persistCurrentCustomer();
-                    if (!isShipToTouched) {
+                    if (!isShipToTouched && !consigneeName && !consigneeAddress) {
                       setConsigneeName(customerName);
                       setConsigneePhone(customerPhone);
                       setConsigneeAddress(customerAddress);
                       setConsigneeGstin(customerGstin);
-                      setConsigneeDistrict(customerState);
-                      setConsigneeStateCode(customerStateCode);
-                      setConsigneeState(destination);
+                      setConsigneeStateCode(customerStateCode || '29');
+                      setConsigneeState(destination || customerState || 'Karnataka');
                     }
                   }
                   setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12);
