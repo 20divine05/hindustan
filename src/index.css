@@ -1638,6 +1638,14 @@ input[type="number"] {
   gap: 1rem;
 }
 
+.calc-step-card input::placeholder,
+.calc-step-card textarea::placeholder {
+  font-size: 0.74rem !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+  opacity: 0.85;
+}
+
 .calc-step-header {
   border-bottom: 1px solid var(--border-light);
   padding-bottom: 0.45rem;

@@ -131,7 +131,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
   paymentTerms = 'IMMEDIATE PAYMENT',
   buyerOrderNo = '',
   buyerOrderDate = '',
-  destination = 'BANGALORE',
+  destination = '',
   motorVehicleNo = '',
   termsOfDelivery = 'TRANSPORTATION EXTRA\nAPPLICABLE GST EXTRA',
 
@@ -139,15 +139,15 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
   consigneePhone = '',
   consigneeAddress = 'Sy.No.10/7 Khata No.27/2/100/10/7, Sir M\nVishveshwaraiah Layout, 3rd Block, Bengaluru, Near\nNammoora Thindi, Bengaluru Urban',
   consigneeGstin = '29CJZPK3158H1ZG',
-  consigneeState = 'Karnataka',
-  consigneeStateCode = '29',
+  consigneeState = '',
+  consigneeStateCode = '',
 
   buyerName = 'New India Saw Mill',
   buyerPhone = '',
   buyerAddress = 'Sy.No.10/7 Khata No.27/2/100/10/7, Sir M\nVishveshwaraiah Layout, 3rd Block, Bengaluru, Near\nNammoora Thindi, Bengaluru Urban',
   buyerGstin = '29CJZPK3158H1ZG',
-  buyerState = 'Karnataka',
-  buyerStateCode = '29',
+  buyerState = '',
+  buyerStateCode = '',
 
   items = [],
   ratePerCft = 1200,
@@ -302,10 +302,10 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
               <div className="p-party-meta">
                 <span className="p-party-meta-label">State Name</span>
                 <span className="p-party-meta-separator">: </span>
-                <span style={{ flex: 2 }}>{consigneeState || 'Karnataka'}</span>
+                <span style={{ flex: 2 }}>{consigneeState || ''}</span>
                 <span style={{ margin: '0 4px', fontSize: '8.5px' }}>Code:</span>
                 <span style={{ width: '38px', textAlign: 'center', fontFamily: 'var(--font-mono, monospace)' }}>
-                  {consigneeStateCode || '29'}
+                  {consigneeStateCode || ''}
                 </span>
               </div>
             </div>
@@ -338,10 +338,10 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
               <div className="p-party-meta">
                 <span className="p-party-meta-label">State Name</span>
                 <span className="p-party-meta-separator">: </span>
-                <span style={{ flex: 2 }}>{buyerState || consigneeState || 'Karnataka'}</span>
+                <span style={{ flex: 2 }}>{buyerState || consigneeState || ''}</span>
                 <span style={{ margin: '0 4px', fontSize: '8.5px' }}>Code:</span>
                 <span style={{ width: '38px', textAlign: 'center', fontFamily: 'var(--font-mono, monospace)' }}>
-                  {buyerStateCode || consigneeStateCode || '29'}
+                  {buyerStateCode || consigneeStateCode || ''}
                 </span>
               </div>
             </div>
@@ -373,7 +373,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
               </div>
               <div className="p-meta-cell">
                 <span className="p-label">Destination</span>
-                <span style={{ fontWeight: 700 }}>{destination || 'BANGALORE'}</span>
+                <span style={{ fontWeight: 700 }}>{destination || consigneeState?.toUpperCase() || ''}</span>
               </div>
             </div>
 

@@ -96,7 +96,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const [dispatchDocNo, setDispatchDocNo] = useState('');
   const [deliveryNoteDate, setDeliveryNoteDate] = useState('');
   const [dispatchedThrough, setDispatchedThrough] = useState(savedDraft.dispatchedThrough || '');
-  const [destination, setDestination] = useState(sheet?.destination || sheet?.customerState?.toUpperCase() || 'BANGLORE');
+  const [destination, setDestination] = useState(sheet?.destination || sheet?.customerState?.toUpperCase() || '');
   const [billOfLadingNo, setBillOfLadingNo] = useState('');
   const [motorVehicleNo, setMotorVehicleNo] = useState('');
   const [termsOfDelivery, setTermsOfDelivery] = useState(savedDraft.termsOfDelivery || '');
@@ -106,16 +106,16 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const [consigneePhone, setConsigneePhone] = useState(sheet?.customerPhone || '');
   const [consigneeAddress, setConsigneeAddress] = useState(sheet?.customerAddress || '');
   const [consigneeGstin, setConsigneeGstin] = useState(sheet?.customerGstin || '29CJZPK3158H1ZG');
-  const [consigneeState, setConsigneeState] = useState(sheet?.customerState || 'Karnataka');
-  const [consigneeStateCode, setConsigneeStateCode] = useState(sheet?.customerStateCode || '29');
+  const [consigneeState, setConsigneeState] = useState(sheet?.customerState || '');
+  const [consigneeStateCode, setConsigneeStateCode] = useState(sheet?.customerStateCode || '');
 
   // Buyer (Bill to)
   const [buyerName, setBuyerName] = useState(sheet?.customerName || '');
   const [buyerPhone, setBuyerPhone] = useState(sheet?.customerPhone || '');
   const [buyerAddress, setBuyerAddress] = useState(sheet?.customerAddress || '');
   const [buyerGstin, setBuyerGstin] = useState(sheet?.customerGstin || '29CJZPK3158H1ZG');
-  const [buyerState, setBuyerState] = useState(sheet?.customerState || 'Karnataka');
-  const [buyerStateCode, setBuyerStateCode] = useState(sheet?.customerStateCode || '29');
+  const [buyerState, setBuyerState] = useState(sheet?.customerState || '');
+  const [buyerStateCode, setBuyerStateCode] = useState(sheet?.customerStateCode || '');
 
   // Default global rate per CFT
   const [globalRate, setGlobalRate] = useState<number>(businessSettings?.ratePerCft || 1200);

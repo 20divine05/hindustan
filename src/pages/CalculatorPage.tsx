@@ -180,8 +180,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const [customerPhone, setCustomerPhone] = useState<string>(sheetToEdit?.customerPhone || '');
   const [customerAddress, setCustomerAddress] = useState<string>(sheetToEdit?.customerAddress || '');
   const [customerGstin, setCustomerGstin] = useState<string>(sheetToEdit?.customerGstin || '');
-  const [customerState, setCustomerState] = useState<string>(sheetToEdit?.customerState || 'Karnataka');
-  const [customerStateCode, setCustomerStateCode] = useState<string>(sheetToEdit?.customerStateCode || '29');
+  const [customerState, setCustomerState] = useState<string>(sheetToEdit?.customerState || '');
+  const [customerStateCode, setCustomerStateCode] = useState<string>(sheetToEdit?.customerStateCode || '');
   const [projectName, setProjectName] = useState<string>(sheetToEdit?.projectName || '');
   const [referenceNumber, setReferenceNumber] = useState<string>(
     sheetToEdit?.referenceNumber || `REF-${Math.floor(100000 + Math.random() * 900000)}`
@@ -235,7 +235,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const [buyerOrderNo, setBuyerOrderNo] = useState<string>('');
   const [buyerOrderDate, setBuyerOrderDate] = useState<string>('');
   const [destination, setDestination] = useState<string>(
-    sheetToEdit?.destination || sheetToEdit?.customerState?.toUpperCase() || 'BANGLORE'
+    sheetToEdit?.destination || sheetToEdit?.customerState?.toUpperCase() || ''
   );
   const [motorVehicleNo, setMotorVehicleNo] = useState<string>('');
   const [termsOfDelivery, setTermsOfDelivery] = useState<string>('TRANSPORTATION EXTRA\nAPPLICABLE GST EXTRA');
@@ -283,8 +283,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       setCustomerPhone(sheetToEdit.customerPhone || '');
       setCustomerAddress(sheetToEdit.customerAddress || '');
       setCustomerGstin(sheetToEdit.customerGstin || '');
-      setCustomerState(sheetToEdit.customerState || 'Karnataka');
-      setCustomerStateCode(sheetToEdit.customerStateCode || '29');
+      setCustomerState(sheetToEdit.customerState || '');
+      setCustomerStateCode(sheetToEdit.customerStateCode || '');
       setProjectName(sheetToEdit.projectName || '');
       setReferenceNumber(sheetToEdit.referenceNumber || `REF-${Math.floor(100000 + Math.random() * 900000)}`);
       setMeasurementDate(sheetToEdit.measurementDate || new Date().toISOString().split('T')[0]);
@@ -305,7 +305,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       setGstPercent(sheetToEdit.gstPercent !== undefined ? sheetToEdit.gstPercent : 18);
       setInvoiceNo(sheetToEdit.referenceNumber ? sheetToEdit.referenceNumber.replace('REF-', '') : '8');
       setInvoiceDate(formatToInvoiceDate(sheetToEdit.measurementDate));
-      setDestination(sheetToEdit.destination || sheetToEdit.customerState?.toUpperCase() || 'BANGLORE');
+      setDestination(sheetToEdit.destination || sheetToEdit.customerState?.toUpperCase() || '');
       setSaveStatus('saved');
     }
   }, [sheetToEdit]);
@@ -871,8 +871,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setCustomerPhone('');
     setCustomerAddress('');
     setCustomerGstin('');
-    setCustomerState('Karnataka');
-    setCustomerStateCode('29');
+    setCustomerState('');
+    setCustomerStateCode('');
+    setDestination('');
     setProjectName('');
     const newRef = `REF-${Math.floor(100000 + Math.random() * 900000)}`;
     setReferenceNumber(newRef);
@@ -941,21 +942,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       paymentTerms,
       buyerOrderNo,
       buyerOrderDate,
-      destination: destination || customerState?.toUpperCase() || 'BANGLORE',
+      destination: destination || customerState?.toUpperCase() || '',
       motorVehicleNo,
       termsOfDelivery,
       consigneeName: customerName || 'New India Saw Mill',
       consigneePhone: customerPhone || '',
       consigneeAddress: customerAddress || 'Local Mill Pickup',
       consigneeGstin: customerGstin || '29CJZPK3158H1ZG',
-      consigneeState: customerState || 'Karnataka',
-      consigneeStateCode: customerStateCode || '29',
+      consigneeState: customerState || '',
+      consigneeStateCode: customerStateCode || '',
       buyerName: customerName || 'New India Saw Mill',
       buyerPhone: customerPhone || '',
       buyerAddress: customerAddress || 'Local Mill Pickup',
       buyerGstin: customerGstin || '29CJZPK3158H1ZG',
-      buyerState: customerState || 'Karnataka',
-      buyerStateCode: customerStateCode || '29',
+      buyerState: customerState || '',
+      buyerStateCode: customerStateCode || '',
       additionalCharges: {
         carpentry: carpentryCharges,
         transportation: transportationCharges,
@@ -1309,7 +1310,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       persistCurrentCustomer();
                     }}
                     style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
-                    placeholder=""
+                    placeholder="Phone number"
                   />
                   {/* Phone Suggestions */}
                   {showPhoneSuggestions && phoneSuggestions.length > 0 && (
@@ -1381,6 +1382,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       }}
                       maxLength={15}
                       className="calc-gst-input"
+                      placeholder="15-digit GSTIN"
                       style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)' }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -1431,6 +1433,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       persistCurrentCustomer();
                     }}
                     autoComplete="off"
+                    placeholder="Company or firm name"
                     style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
 
@@ -1492,6 +1495,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
                     onBlur={persistCurrentCustomer}
+                    placeholder="Delivery site / address"
                     style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -1510,11 +1514,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         onChange={(e) => {
                           const val = e.target.value;
                           setCustomerState(val);
-                          if (!destination || destination === 'BANGLORE' || destination === customerState.toUpperCase()) {
+                          if (!destination || destination === customerState.toUpperCase()) {
                             setDestination(val.toUpperCase());
                           }
                         }}
                         onBlur={persistCurrentCustomer}
+                        placeholder="State"
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                       <input
@@ -1522,6 +1527,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         value={customerStateCode}
                         onChange={(e) => setCustomerStateCode(e.target.value)}
                         onBlur={persistCurrentCustomer}
+                        placeholder="Code"
                         style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
@@ -1535,7 +1541,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     <input
                       type="text"
                       value={destination}
-                      placeholder={customerState ? customerState.toUpperCase() : 'BANGLORE'}
+                      placeholder="Destination / State"
                       onChange={(e) => setDestination(e.target.value.toUpperCase())}
                       onBlur={persistCurrentCustomer}
                       style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
@@ -1552,6 +1558,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         type="text"
                         value={referenceNumber}
                         onChange={(e) => setReferenceNumber(e.target.value)}
+                        placeholder="Ref number"
                         style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
@@ -1602,7 +1609,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       persistCurrentCustomer();
                     }}
                     style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
-                    placeholder=""
+                    placeholder="Phone number"
                   />
                   {/* Phone Suggestions */}
                   {showPhoneSuggestions && phoneSuggestions.length > 0 && (
@@ -1674,6 +1681,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       persistCurrentCustomer();
                     }}
                     autoComplete="off"
+                    placeholder="Customer name"
                     style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
 
@@ -1735,6 +1743,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
                     onBlur={persistCurrentCustomer}
+                    placeholder="Delivery site / address"
                     style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -1751,6 +1760,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       value={customerGstin}
                       onChange={(e) => setCustomerGstin(e.target.value.toUpperCase())}
                       onBlur={persistCurrentCustomer}
+                      placeholder="Optional GSTIN"
                       style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                     />
                   </div>
@@ -1767,11 +1777,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         onChange={(e) => {
                           const val = e.target.value;
                           setCustomerState(val);
-                          if (!destination || destination === 'BANGLORE' || destination === customerState.toUpperCase()) {
+                          if (!destination || destination === customerState.toUpperCase()) {
                             setDestination(val.toUpperCase());
                           }
                         }}
                         onBlur={persistCurrentCustomer}
+                        placeholder="State"
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                       <input
@@ -1779,6 +1790,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         value={customerStateCode}
                         onChange={(e) => setCustomerStateCode(e.target.value)}
                         onBlur={persistCurrentCustomer}
+                        placeholder="Code"
                         style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
@@ -1792,7 +1804,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     <input
                       type="text"
                       value={destination}
-                      placeholder={customerState ? customerState.toUpperCase() : 'BANGLORE'}
+                      placeholder="Destination / State"
                       onChange={(e) => setDestination(e.target.value.toUpperCase())}
                       onBlur={persistCurrentCustomer}
                       style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
@@ -1809,6 +1821,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         type="text"
                         value={referenceNumber}
                         onChange={(e) => setReferenceNumber(e.target.value)}
+                        placeholder="Ref number"
                         style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
@@ -3403,21 +3416,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           paymentTerms={paymentTerms}
           buyerOrderNo={buyerOrderNo}
           buyerOrderDate={buyerOrderDate}
-          destination={destination || customerState?.toUpperCase() || 'BANGLORE'}
+          destination={destination || customerState?.toUpperCase() || ''}
           motorVehicleNo={motorVehicleNo}
           termsOfDelivery={termsOfDelivery}
           consigneeName={customerName || 'New India Saw Mill'}
           consigneePhone={customerPhone || ''}
           consigneeAddress={customerAddress || 'Local Mill Pickup'}
           consigneeGstin={customerGstin || '29CJZPK3158H1ZG'}
-          consigneeState={customerState || 'Karnataka'}
-          consigneeStateCode={customerStateCode || '29'}
+          consigneeState={customerState || ''}
+          consigneeStateCode={customerStateCode || ''}
           buyerName={customerName || 'New India Saw Mill'}
           buyerPhone={customerPhone || ''}
           buyerAddress={customerAddress || 'Local Mill Pickup'}
           buyerGstin={customerGstin || '29CJZPK3158H1ZG'}
-          buyerState={customerState || 'Karnataka'}
-          buyerStateCode={customerStateCode || '29'}
+          buyerState={customerState || ''}
+          buyerStateCode={customerStateCode || ''}
           items={sortedItems}
           ratePerCft={ratePerCft}
           additionalCharges={{
