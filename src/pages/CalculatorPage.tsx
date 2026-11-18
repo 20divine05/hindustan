@@ -158,23 +158,24 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
   // 11-Step Linear Workflow State:
   // 1: Customer Type (B2B vs B2C)
-  // 2: Customer / Business Details
-  // 3: Timber Calculator
-  // 4: Planing Charges (with image)
-  // 5: Carpentry Charges (with image)
-  // 6: Transportation Charges (with image)
-  // 7: Other Miscellaneous Charges (with image)
-  // 8: GST Tax Configuration (with image)
-  // 9: Customer Discount (with image)
-  // 10: Timber Order / Sorting
-  // 11: Final Invoice & Share
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11>(1);
+  // 2: Buyer (Bill to) Details
+  // 3: Consignee (Ship to) Details
+  // 4: Timber Calculator
+  // 5: Planing Charges (with image)
+  // 6: Carpentry Charges (with image)
+  // 7: Transportation Charges (with image)
+  // 8: Other Miscellaneous Charges (with image)
+  // 9: GST Tax Configuration (with image)
+  // 10: Customer Discount (with image)
+  // 11: Timber Order / Sorting
+  // 12: Final Invoice & Share
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12>(1);
 
   // Sheet Metadata State
   const [sheetId, setSheetId] = useState<string>(sheetToEdit?.id || generateId());
   const [sheetName, setSheetName] = useState<string>(sheetToEdit?.sheetName || 'Daily Timber Tally Sheet');
 
-  // Step 1: Customer Details
+  // Step 2: Buyer (Bill to) Customer Details
   const [customerType, setCustomerType] = useState<'b2b' | 'b2c'>(sheetToEdit?.customerType || 'b2c');
   const [customerName, setCustomerName] = useState<string>(sheetToEdit?.customerName || '');
   const [customerPhone, setCustomerPhone] = useState<string>(sheetToEdit?.customerPhone || '');
@@ -192,6 +193,35 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const [notes, setNotes] = useState<string>(sheetToEdit?.notes || '');
   const [isGstSearching, setIsGstSearching] = useState(false);
   const [gstSearchNotice, setGstSearchNotice] = useState<string | null>(null);
+
+  // Step 3: Consignee (Ship to) Details
+  const [consigneeName, setConsigneeName] = useState<string>(
+    sheetToEdit?.consigneeName || sheetToEdit?.customerName || ''
+  );
+  const [consigneePhone, setConsigneePhone] = useState<string>(
+    sheetToEdit?.consigneePhone || sheetToEdit?.customerPhone || ''
+  );
+  const [consigneeAddress, setConsigneeAddress] = useState<string>(
+    sheetToEdit?.consigneeAddress || sheetToEdit?.customerAddress || ''
+  );
+  const [consigneeGstin, setConsigneeGstin] = useState<string>(
+    sheetToEdit?.consigneeGstin || sheetToEdit?.customerGstin || ''
+  );
+  const [consigneeDistrict, setConsigneeDistrict] = useState<string>(
+    sheetToEdit?.consigneeDistrict || sheetToEdit?.customerState || ''
+  );
+  const [consigneeStateCode, setConsigneeStateCode] = useState<string>(
+    sheetToEdit?.consigneeStateCode || sheetToEdit?.customerStateCode || ''
+  );
+  const [consigneeState, setConsigneeState] = useState<string>(
+    sheetToEdit?.consigneeState || sheetToEdit?.destination || 'Karnataka'
+  );
+  const [isShipToTouched, setIsShipToTouched] = useState<boolean>(
+    Boolean(sheetToEdit?.consigneeName && sheetToEdit.consigneeName !== sheetToEdit.customerName)
+  );
+  const [isShipToGstSearching, setIsShipToGstSearching] = useState<boolean>(false);
+  const [shipToGstNotice, setShipToGstNotice] = useState<string | null>(null);
+  const [shipToCopyNotice, setShipToCopyNotice] = useState<string | null>(null);
 
   // Step 2: Timber Items & Rate
   const [items, setItems] = useState<MeasurementItem[]>(
@@ -306,6 +336,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       setInvoiceNo(sheetToEdit.referenceNumber ? sheetToEdit.referenceNumber.replace('REF-', '') : '8');
       setInvoiceDate(formatToInvoiceDate(sheetToEdit.measurementDate));
       setDestination(sheetToEdit.destination || 'Karnataka');
+      setConsigneeName(sheetToEdit.consigneeName || sheetToEdit.customerName || '');
+      setConsigneePhone(sheetToEdit.consigneePhone || sheetToEdit.customerPhone || '');
+      setConsigneeAddress(sheetToEdit.consigneeAddress || sheetToEdit.customerAddress || '');
+      setConsigneeGstin(sheetToEdit.consigneeGstin || sheetToEdit.customerGstin || '');
+      setConsigneeDistrict(sheetToEdit.consigneeDistrict || sheetToEdit.customerState || '');
+      setConsigneeStateCode(sheetToEdit.consigneeStateCode || sheetToEdit.customerStateCode || '');
+      setConsigneeState(sheetToEdit.consigneeState || sheetToEdit.destination || 'Karnataka');
+      setIsShipToTouched(Boolean(sheetToEdit.consigneeName && sheetToEdit.consigneeName !== sheetToEdit.customerName));
       setSaveStatus('saved');
     }
   }, [sheetToEdit]);
@@ -508,6 +546,90 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     }
   };
 
+  // Consignee (Ship To) GST search
+  const handleSearchConsigneeGst = async (gstinOverride?: string) => {
+    const rawGst = (gstinOverride || consigneeGstin).trim().toUpperCase();
+    const clean = rawGst.replace(/[^A-Z0-9]/g, '');
+
+    if (!clean || clean.length < 2) {
+      setShipToGstNotice('Please enter a valid 15-character GSTIN (e.g. 29APYPK6256P1ZL).');
+      return;
+    }
+
+    const code = clean.slice(0, 2);
+    const matchedState = INDIAN_GST_STATES[code] || consigneeState || 'Karnataka';
+    setConsigneeState(matchedState);
+    setConsigneeStateCode(code);
+
+    if (clean.length !== 15) {
+      setShipToGstNotice(`State identified: ${matchedState} (${code}). Please enter the full 15-digit GSTIN to fetch details.`);
+      return;
+    }
+
+    setIsShipToGstSearching(true);
+    setShipToGstNotice(null);
+
+    try {
+      const res = await fetchGstinDetails(clean);
+
+      if (res.success && res.data) {
+        const d = res.data;
+        const companyName = (d.trade_name && d.trade_name.trim().length > 0)
+          ? d.trade_name.trim()
+          : (d.legal_name || '').trim();
+
+        if (companyName) {
+          setConsigneeName(companyName);
+        }
+
+        let formattedAddress = '';
+        if (d.address && d.address.trim()) {
+          formattedAddress = d.address.trim();
+        } else if (d.address_details) {
+          const parts = [
+            d.address_details.building_number,
+            d.address_details.building_name,
+            d.address_details.street,
+            d.address_details.locality,
+            d.address_details.city || d.city,
+            d.address_details.state,
+            d.address_details.pincode || d.pincode
+          ].filter(Boolean);
+          formattedAddress = parts.join(', ');
+        }
+
+        if (formattedAddress) {
+          setConsigneeAddress(formattedAddress);
+        }
+
+        if (d.state_code) {
+          const stateFromApi = INDIAN_GST_STATES[d.state_code] || d.address_details?.state || matchedState;
+          setConsigneeState(stateFromApi);
+          setConsigneeStateCode(d.state_code);
+        }
+
+        const statusTag = d.status ? ` • Status: ${d.status}` : '';
+        const typeTag = d.taxpayer_type ? ` (${d.taxpayer_type})` : '';
+        setShipToGstNotice(`✓ Verified: ${companyName}${statusTag}${typeTag}`);
+      } else {
+        const all = getAllKnownCustomers();
+        const found = all.find(c => c.gstin && c.gstin.trim().toUpperCase() === clean);
+        if (found) {
+          if (found.name) setConsigneeName(found.name);
+          if (found.phone) setConsigneePhone(found.phone);
+          if (found.address) setConsigneeAddress(found.address);
+          setShipToGstNotice(`✓ Auto-Filled from Saved Directory: ${found.name} (${matchedState}, State Code ${code})`);
+        } else {
+          setShipToGstNotice(`⚠️ ${res.error || 'GSTIN details not found'}. State verified: ${matchedState} (${code}). You can enter details manually.`);
+        }
+      }
+    } catch (_err) {
+      setShipToGstNotice(`⚠️ Could not reach GST verification service. State verified: ${matchedState} (${code}).`);
+    } finally {
+      setIsShipToGstSearching(false);
+    }
+  };
+
   // Real-time unrounded totals calculation
   const totals = calculateTotals(items, businessSettings?.sqftFormulaType, ratePerCft);
 
@@ -668,6 +790,13 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       customerState,
       customerStateCode,
       destination,
+      consigneeName,
+      consigneePhone,
+      consigneeAddress,
+      consigneeGstin,
+      consigneeDistrict,
+      consigneeState,
+      consigneeStateCode,
       projectName,
       referenceNumber,
       measurementDate,
@@ -737,6 +866,13 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       customerState,
       customerStateCode,
       destination,
+      consigneeName,
+      consigneePhone,
+      consigneeAddress,
+      consigneeGstin,
+      consigneeDistrict,
+      consigneeState,
+      consigneeStateCode,
       projectName,
       referenceNumber,
       measurementDate,
@@ -874,6 +1010,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setCustomerState('');
     setCustomerStateCode('');
     setDestination('Karnataka');
+    setConsigneeName('');
+    setConsigneePhone('');
+    setConsigneeAddress('');
+    setConsigneeGstin('');
+    setConsigneeDistrict('');
+    setConsigneeStateCode('');
+    setConsigneeState('Karnataka');
+    setIsShipToTouched(false);
     setProjectName('');
     const newRef = `REF-${Math.floor(100000 + Math.random() * 900000)}`;
     setReferenceNumber(newRef);
@@ -942,21 +1086,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       paymentTerms,
       buyerOrderNo,
       buyerOrderDate,
-      destination: destination || 'Karnataka',
+      destination: consigneeState || destination || 'Karnataka',
       motorVehicleNo,
       termsOfDelivery,
-      consigneeName: customerName || 'New India Saw Mill',
-      consigneePhone: customerPhone || '',
-      consigneeAddress: customerAddress || 'Local Mill Pickup',
-      consigneeGstin: customerGstin || '29CJZPK3158H1ZG',
-      consigneeState: destination || customerState || 'Karnataka',
-      consigneeStateCode: customerStateCode || '29',
-      buyerName: customerName || 'New India Saw Mill',
-      buyerPhone: customerPhone || '',
-      buyerAddress: customerAddress || 'Local Mill Pickup',
-      buyerGstin: customerGstin || '29CJZPK3158H1ZG',
-      buyerState: destination || customerState || 'Karnataka',
-      buyerStateCode: customerStateCode || '29',
+      consigneeName: consigneeName || customerName || 'New India Saw Mill',
+      consigneePhone: consigneePhone || customerPhone || '',
+      consigneeAddress: consigneeAddress || customerAddress || 'Local Mill Pickup',
+      consigneeGstin: consigneeGstin || customerGstin || '29CJZPK3158H1ZG',
+      consigneeState: consigneeState || destination || 'Karnataka',
+      consigneeStateCode: consigneeStateCode || customerStateCode || '29',
+      buyerName: customerName || consigneeName || 'New India Saw Mill',
+      buyerPhone: customerPhone || consigneePhone || '',
+      buyerAddress: customerAddress || consigneeAddress || 'Local Mill Pickup',
+      buyerGstin: customerGstin || consigneeGstin || '29CJZPK3158H1ZG',
+      buyerState: destination || consigneeState || 'Karnataka',
+      buyerStateCode: customerStateCode || consigneeStateCode || '29',
       additionalCharges: {
         carpentry: carpentryCharges,
         transportation: transportationCharges,
@@ -1217,7 +1361,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 2: CUSTOMER / BUSINESS DETAILS (DYNAMIC B2C vs B2B)
+            STEP 2: BUYER (BILL TO) DETAILS (DYNAMIC B2C vs B2B)
             ========================================================================= */}
         {currentStep === 2 && (
           <div className="card calc-step-card">
@@ -1226,18 +1370,18 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <h3 className="calc-step-title">
                   {customerType === 'b2b' ? (
                     <>
-                      <Building size={16} color="var(--primary-600)" /> Business GST Details (B2B)
+                      <Building size={16} color="var(--primary-600)" /> Buyer (Bill to) Details (B2B)
                     </>
                   ) : (
                     <>
-                      <User size={16} color="var(--primary-600)" /> Customer Details (Retail / B2C)
+                      <User size={16} color="var(--primary-600)" /> Buyer (Bill to) Details (Retail / B2C)
                     </>
                   )}
                 </h3>
                 <p className="calc-step-desc">
                   {customerType === 'b2b'
-                    ? 'Enter 15-digit GST number to fetch verified company credentials'
-                    : 'Enter customer name, phone, delivery site and billing details'}
+                    ? 'Enter 15-digit GST number, company billing credentials and registered address'
+                    : 'Enter buyer name, phone, billing address and tax details'}
                 </p>
               </div>
 
@@ -1831,10 +1975,327 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             )}
           </div>
         )}
+
         {/* =========================================================================
-            STEP 3: TIMBER CALCULATOR (MEASUREMENTS, WOOD DROPDOWN & TALLY)
+            STEP 3: CONSIGNEE (SHIP TO) DETAILS (DYNAMIC B2C vs B2B)
             ========================================================================= */}
         {currentStep === 3 && (
+          <div className="card calc-step-card">
+            <div className="calc-step-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 className="calc-step-title">
+                  <Truck size={16} color="var(--primary-600)" /> Consignee (Ship to) Details
+                </h3>
+                <p className="calc-step-desc">
+                  Shipping delivery address and receiver information for the invoice
+                </p>
+              </div>
+
+              {/* Action: Copy from Bill To Button */}
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setConsigneeName(customerName);
+                  setConsigneePhone(customerPhone);
+                  setConsigneeAddress(customerAddress);
+                  setConsigneeGstin(customerGstin);
+                  setConsigneeDistrict(customerState);
+                  setConsigneeStateCode(customerStateCode);
+                  setConsigneeState(destination);
+                  setShipToCopyNotice('✓ Copied all details from Bill To');
+                  setTimeout(() => setShipToCopyNotice(null), 2500);
+                }}
+                style={{ fontSize: '0.74rem', padding: '0.3rem 0.65rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <span>📋 Copy from Bill To</span>
+              </button>
+            </div>
+
+            {shipToCopyNotice && (
+              <div style={{ padding: '0.4rem 0.7rem', background: '#dcfce7', color: '#15803d', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800 }}>
+                {shipToCopyNotice}
+              </div>
+            )}
+
+            {customerType === 'b2b' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* 1. Phone Number */}
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                    <Phone size={14} color="var(--primary-600)" /> Phone Number:
+                  </label>
+                  <input
+                    type="tel"
+                    value={consigneePhone}
+                    onChange={(e) => {
+                      setIsShipToTouched(true);
+                      setConsigneePhone(e.target.value.replace(/[^0-9+ ]/g, ''));
+                    }}
+                    placeholder="Phone number"
+                    style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* 2. 15-Digit GST Number Fetching */}
+                <div className="calc-gst-search-box" style={{ margin: 0 }}>
+                  <div className="calc-gst-search-header">
+                    <label className="calc-gst-search-label" style={{ fontWeight: 800, fontSize: '0.85rem' }}>
+                      <ShieldCheck size={15} color="var(--primary-600)" /> 15-Digit GST Number:
+                    </label>
+                    <span className="calc-gst-live-badge" style={{ fontWeight: 800 }}>
+                      Live GSTIN API Powered
+                    </span>
+                  </div>
+                  <div className="calc-gst-search-row">
+                    <input
+                      type="text"
+                      value={consigneeGstin}
+                      onChange={(e) => {
+                        setIsShipToTouched(true);
+                        const val = e.target.value.toUpperCase();
+                        setConsigneeGstin(val);
+                        if (val.length === 15 && val !== consigneeGstin) {
+                          handleSearchConsigneeGst(val);
+                        }
+                      }}
+                      maxLength={15}
+                      className="calc-gst-input"
+                      placeholder="15-digit GSTIN"
+                      style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)' }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleSearchConsigneeGst();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-primary calc-gst-btn"
+                      onClick={() => handleSearchConsigneeGst()}
+                      disabled={isShipToGstSearching || !consigneeGstin.trim()}
+                      style={{ fontWeight: 800 }}
+                    >
+                      <Search size={15} />
+                      <span>{isShipToGstSearching ? 'Fetching...' : 'Fetch Details'}</span>
+                    </button>
+                  </div>
+
+                  {shipToGstNotice && (
+                    <div style={{ marginTop: '0.4rem', fontSize: '0.78rem', fontWeight: 800, color: shipToGstNotice.startsWith('✓') ? '#15803d' : '#b45309' }}>
+                      {shipToGstNotice}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Company / Firm Name */}
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                    <Building size={14} color="var(--primary-600)" /> Receiving Company / Firm Name:
+                  </label>
+                  <input
+                    type="text"
+                    value={consigneeName}
+                    onChange={(e) => {
+                      setIsShipToTouched(true);
+                      setConsigneeName(e.target.value);
+                    }}
+                    placeholder="Receiving company or firm name"
+                    style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* 4. Address / Delivery Site */}
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                    <MapPin size={14} color="var(--primary-600)" /> Delivery Site / Shipping Address:
+                  </label>
+                  <textarea
+                    rows={1}
+                    className="calc-address-textarea"
+                    value={consigneeAddress}
+                    onChange={(e) => {
+                      setIsShipToTouched(true);
+                      setConsigneeAddress(e.target.value);
+                    }}
+                    placeholder="Shipping address / delivery site"
+                    style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* 5. District, Code, State */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.65rem' }}>
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                      <MapPin size={14} color="var(--primary-600)" /> District / Code:
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <input
+                        type="text"
+                        value={consigneeDistrict}
+                        onChange={(e) => {
+                          setIsShipToTouched(true);
+                          setConsigneeDistrict(e.target.value);
+                        }}
+                        placeholder="District"
+                        style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                      />
+                      <input
+                        type="text"
+                        value={consigneeStateCode}
+                        onChange={(e) => {
+                          setIsShipToTouched(true);
+                          setConsigneeStateCode(e.target.value);
+                        }}
+                        placeholder="Code"
+                        style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                      <Truck size={14} color="var(--primary-600)" /> State:
+                    </label>
+                    <input
+                      type="text"
+                      value={consigneeState}
+                      placeholder="State"
+                      onChange={(e) => {
+                        setIsShipToTouched(true);
+                        setConsigneeState(e.target.value);
+                      }}
+                      style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* 1. Phone Number */}
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                    <Phone size={14} color="var(--primary-600)" /> Phone Number:
+                  </label>
+                  <input
+                    type="tel"
+                    value={consigneePhone}
+                    onChange={(e) => {
+                      setIsShipToTouched(true);
+                      setConsigneePhone(e.target.value.replace(/[^0-9+ ]/g, ''));
+                    }}
+                    placeholder="Phone number"
+                    style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* 2. Customer Name */}
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                    <User size={14} color="var(--primary-600)" /> Receiving Person / Customer Name:
+                  </label>
+                  <input
+                    type="text"
+                    value={consigneeName}
+                    onChange={(e) => {
+                      setIsShipToTouched(true);
+                      setConsigneeName(e.target.value);
+                    }}
+                    placeholder="Receiving customer name"
+                    style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* 3. Address / Delivery Site */}
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                    <MapPin size={14} color="var(--primary-600)" /> Delivery Site / Shipping Address:
+                  </label>
+                  <textarea
+                    rows={1}
+                    className="calc-address-textarea"
+                    value={consigneeAddress}
+                    onChange={(e) => {
+                      setIsShipToTouched(true);
+                      setConsigneeAddress(e.target.value);
+                    }}
+                    placeholder="Delivery site / address"
+                    style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* 4. GST Number Optional, District & Code, State */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.65rem' }}>
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                      <ShieldCheck size={14} color="var(--primary-600)" /> GST Number (Optional):
+                    </label>
+                    <input
+                      type="text"
+                      value={consigneeGstin}
+                      onChange={(e) => {
+                        setIsShipToTouched(true);
+                        setConsigneeGstin(e.target.value.toUpperCase());
+                      }}
+                      placeholder="Optional GSTIN"
+                      style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                      <MapPin size={14} color="var(--primary-600)" /> District / Code:
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <input
+                        type="text"
+                        value={consigneeDistrict}
+                        onChange={(e) => {
+                          setIsShipToTouched(true);
+                          setConsigneeDistrict(e.target.value);
+                        }}
+                        placeholder="District"
+                        style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                      />
+                      <input
+                        type="text"
+                        value={consigneeStateCode}
+                        onChange={(e) => {
+                          setIsShipToTouched(true);
+                          setConsigneeStateCode(e.target.value);
+                        }}
+                        placeholder="Code"
+                        style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                      <Truck size={14} color="var(--primary-600)" /> State:
+                    </label>
+                    <input
+                      type="text"
+                      value={consigneeState}
+                      placeholder="State"
+                      onChange={(e) => {
+                        setIsShipToTouched(true);
+                        setConsigneeState(e.target.value);
+                      }}
+                      style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* =========================================================================
+            STEP 4: TIMBER CALCULATOR (MEASUREMENTS, WOOD DROPDOWN & TALLY)
+            ========================================================================= */}
+        {currentStep === 4 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="card calc-table-card" style={{ padding: '0.85rem' }}>
               <div className="calc-step2-top-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
@@ -1881,9 +2342,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 4: PLANING CHARGES (WITH IMAGE)
+            STEP 5: PLANING CHARGES (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 4 && (
+        {currentStep === 5 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2006,9 +2467,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 5: CARPENTRY CHARGES (WITH IMAGE)
+            STEP 6: CARPENTRY CHARGES (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 5 && (
+        {currentStep === 6 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2085,9 +2546,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 6: TRANSPORTATION CHARGES (WITH IMAGE)
+            STEP 7: TRANSPORTATION CHARGES (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 6 && (
+        {currentStep === 7 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2164,9 +2625,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 7: OTHER CHARGES (WITH IMAGE)
+            STEP 8: OTHER CHARGES (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 7 && (
+        {currentStep === 8 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2261,9 +2722,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 8: GST TAX (WITH IMAGE)
+            STEP 9: GST TAX (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 8 && (
+        {currentStep === 9 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2386,9 +2847,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 9: DISCOUNT (WITH IMAGE)
+            STEP 10: DISCOUNT (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 9 && (
+        {currentStep === 10 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2514,10 +2975,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 10: ORDER / SORTING OF TIMBER ENTRIES
+            STEP 11: ORDER / SORTING OF TIMBER ENTRIES
             Width (IN) - Ascending, Thickness (IN) - Descending, Length (FT) - Descending
             ========================================================================= */}
-        {currentStep === 10 && (
+        {currentStep === 11 && (
           <div className="card calc-step-card">
             <div className="calc-step-header">
               <h3 className="calc-step-title">
@@ -2534,10 +2995,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() => setCurrentStep(3)}
+                  onClick={() => setCurrentStep(4)}
                   style={{ marginTop: '0.65rem', padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
                 >
-                  Go to Step 3 to add timber entries
+                  Go to Timber Calculator to add timber entries
                 </button>
               </div>
             ) : (
@@ -2906,9 +3367,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 11: FINAL REVIEW, WHATSAPP SHARE, PDF DOWNLOAD & PRINT
+            STEP 12: FINAL REVIEW, WHATSAPP SHARE, PDF DOWNLOAD & PRINT
             ========================================================================= */}
-        {currentStep === 11 && (
+        {currentStep === 12 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
 
             {/* 3 High-Impact Primary Mobile Action Buttons (WhatsApp, PDF, Print) */}
@@ -3209,34 +3670,46 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               <button
                 type="button"
                 className="btn btn-secondary calc-dock-btn calc-dock-prev"
-                onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11)}
+                onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12)}
                 style={{ flex: '0 0 auto', padding: '0.45rem 0.85rem' }}
               >
                 <ArrowLeft size={15} /> Back
               </button>
             )}
 
-            {currentStep < 11 ? (
+            {currentStep < 12 ? (
               <button
                 type="button"
                 className="btn btn-primary calc-dock-btn calc-dock-next"
                 style={{ flex: 1 }}
                 onClick={() => {
-                  if (currentStep === 2) persistCurrentCustomer();
-                  setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11);
+                  if (currentStep === 2) {
+                    persistCurrentCustomer();
+                    if (!isShipToTouched) {
+                      setConsigneeName(customerName);
+                      setConsigneePhone(customerPhone);
+                      setConsigneeAddress(customerAddress);
+                      setConsigneeGstin(customerGstin);
+                      setConsigneeDistrict(customerState);
+                      setConsigneeStateCode(customerStateCode);
+                      setConsigneeState(destination);
+                    }
+                  }
+                  setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12);
                 }}
               >
                 <span>
-                  {currentStep === 1 && 'Next: Details →'}
-                  {currentStep === 2 && 'Next: Calculator →'}
-                  {currentStep === 3 && 'Next: Planing →'}
-                  {currentStep === 4 && 'Next: Carpentry →'}
-                  {currentStep === 5 && 'Next: Transport →'}
-                  {currentStep === 6 && 'Next: Other Charges →'}
-                  {currentStep === 7 && 'Next: GST Tax →'}
-                  {currentStep === 8 && 'Next: Discount →'}
-                  {currentStep === 9 && 'Next: Order Sorting →'}
-                  {currentStep === 10 && 'Next: Invoice & Share →'}
+                  {currentStep === 1 && 'Next: Bill To Details →'}
+                  {currentStep === 2 && 'Next: Ship To Details →'}
+                  {currentStep === 3 && 'Next: Timber Calculator →'}
+                  {currentStep === 4 && 'Next: Planing →'}
+                  {currentStep === 5 && 'Next: Carpentry →'}
+                  {currentStep === 6 && 'Next: Transport →'}
+                  {currentStep === 7 && 'Next: Other Charges →'}
+                  {currentStep === 8 && 'Next: GST Tax →'}
+                  {currentStep === 9 && 'Next: Discount →'}
+                  {currentStep === 10 && 'Next: Order Sorting →'}
+                  {currentStep === 11 && 'Next: Invoice & Share →'}
                 </span>
               </button>
             ) : (
@@ -3404,21 +3877,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           paymentTerms={paymentTerms}
           buyerOrderNo={buyerOrderNo}
           buyerOrderDate={buyerOrderDate}
-          destination={destination || 'Karnataka'}
+          destination={consigneeState || destination || 'Karnataka'}
           motorVehicleNo={motorVehicleNo}
           termsOfDelivery={termsOfDelivery}
-          consigneeName={customerName || 'New India Saw Mill'}
-          consigneePhone={customerPhone || ''}
-          consigneeAddress={customerAddress || 'Local Mill Pickup'}
-          consigneeGstin={customerGstin || '29CJZPK3158H1ZG'}
-          consigneeState={destination || customerState || 'Karnataka'}
-          consigneeStateCode={customerStateCode || '29'}
-          buyerName={customerName || 'New India Saw Mill'}
-          buyerPhone={customerPhone || ''}
-          buyerAddress={customerAddress || 'Local Mill Pickup'}
-          buyerGstin={customerGstin || '29CJZPK3158H1ZG'}
-          buyerState={destination || customerState || 'Karnataka'}
-          buyerStateCode={customerStateCode || '29'}
+          consigneeName={consigneeName || customerName || 'New India Saw Mill'}
+          consigneePhone={consigneePhone || customerPhone || ''}
+          consigneeAddress={consigneeAddress || customerAddress || 'Local Mill Pickup'}
+          consigneeGstin={consigneeGstin || customerGstin || '29CJZPK3158H1ZG'}
+          consigneeState={consigneeState || destination || 'Karnataka'}
+          consigneeStateCode={consigneeStateCode || customerStateCode || '29'}
+          buyerName={customerName || consigneeName || 'New India Saw Mill'}
+          buyerPhone={customerPhone || consigneePhone || ''}
+          buyerAddress={customerAddress || consigneeAddress || 'Local Mill Pickup'}
+          buyerGstin={customerGstin || consigneeGstin || '29CJZPK3158H1ZG'}
+          buyerState={destination || consigneeState || 'Karnataka'}
+          buyerStateCode={customerStateCode || consigneeStateCode || '29'}
           items={sortedItems}
           ratePerCft={ratePerCft}
           additionalCharges={{

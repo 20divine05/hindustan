@@ -50,6 +50,13 @@ export interface MeasurementSheet {
   customerState?: string;
   customerStateCode?: string;
   destination?: string;
+  consigneeName?: string;
+  consigneePhone?: string;
+  consigneeAddress?: string;
+  consigneeGstin?: string;
+  consigneeDistrict?: string;
+  consigneeState?: string;
+  consigneeStateCode?: string;
   projectName: string;
   referenceNumber: string;
   measurementDate: string;
