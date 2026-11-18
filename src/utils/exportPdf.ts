@@ -670,7 +670,8 @@ export function createProformaInvoiceDoc(
 
   // 5. Next: GST Line
   if (invoiceData?.gstAmount && invoiceData.gstAmount > 0) {
-    tableBody.push(chargeRow('GST', formatIndianCurrency(invoiceData.gstAmount)));
+    const gstLabel = invoiceData?.gstPercent ? `GST (${invoiceData.gstPercent}%)` : 'GST';
+    tableBody.push(chargeRow(gstLabel, formatIndianCurrency(invoiceData.gstAmount)));
   }
 
   // 6. Next: DISCOUNT (if any)

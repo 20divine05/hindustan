@@ -519,7 +519,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       const t = typeof it.thicknessInches === 'number' ? it.thicknessInches : 0;
       const p = typeof it.pieces === 'number' ? it.pieces : 0;
       if (l > 0 && w > 0 && t > 0 && p > 0) {
-        const rowCft = it.cft > 0 ? it.cft : (l * w * t * p) / 2304;
+        const rowCft = it.cft > 0 ? it.cft : (l * w * t * p) / 144;
         const rowSqft = it.sqft > 0 ? it.sqft : (rowCft * 12);
         const isSqft = w >= 7 && it.rateUnit !== 'CFT';
         const defaultRowRate = isSqft ? 120 : ratePerCft;
@@ -535,28 +535,31 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const additionalChargesTotal = (carpentryCharges || 0) + (transportationCharges || 0) + (planingCharges || 0) + (sawingCharges || 0) + (otherCharges || 0);
   const subtotalWithCharges = timberSubtotal + additionalChargesTotal;
 
+  // The specific amount on which GST is applied:
+  // User enters custom amount directly (e.g. ₹ 5,000) or defaults to the subtotal with charges
+  const gstTaxableBase = (customGstTaxableAmount > 0)
+    ? customGstTaxableAmount
+    : subtotalWithCharges;
+
+  // GST Amount is calculated strictly on the gstTaxableBase
+  const gstAmount = Math.round((gstTaxableBase * ((gstPercent || 0) / 100)) * 100) / 100;
+
+  // Total bill amount before customer discount (Timber + Additional Charges + GST)
+  const totalBeforeDiscount = Math.round((subtotalWithCharges + gstAmount) * 100) / 100;
+
+  // Customer Discount / Concession:
+  // - If percentage: calculated as % of subtotal with charges
+  // - If flat rupees: flat amount deducted directly from total payable
   const discountAmount = useMemo(() => {
     if (!discountValue || discountValue <= 0) return 0;
     if (discountType === 'percentage') {
       return Math.round((subtotalWithCharges * (discountValue / 100)) * 100) / 100;
     }
-    return Math.min(discountValue, subtotalWithCharges);
-  }, [discountType, discountValue, subtotalWithCharges]);
+    return Math.min(discountValue, totalBeforeDiscount);
+  }, [discountType, discountValue, subtotalWithCharges, totalBeforeDiscount]);
 
-  // Total bill amount before GST (e.g. ₹ 10,000)
-  const fullAmountBeforeGst = Math.max(0, subtotalWithCharges - discountAmount);
-
-  // The specific amount on which GST is applied:
-  // User enters custom amount directly (e.g. ₹ 5,000)
-  const gstTaxableBase = (customGstTaxableAmount > 0)
-    ? customGstTaxableAmount
-    : fullAmountBeforeGst;
-
-  // GST Amount is calculated strictly on the gstTaxableBase
-  const gstAmount = Math.round((gstTaxableBase * ((gstPercent || 0) / 100)) * 100) / 100;
-
-  // Grand Total = Full Total Amount (₹ 10,000) + GST Amount (e.g. ₹ 800 or ₹ 900) = ₹ 10,800 or ₹ 10,900
-  const finalGrandTotal = fullAmountBeforeGst + gstAmount;
+  // Grand Total = Total Before Discount - Discount Deducted
+  const finalGrandTotal = Math.max(0, Math.round((totalBeforeDiscount - discountAmount) * 100) / 100);
 
   // Sorted timber entries according to strict sawmill specifications:
   // Wood Species Grouping -> Width (IN) Ascending -> Length (FT) Descending -> Thickness (IN) Descending
@@ -676,7 +679,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       },
       customGstTaxableAmount: customGstTaxableAmount > 0 ? customGstTaxableAmount : undefined,
       gstPercent,
-      finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : fullAmountBeforeGst
+      finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : totalBeforeDiscount
     };
     return sanitizeAndComputeSheet(raw, user?.id || 'guest');
   };
@@ -744,7 +747,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       },
       customGstTaxableAmount: customGstTaxableAmount > 0 ? customGstTaxableAmount : undefined,
       gstPercent,
-      finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : fullAmountBeforeGst
+      finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : totalBeforeDiscount
     };
 
     // Always preserve working session draft
@@ -952,7 +955,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       discountAmount,
       discountDesc: discountType === 'percentage' ? `DISCOUNT (${discountValue}%)` : 'SPECIAL DISCOUNT',
       gstPercent,
-      gstTaxableBase: (customGstTaxableAmount > 0 && customGstTaxableAmount !== fullAmountBeforeGst) ? gstTaxableBase : undefined,
+      gstTaxableBase: (customGstTaxableAmount > 0 && customGstTaxableAmount !== subtotalWithCharges) ? gstTaxableBase : undefined,
       finalGrandTotal,
       gstAmount,
       items: invoiceItems
@@ -1018,7 +1021,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
     const invoiceNo = exportData.invoiceNo || 'Invoice';
     const clientName = (customerName || '').trim() || 'Valued Customer';
-    const totalPayable = formatIndianCurrency(finalGrandTotal > 0 ? finalGrandTotal : fullAmountBeforeGst);
+    const totalPayable = formatIndianCurrency(finalGrandTotal > 0 ? finalGrandTotal : totalBeforeDiscount);
 
     const shareMessage = `🌲 *HINDUSTAN SAW MILL & WOOD WORKS* 🌲\n` +
       `📄 *Proforma Invoice:* ${invoiceNo}\n` +
@@ -2242,6 +2245,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <input
                   type="number"
                   className="calc-prefixed-input"
+                  placeholder={formatIndianCurrency(subtotalWithCharges)}
                   value={customGstTaxableAmount === 0 ? '' : customGstTaxableAmount}
                   onChange={(e) => setCustomGstTaxableAmount(Math.max(0, Number(e.target.value) || 0))}
                   style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
@@ -3371,7 +3375,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           discountAmount={discountAmount}
           discountDesc={discountType === 'percentage' ? `${discountValue}%` : `₹${discountValue}`}
           gstPercent={gstPercent}
-          gstTaxableBase={(customGstTaxableAmount > 0 && customGstTaxableAmount !== fullAmountBeforeGst) ? gstTaxableBase : undefined}
+          gstTaxableBase={(customGstTaxableAmount > 0 && customGstTaxableAmount !== subtotalWithCharges) ? gstTaxableBase : undefined}
           gstAmount={gstAmount}
           finalGrandTotal={finalGrandTotal}
         />

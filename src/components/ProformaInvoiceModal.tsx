@@ -307,8 +307,12 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const totalOther = ac?.other || 0;
   const additionalChargesSum = totalCarpentryWorks + totalTransportation + totalPlaning + totalOther;
   const discAmount = sheet?.discount?.amount || 0;
-  const gstAmount = sheet?.gstPercent ? Math.round(((totalAmount + additionalChargesSum - discAmount) * (sheet.gstPercent / 100)) * 100) / 100 : 0;
-  const computedFallback = Math.max(0, totalAmount + additionalChargesSum - discAmount + gstAmount);
+  const subtotalWithCharges = totalAmount + additionalChargesSum;
+  const gstTaxableBase = (sheet?.customGstTaxableAmount && sheet.customGstTaxableAmount > 0)
+    ? sheet.customGstTaxableAmount
+    : subtotalWithCharges;
+  const gstAmount = sheet?.gstPercent ? Math.round((gstTaxableBase * (sheet.gstPercent / 100)) * 100) / 100 : 0;
+  const computedFallback = Math.max(0, subtotalWithCharges + gstAmount - discAmount);
   const effectiveTotal = (sheet?.finalGrandTotal && sheet.finalGrandTotal > 0)
     ? sheet.finalGrandTotal
     : (computedFallback > 0 ? computedFallback : totalAmount);
@@ -959,7 +963,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td className="text-center"></td>
                           <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
-                            GST
+                            GST {sheet?.gstPercent ? `(${sheet.gstPercent}%)` : ''}
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
                             {renderWithSmallDecimalHtml(formatIndianCurrency(gstAmount))}
