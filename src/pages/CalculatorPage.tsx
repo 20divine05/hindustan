@@ -1365,50 +1365,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             ========================================================================= */}
         {currentStep === 2 && (
           <div className="card calc-step-card">
-            {/* Top Indicator: Bill to (Always visible on mobile & desktop) */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.45rem', borderBottom: '1.5px solid var(--border-light, #e2e8f0)', marginBottom: '0.35rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--primary-700)', background: 'var(--primary-100, #e2e8f0)', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--primary-300)' }}>
-                  Bill to
-                </span>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  {customerType === 'b2b' ? 'Buyer Business GST Details' : 'Buyer Customer Details'}
-                </span>
-              </div>
-
-              {/* Pill to switch customer type if needed */}
-              <div style={{ display: 'inline-flex', gap: '3px', background: 'var(--bg-subtle, #f5eedf)', padding: '2px 4px', borderRadius: '20px', border: '1px solid var(--border-medium)', fontSize: '0.72rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setCustomerType('b2c')}
-                  style={{
-                    border: 'none',
-                    background: customerType === 'b2c' ? 'var(--primary-700)' : 'transparent',
-                    color: customerType === 'b2c' ? '#fff' : 'var(--text-muted)',
-                    padding: '2px 8px',
-                    borderRadius: '15px',
-                    fontWeight: customerType === 'b2c' ? 800 : 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Retail (B2C)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCustomerType('b2b')}
-                  style={{
-                    border: 'none',
-                    background: customerType === 'b2b' ? 'var(--primary-700)' : 'transparent',
-                    color: customerType === 'b2b' ? '#fff' : 'var(--text-muted)',
-                    padding: '2px 8px',
-                    borderRadius: '15px',
-                    fontWeight: customerType === 'b2b' ? 800 : 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Business (B2B)
-                </button>
-              </div>
+            {/* Top Indicator: Bill to (Small & clean) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', paddingBottom: '0.25rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.25rem' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--primary-700)', background: 'var(--primary-100, #e2e8f0)', padding: '1px 6px', borderRadius: '3px', border: '1px solid var(--primary-300)' }}>
+                Bill to
+              </span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                {customerType === 'b2b' ? 'Buyer Business GST' : 'Buyer Customer Details'}
+              </span>
             </div>
 
             {/* Customer Inputs Form */}
@@ -1942,13 +1906,13 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             ========================================================================= */}
         {currentStep === 3 && (
           <div className="card calc-step-card">
-            {/* Top Indicator: Ship to (Always visible on mobile & desktop) */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.45rem', borderBottom: '1.5px solid var(--border-light, #e2e8f0)', marginBottom: '0.35rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#0369a1', background: '#e0f2fe', padding: '2px 8px', borderRadius: '4px', border: '1px solid #7dd3fc' }}>
+            {/* Top Indicator: Ship to (Small & clean) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.25rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0369a1', background: '#e0f2fe', padding: '1px 6px', borderRadius: '3px', border: '1px solid #7dd3fc' }}>
                   Ship to
                 </span>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
                   Consignee Shipping Details
                 </span>
               </div>
@@ -1967,7 +1931,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   setShipToCopyNotice('✓ Copied from Bill To');
                   setTimeout(() => setShipToCopyNotice(null), 2500);
                 }}
-                style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
               >
                 <span>📋 Copy from Bill To</span>
               </button>
