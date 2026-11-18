@@ -107,24 +107,23 @@ export function createProformaInvoiceDoc(
   const paymentTerms = invoiceData?.paymentTerms || 'IMMEDIATE PAYMENT';
   const buyerOrderNo = invoiceData?.buyerOrderNo || '';
   const buyerOrderDate = invoiceData?.buyerOrderDate || '';
-  const destination = invoiceData?.destination || sheet.destination || sheet.customerState?.toUpperCase() || 'BANGLORE';
+  const destination = invoiceData?.destination || sheet.destination || sheet.consigneeDistrict?.toUpperCase() || sheet.consigneeState?.toUpperCase() || sheet.customerState?.toUpperCase() || 'BANGLORE';
   const motorVehicleNo = invoiceData?.motorVehicleNo || '';
   const termsOfDelivery = invoiceData?.termsOfDelivery || 'TRANSPORTATION EXTRA\nAPPLICABLE GST EXTRA';
 
-  const defaultSampleAddr = 'Sy.No.10/7 Khata No.27/2/100/10/7, Sir M\nVishveshwaraih Layout, 3rd Block, Bengaluru, Near\nNammoora Thindi, Bengaluru Urban';
-  const consigneeName = invoiceData?.consigneeName || sheet.customerName || 'New India Saw Mill';
-  const consigneeAddress = invoiceData?.consigneeAddress || sheet.customerAddress || defaultSampleAddr;
-  const consigneeGstin = invoiceData?.consigneeGstin || '29CJZPK3158H1ZG';
-  const consigneeState = invoiceData?.consigneeState || 'Karnataka';
-  const consigneeStateCode = invoiceData?.consigneeStateCode || '29';
-  const consigneePhone = invoiceData?.consigneePhone || sheet.customerPhone || '';
+  const consigneeName = invoiceData?.consigneeName ?? sheet.consigneeName ?? sheet.customerName ?? '';
+  const consigneeAddress = invoiceData?.consigneeAddress ?? sheet.consigneeAddress ?? sheet.customerAddress ?? '';
+  const consigneeGstin = invoiceData?.consigneeGstin ?? sheet.consigneeGstin ?? '';
+  const consigneeState = invoiceData?.consigneeState ?? sheet.consigneeState ?? sheet.destination ?? 'Karnataka';
+  const consigneeStateCode = invoiceData?.consigneeStateCode ?? sheet.consigneeStateCode ?? sheet.customerStateCode ?? '29';
+  const consigneePhone = invoiceData?.consigneePhone ?? sheet.consigneePhone ?? sheet.customerPhone ?? '';
 
-  const buyerName = invoiceData?.buyerName || consigneeName;
-  const buyerPhone = invoiceData?.buyerPhone || consigneePhone;
-  const buyerAddress = invoiceData?.buyerAddress || consigneeAddress;
-  const buyerGstin = invoiceData?.buyerGstin || consigneeGstin;
-  const buyerState = invoiceData?.buyerState || consigneeState;
-  const buyerStateCode = invoiceData?.buyerStateCode || consigneeStateCode;
+  const buyerName = invoiceData?.buyerName ?? sheet.customerName ?? consigneeName ?? '';
+  const buyerPhone = invoiceData?.buyerPhone ?? sheet.customerPhone ?? consigneePhone ?? '';
+  const buyerAddress = invoiceData?.buyerAddress ?? sheet.customerAddress ?? consigneeAddress ?? '';
+  const buyerGstin = invoiceData?.buyerGstin ?? sheet.customerGstin ?? '';
+  const buyerState = invoiceData?.buyerState ?? sheet.customerState ?? consigneeState ?? 'Karnataka';
+  const buyerStateCode = invoiceData?.buyerStateCode ?? sheet.customerStateCode ?? consigneeStateCode ?? '29';
 
   const defaultRate = settings?.ratePerCft || 1200;
 

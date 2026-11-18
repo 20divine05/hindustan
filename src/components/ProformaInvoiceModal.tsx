@@ -96,7 +96,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const [dispatchDocNo, setDispatchDocNo] = useState('');
   const [deliveryNoteDate, setDeliveryNoteDate] = useState('');
   const [dispatchedThrough, setDispatchedThrough] = useState(savedDraft.dispatchedThrough || '');
-  const [destination, setDestination] = useState(sheet?.destination || sheet?.customerState?.toUpperCase() || '');
+  const [destination, setDestination] = useState(sheet?.destination || sheet?.consigneeDistrict?.toUpperCase() || sheet?.customerState?.toUpperCase() || '');
   const [billOfLadingNo, setBillOfLadingNo] = useState('');
   const [motorVehicleNo, setMotorVehicleNo] = useState('');
   const [termsOfDelivery, setTermsOfDelivery] = useState(savedDraft.termsOfDelivery || '');
@@ -105,7 +105,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const [consigneeName, setConsigneeName] = useState(sheet?.consigneeName || sheet?.customerName || '');
   const [consigneePhone, setConsigneePhone] = useState(sheet?.consigneePhone || sheet?.customerPhone || '');
   const [consigneeAddress, setConsigneeAddress] = useState(sheet?.consigneeAddress || sheet?.customerAddress || '');
-  const [consigneeGstin, setConsigneeGstin] = useState(sheet?.consigneeGstin || sheet?.customerGstin || '29CJZPK3158H1ZG');
+  const [consigneeGstin, setConsigneeGstin] = useState(sheet?.consigneeGstin || '');
   const [consigneeState, setConsigneeState] = useState(sheet?.consigneeState || sheet?.destination || 'Karnataka');
   const [consigneeStateCode, setConsigneeStateCode] = useState(sheet?.consigneeStateCode || sheet?.customerStateCode || '29');
 
@@ -113,9 +113,51 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const [buyerName, setBuyerName] = useState(sheet?.customerName || sheet?.consigneeName || '');
   const [buyerPhone, setBuyerPhone] = useState(sheet?.customerPhone || sheet?.consigneePhone || '');
   const [buyerAddress, setBuyerAddress] = useState(sheet?.customerAddress || sheet?.consigneeAddress || '');
-  const [buyerGstin, setBuyerGstin] = useState(sheet?.customerGstin || sheet?.consigneeGstin || '29CJZPK3158H1ZG');
-  const [buyerState, setBuyerState] = useState(sheet?.destination || sheet?.customerState || 'Karnataka');
+  const [buyerGstin, setBuyerGstin] = useState(sheet?.customerGstin || '');
+  const [buyerState, setBuyerState] = useState(sheet?.customerState || sheet?.destination || 'Karnataka');
   const [buyerStateCode, setBuyerStateCode] = useState(sheet?.customerStateCode || '29');
+
+  // Synchronize modal fields with live sheet data whenever the modal opens
+  const prevIsOpenRef = React.useRef(isOpen);
+  useEffect(() => {
+    if (!isOpen) {
+      prevIsOpenRef.current = false;
+      return;
+    }
+    if (!prevIsOpenRef.current) {
+      prevIsOpenRef.current = true;
+      if (!sheet) return;
+
+      if (sheet.referenceNumber) {
+        setInvoiceNo(sheet.referenceNumber.replace('REF-', ''));
+        setRefNoAndDate(sheet.referenceNumber);
+      }
+      if (sheet.measurementDate) {
+        setInvoiceDate(formatToInvoiceDate(sheet.measurementDate));
+      }
+
+      const shipState = sheet.consigneeState || 'Karnataka';
+      const shipDistrict = sheet.consigneeDistrict || '';
+      const dest = sheet.destination || (shipDistrict ? shipDistrict.toUpperCase() : shipState.toUpperCase());
+      setDestination(dest);
+
+      // Consignee (Ship to)
+      setConsigneeName(sheet.consigneeName || sheet.customerName || '');
+      setConsigneePhone(sheet.consigneePhone || sheet.customerPhone || '');
+      setConsigneeAddress(sheet.consigneeAddress || sheet.customerAddress || '');
+      setConsigneeGstin(sheet.consigneeGstin || '');
+      setConsigneeState(sheet.consigneeState || 'Karnataka');
+      setConsigneeStateCode(sheet.consigneeStateCode || sheet.customerStateCode || '29');
+
+      // Buyer (Bill to)
+      setBuyerName(sheet.customerName || sheet.consigneeName || '');
+      setBuyerPhone(sheet.customerPhone || sheet.consigneePhone || '');
+      setBuyerAddress(sheet.customerAddress || sheet.consigneeAddress || '');
+      setBuyerGstin(sheet.customerGstin || '');
+      setBuyerState(sheet.customerState || 'Karnataka');
+      setBuyerStateCode(sheet.customerStateCode || '29');
+    }
+  }, [isOpen, sheet]);
 
   // Default global rate per CFT
   const [globalRate, setGlobalRate] = useState<number>(businessSettings?.ratePerCft || 1200);

@@ -135,17 +135,17 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
   motorVehicleNo = '',
   termsOfDelivery = 'TRANSPORTATION EXTRA\nAPPLICABLE GST EXTRA',
 
-  consigneeName = 'New India Saw Mill',
+  consigneeName = '',
   consigneePhone = '',
-  consigneeAddress = 'Sy.No.10/7 Khata No.27/2/100/10/7, Sir M\nVishveshwaraiah Layout, 3rd Block, Bengaluru, Near\nNammoora Thindi, Bengaluru Urban',
-  consigneeGstin = '29CJZPK3158H1ZG',
+  consigneeAddress = '',
+  consigneeGstin = '',
   consigneeState = '',
   consigneeStateCode = '',
 
-  buyerName = 'New India Saw Mill',
+  buyerName = '',
   buyerPhone = '',
-  buyerAddress = 'Sy.No.10/7 Khata No.27/2/100/10/7, Sir M\nVishveshwaraiah Layout, 3rd Block, Bengaluru, Near\nNammoora Thindi, Bengaluru Urban',
-  buyerGstin = '29CJZPK3158H1ZG',
+  buyerAddress = '',
+  buyerGstin = '',
   buyerState = '',
   buyerStateCode = '',
 
@@ -296,7 +296,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                 <span className="p-party-meta-label">GSTIN/UIN</span>
                 <span className="p-party-meta-separator">: </span>
                 <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 800 }}>
-                  {consigneeGstin || '29CJZPK3158H1ZG'}
+                  {consigneeGstin || ''}
                 </span>
               </div>
               <div className="p-party-meta">
@@ -314,10 +314,10 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
             <div className="p-party-box" style={{ borderBottom: 'none' }}>
               <div className="p-party-heading">Buyer (Bill to)</div>
               <div style={{ fontWeight: 800, fontSize: '9.2px', textTransform: 'uppercase', marginBottom: '2px' }}>
-                {buyerName || consigneeName || 'New India Saw Mill'}
+                {buyerName || consigneeName || ''}
               </div>
               <div className="p-print-preline" style={{ whiteSpace: 'pre-line', fontSize: '8.2px', lineHeight: 1.35, color: '#1a1a1a' }}>
-                {buyerAddress || consigneeAddress || 'Local Mill Pickup'}
+                {buyerAddress || consigneeAddress || ''}
               </div>
               {(buyerPhone || consigneePhone) && (
                 <div className="p-party-meta" style={{ marginTop: '2px' }}>
@@ -332,7 +332,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                 <span className="p-party-meta-label">GSTIN/UIN</span>
                 <span className="p-party-meta-separator">: </span>
                 <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 800 }}>
-                  {buyerGstin || consigneeGstin || '29CJZPK3158H1ZG'}
+                  {buyerGstin || ''}
                 </span>
               </div>
               <div className="p-party-meta">

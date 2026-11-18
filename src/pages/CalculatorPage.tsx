@@ -1089,17 +1089,17 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       destination: consigneeDistrict?.toUpperCase() || consigneeState?.toUpperCase() || destination?.toUpperCase() || 'KARNATAKA',
       motorVehicleNo,
       termsOfDelivery,
-      consigneeName: consigneeName || customerName || 'New India Saw Mill',
+      consigneeName: consigneeName || customerName || '',
       consigneePhone: consigneePhone || customerPhone || '',
-      consigneeAddress: consigneeAddress || customerAddress || 'Local Mill Pickup',
-      consigneeGstin: consigneeGstin || customerGstin || '29CJZPK3158H1ZG',
+      consigneeAddress: consigneeAddress || customerAddress || '',
+      consigneeGstin: consigneeGstin || customerGstin || '',
       consigneeState: consigneeState || destination || 'Karnataka',
       consigneeStateCode: consigneeStateCode || customerStateCode || '29',
-      buyerName: customerName || consigneeName || 'New India Saw Mill',
+      buyerName: customerName || consigneeName || '',
       buyerPhone: customerPhone || consigneePhone || '',
-      buyerAddress: customerAddress || consigneeAddress || 'Local Mill Pickup',
-      buyerGstin: customerGstin || consigneeGstin || '29CJZPK3158H1ZG',
-      buyerState: destination || consigneeState || 'Karnataka',
+      buyerAddress: customerAddress || consigneeAddress || '',
+      buyerGstin: customerGstin || consigneeGstin || '',
+      buyerState: customerState || destination || consigneeState || 'Karnataka',
       buyerStateCode: customerStateCode || consigneeStateCode || '29',
       additionalCharges: {
         carpentry: carpentryCharges,
@@ -3805,17 +3805,17 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           destination={consigneeDistrict?.toUpperCase() || consigneeState?.toUpperCase() || destination?.toUpperCase() || 'KARNATAKA'}
           motorVehicleNo={motorVehicleNo}
           termsOfDelivery={termsOfDelivery}
-          consigneeName={consigneeName || customerName || 'New India Saw Mill'}
+          consigneeName={consigneeName || customerName || ''}
           consigneePhone={consigneePhone || customerPhone || ''}
-          consigneeAddress={consigneeAddress || customerAddress || 'Local Mill Pickup'}
-          consigneeGstin={consigneeGstin || customerGstin || '29CJZPK3158H1ZG'}
+          consigneeAddress={consigneeAddress || customerAddress || ''}
+          consigneeGstin={consigneeGstin || customerGstin || ''}
           consigneeState={consigneeState || destination || 'Karnataka'}
           consigneeStateCode={consigneeStateCode || customerStateCode || '29'}
-          buyerName={customerName || consigneeName || 'New India Saw Mill'}
+          buyerName={customerName || consigneeName || ''}
           buyerPhone={customerPhone || consigneePhone || ''}
-          buyerAddress={customerAddress || consigneeAddress || 'Local Mill Pickup'}
-          buyerGstin={customerGstin || consigneeGstin || '29CJZPK3158H1ZG'}
-          buyerState={destination || consigneeState || 'Karnataka'}
+          buyerAddress={customerAddress || consigneeAddress || ''}
+          buyerGstin={customerGstin || consigneeGstin || ''}
+          buyerState={customerState || destination || consigneeState || 'Karnataka'}
           buyerStateCode={customerStateCode || consigneeStateCode || '29'}
           items={sortedItems}
           ratePerCft={ratePerCft}
