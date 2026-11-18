@@ -301,11 +301,47 @@ export const dbService = {
 
       const localSheet = localDb.getSheetById(sheetId, userId, role);
 
-      const finalItems = items.length > 0
-        ? items
-        : (localSheet?.items && localSheet.items.length > 0
-            ? localSheet.items
-            : (parsedMeta?.backupItems || []));
+      // Reconstruct rate, rateUnit, and amount from parsed backup items or local storage cache
+      const backupMap = new Map<string, MeasurementItem>();
+      if (parsedMeta?.backupItems && Array.isArray(parsedMeta.backupItems)) {
+        parsedMeta.backupItems.forEach((b: MeasurementItem, i: number) => {
+          if (b.id) backupMap.set(b.id, b);
+          backupMap.set(`sn_${b.serialNumber || i + 1}`, b);
+        });
+      }
+      if (localSheet?.items && Array.isArray(localSheet.items)) {
+        localSheet.items.forEach((b: MeasurementItem, i: number) => {
+          if (b.id && !backupMap.has(b.id)) backupMap.set(b.id, b);
+          if (!backupMap.has(`sn_${b.serialNumber || i + 1}`)) backupMap.set(`sn_${b.serialNumber || i + 1}`, b);
+        });
+      }
+
+      const finalItems: MeasurementItem[] = items.length > 0
+        ? items.map((it, idx) => {
+            const backup = backupMap.get(it.id) || backupMap.get(`sn_${it.serialNumber || idx + 1}`);
+            const isWide = (it.widthInches || 0) >= 7;
+            const rate = (typeof it.rate === 'number' && it.rate > 0)
+              ? it.rate
+              : (backup && typeof backup.rate === 'number' && backup.rate > 0 ? backup.rate : undefined);
+            const rateUnit: 'CFT' | 'SQFT' = it.rateUnit || backup?.rateUnit || (isWide ? 'SQFT' : 'CFT');
+            const amount = (typeof it.amount === 'number' && it.amount > 0)
+              ? it.amount
+              : (backup && typeof backup.amount === 'number' && backup.amount > 0
+                  ? backup.amount
+                  : (rate && rate > 0 ? Math.round((rateUnit === 'SQFT' ? it.sqft : it.cft) * rate * 100) / 100 : undefined));
+
+            return {
+              ...it,
+              rate,
+              rateUnit,
+              amount,
+              woodType: it.woodType || backup?.woodType || '',
+              remarks: it.remarks || backup?.remarks || ''
+            };
+          })
+        : (parsedMeta?.backupItems && parsedMeta.backupItems.length > 0
+            ? parsedMeta.backupItems
+            : (localSheet?.items || []));
 
       return {
         id: sheetData.id,

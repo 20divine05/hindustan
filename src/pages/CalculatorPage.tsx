@@ -2316,7 +2316,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             {/* Quick Running Total Banner */}
             <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
               <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                Taxable Base: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(customGstTaxableAmount > 0 ? customGstTaxableAmount : subtotalWithCharges)}</strong>
+                Taxable Base: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(gstTaxableBase)}</strong>
               </span>
               <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
                 GST ({gstPercent}%): +₹{formatIndianCurrency(gstAmount)}
