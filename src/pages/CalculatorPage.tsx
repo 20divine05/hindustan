@@ -234,7 +234,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const [paymentTerms, setPaymentTerms] = useState<string>('IMMEDIATE PAYMENT');
   const [buyerOrderNo, setBuyerOrderNo] = useState<string>('');
   const [buyerOrderDate, setBuyerOrderDate] = useState<string>('');
-  const [destination, setDestination] = useState<string>('BANGLORE');
+  const [destination, setDestination] = useState<string>(
+    sheetToEdit?.destination || sheetToEdit?.customerState?.toUpperCase() || 'BANGLORE'
+  );
   const [motorVehicleNo, setMotorVehicleNo] = useState<string>('');
   const [termsOfDelivery, setTermsOfDelivery] = useState<string>('TRANSPORTATION EXTRA\nAPPLICABLE GST EXTRA');
 
@@ -303,6 +305,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       setGstPercent(sheetToEdit.gstPercent !== undefined ? sheetToEdit.gstPercent : 18);
       setInvoiceNo(sheetToEdit.referenceNumber ? sheetToEdit.referenceNumber.replace('REF-', '') : '8');
       setInvoiceDate(formatToInvoiceDate(sheetToEdit.measurementDate));
+      setDestination(sheetToEdit.destination || sheetToEdit.customerState?.toUpperCase() || 'BANGLORE');
       setSaveStatus('saved');
     }
   }, [sheetToEdit]);
@@ -381,7 +384,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         }
       }
     }
-    if (c.state) setCustomerState(c.state);
+    if (c.state) {
+      setCustomerState(c.state);
+      setDestination(c.state.toUpperCase());
+    }
     if (c.stateCode) setCustomerStateCode(c.stateCode);
     if (c.projectName) setProjectName(c.projectName);
     setShowCustomerSuggestions(false);
@@ -415,6 +421,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const matchedState = INDIAN_GST_STATES[code] || customerState || 'Karnataka';
     setCustomerState(matchedState);
     setCustomerStateCode(code);
+    if (!destination || destination === 'BANGLORE') {
+      setDestination(matchedState.toUpperCase());
+    }
 
     if (clean.length !== 15) {
       setGstSearchNotice(`State identified: ${matchedState} (${code}). Please enter the full 15-digit GSTIN to fetch details.`);
@@ -658,6 +667,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       customerGstin,
       customerState,
       customerStateCode,
+      destination,
       projectName,
       referenceNumber,
       measurementDate,
@@ -726,6 +736,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       customerGstin,
       customerState,
       customerStateCode,
+      destination,
       projectName,
       referenceNumber,
       measurementDate,
@@ -930,7 +941,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       paymentTerms,
       buyerOrderNo,
       buyerOrderDate,
-      destination,
+      destination: destination || customerState?.toUpperCase() || 'BANGLORE',
       motorVehicleNo,
       termsOfDelivery,
       consigneeName: customerName || 'New India Saw Mill',
@@ -1496,7 +1507,13 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       <input
                         type="text"
                         value={customerState}
-                        onChange={(e) => setCustomerState(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCustomerState(val);
+                          if (!destination || destination === 'BANGLORE' || destination === customerState.toUpperCase()) {
+                            setDestination(val.toUpperCase());
+                          }
+                        }}
                         onBlur={persistCurrentCustomer}
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
@@ -1508,6 +1525,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
+                  </div>
+
+                  {/* Destination / State */}
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                      <Truck size={14} color="var(--primary-600)" /> Destination / State:
+                    </label>
+                    <input
+                      type="text"
+                      value={destination}
+                      placeholder={customerState ? customerState.toUpperCase() : 'BANGLORE'}
+                      onChange={(e) => setDestination(e.target.value.toUpperCase())}
+                      onBlur={persistCurrentCustomer}
+                      style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                    />
                   </div>
 
                   {/* Ref & Date */}
@@ -1732,7 +1764,13 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       <input
                         type="text"
                         value={customerState}
-                        onChange={(e) => setCustomerState(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCustomerState(val);
+                          if (!destination || destination === 'BANGLORE' || destination === customerState.toUpperCase()) {
+                            setDestination(val.toUpperCase());
+                          }
+                        }}
                         onBlur={persistCurrentCustomer}
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
@@ -1744,6 +1782,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
+                  </div>
+
+                  {/* Destination / State */}
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                      <Truck size={14} color="var(--primary-600)" /> Destination / State:
+                    </label>
+                    <input
+                      type="text"
+                      value={destination}
+                      placeholder={customerState ? customerState.toUpperCase() : 'BANGLORE'}
+                      onChange={(e) => setDestination(e.target.value.toUpperCase())}
+                      onBlur={persistCurrentCustomer}
+                      style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
+                    />
                   </div>
 
                   {/* Ref Number & Date */}
@@ -3350,7 +3403,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           paymentTerms={paymentTerms}
           buyerOrderNo={buyerOrderNo}
           buyerOrderDate={buyerOrderDate}
-          destination={destination}
+          destination={destination || customerState?.toUpperCase() || 'BANGLORE'}
           motorVehicleNo={motorVehicleNo}
           termsOfDelivery={termsOfDelivery}
           consigneeName={customerName || 'New India Saw Mill'}

@@ -67,6 +67,7 @@ export function sanitizeAndComputeSheet(
     customerGstin: sheet.customerGstin?.trim() || '',
     customerState: sheet.customerState?.trim() || '',
     customerStateCode: sheet.customerStateCode?.trim() || '',
+    destination: sheet.destination?.trim() || '',
     projectName: sheet.projectName?.trim() || '',
     referenceNumber: sheet.referenceNumber?.trim() || `REF-${Date.now().toString().slice(-6)}`,
     measurementDate: sheet.measurementDate || new Date().toISOString().split('T')[0],

@@ -107,7 +107,7 @@ export function createProformaInvoiceDoc(
   const paymentTerms = invoiceData?.paymentTerms || 'IMMEDIATE PAYMENT';
   const buyerOrderNo = invoiceData?.buyerOrderNo || '';
   const buyerOrderDate = invoiceData?.buyerOrderDate || '';
-  const destination = invoiceData?.destination || 'BANGLORE';
+  const destination = invoiceData?.destination || sheet.destination || sheet.customerState?.toUpperCase() || 'BANGLORE';
   const motorVehicleNo = invoiceData?.motorVehicleNo || '';
   const termsOfDelivery = invoiceData?.termsOfDelivery || 'TRANSPORTATION EXTRA\nAPPLICABLE GST EXTRA';
 

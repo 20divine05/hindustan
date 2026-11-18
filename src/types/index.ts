@@ -49,6 +49,7 @@ export interface MeasurementSheet {
   customerGstin?: string;
   customerState?: string;
   customerStateCode?: string;
+  destination?: string;
   projectName: string;
   referenceNumber: string;
   measurementDate: string;
