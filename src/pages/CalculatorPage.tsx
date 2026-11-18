@@ -235,7 +235,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const [buyerOrderNo, setBuyerOrderNo] = useState<string>('');
   const [buyerOrderDate, setBuyerOrderDate] = useState<string>('');
   const [destination, setDestination] = useState<string>(
-    sheetToEdit?.destination || sheetToEdit?.customerState?.toUpperCase() || ''
+    sheetToEdit?.destination || 'Karnataka'
   );
   const [motorVehicleNo, setMotorVehicleNo] = useState<string>('');
   const [termsOfDelivery, setTermsOfDelivery] = useState<string>('TRANSPORTATION EXTRA\nAPPLICABLE GST EXTRA');
@@ -305,7 +305,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       setGstPercent(sheetToEdit.gstPercent !== undefined ? sheetToEdit.gstPercent : 18);
       setInvoiceNo(sheetToEdit.referenceNumber ? sheetToEdit.referenceNumber.replace('REF-', '') : '8');
       setInvoiceDate(formatToInvoiceDate(sheetToEdit.measurementDate));
-      setDestination(sheetToEdit.destination || sheetToEdit.customerState?.toUpperCase() || '');
+      setDestination(sheetToEdit.destination || 'Karnataka');
       setSaveStatus('saved');
     }
   }, [sheetToEdit]);
@@ -873,7 +873,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setCustomerGstin('');
     setCustomerState('');
     setCustomerStateCode('');
-    setDestination('');
+    setDestination('Karnataka');
     setProjectName('');
     const newRef = `REF-${Math.floor(100000 + Math.random() * 900000)}`;
     setReferenceNumber(newRef);
@@ -942,21 +942,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       paymentTerms,
       buyerOrderNo,
       buyerOrderDate,
-      destination: destination || customerState?.toUpperCase() || '',
+      destination: destination || 'Karnataka',
       motorVehicleNo,
       termsOfDelivery,
       consigneeName: customerName || 'New India Saw Mill',
       consigneePhone: customerPhone || '',
       consigneeAddress: customerAddress || 'Local Mill Pickup',
       consigneeGstin: customerGstin || '29CJZPK3158H1ZG',
-      consigneeState: customerState || '',
-      consigneeStateCode: customerStateCode || '',
+      consigneeState: destination || customerState || 'Karnataka',
+      consigneeStateCode: customerStateCode || '29',
       buyerName: customerName || 'New India Saw Mill',
       buyerPhone: customerPhone || '',
       buyerAddress: customerAddress || 'Local Mill Pickup',
       buyerGstin: customerGstin || '29CJZPK3158H1ZG',
-      buyerState: customerState || '',
-      buyerStateCode: customerStateCode || '',
+      buyerState: destination || customerState || 'Karnataka',
+      buyerStateCode: customerStateCode || '29',
       additionalCharges: {
         carpentry: carpentryCharges,
         transportation: transportationCharges,
@@ -1511,13 +1511,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       <input
                         type="text"
                         value={customerState}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setCustomerState(val);
-                          if (!destination || destination === customerState.toUpperCase()) {
-                            setDestination(val.toUpperCase());
-                          }
-                        }}
+                        onChange={(e) => setCustomerState(e.target.value)}
                         onBlur={persistCurrentCustomer}
                         placeholder="District"
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
@@ -1533,16 +1527,16 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Destination / District */}
+                  {/* State */}
                   <div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <Truck size={14} color="var(--primary-600)" /> Destination / District:
+                      <Truck size={14} color="var(--primary-600)" /> State:
                     </label>
                     <input
                       type="text"
                       value={destination}
-                      placeholder="Destination / District"
-                      onChange={(e) => setDestination(e.target.value.toUpperCase())}
+                      placeholder="State"
+                      onChange={(e) => setDestination(e.target.value)}
                       onBlur={persistCurrentCustomer}
                       style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                     />
@@ -1774,13 +1768,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       <input
                         type="text"
                         value={customerState}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setCustomerState(val);
-                          if (!destination || destination === customerState.toUpperCase()) {
-                            setDestination(val.toUpperCase());
-                          }
-                        }}
+                        onChange={(e) => setCustomerState(e.target.value)}
                         onBlur={persistCurrentCustomer}
                         placeholder="District"
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
@@ -1796,16 +1784,16 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Destination / District */}
+                  {/* State */}
                   <div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <Truck size={14} color="var(--primary-600)" /> Destination / District:
+                      <Truck size={14} color="var(--primary-600)" /> State:
                     </label>
                     <input
                       type="text"
                       value={destination}
-                      placeholder="Destination / District"
-                      onChange={(e) => setDestination(e.target.value.toUpperCase())}
+                      placeholder="State"
+                      onChange={(e) => setDestination(e.target.value)}
                       onBlur={persistCurrentCustomer}
                       style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                     />
@@ -3416,21 +3404,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           paymentTerms={paymentTerms}
           buyerOrderNo={buyerOrderNo}
           buyerOrderDate={buyerOrderDate}
-          destination={destination || customerState?.toUpperCase() || ''}
+          destination={destination || 'Karnataka'}
           motorVehicleNo={motorVehicleNo}
           termsOfDelivery={termsOfDelivery}
           consigneeName={customerName || 'New India Saw Mill'}
           consigneePhone={customerPhone || ''}
           consigneeAddress={customerAddress || 'Local Mill Pickup'}
           consigneeGstin={customerGstin || '29CJZPK3158H1ZG'}
-          consigneeState={customerState || ''}
-          consigneeStateCode={customerStateCode || ''}
+          consigneeState={destination || customerState || 'Karnataka'}
+          consigneeStateCode={customerStateCode || '29'}
           buyerName={customerName || 'New India Saw Mill'}
           buyerPhone={customerPhone || ''}
           buyerAddress={customerAddress || 'Local Mill Pickup'}
           buyerGstin={customerGstin || '29CJZPK3158H1ZG'}
-          buyerState={customerState || ''}
-          buyerStateCode={customerStateCode || ''}
+          buyerState={destination || customerState || 'Karnataka'}
+          buyerStateCode={customerStateCode || '29'}
           items={sortedItems}
           ratePerCft={ratePerCft}
           additionalCharges={{
