@@ -96,7 +96,12 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const [dispatchDocNo, setDispatchDocNo] = useState('');
   const [deliveryNoteDate, setDeliveryNoteDate] = useState('');
   const [dispatchedThrough, setDispatchedThrough] = useState(savedDraft.dispatchedThrough || '');
-  const [destination, setDestination] = useState(sheet?.destination || sheet?.consigneeDistrict?.toUpperCase() || sheet?.customerState?.toUpperCase() || '');
+  const initialShipState = sheet?.consigneeState?.trim() || sheet?.destination?.trim() || sheet?.customerState?.trim() || 'Karnataka';
+  const initialBuyerState = sheet?.customerState?.trim() || sheet?.destination?.trim() || sheet?.consigneeState?.trim() || 'Karnataka';
+  const initialShipDistrict = sheet?.consigneeDistrict?.trim() || '';
+  const initialDest = (initialShipDistrict || sheet?.destination || initialShipState).toUpperCase();
+
+  const [destination, setDestination] = useState(initialDest);
   const [billOfLadingNo, setBillOfLadingNo] = useState('');
   const [motorVehicleNo, setMotorVehicleNo] = useState('');
   const [termsOfDelivery, setTermsOfDelivery] = useState(savedDraft.termsOfDelivery || '');
@@ -106,7 +111,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const [consigneePhone, setConsigneePhone] = useState(sheet?.consigneePhone || sheet?.customerPhone || '');
   const [consigneeAddress, setConsigneeAddress] = useState(sheet?.consigneeAddress || sheet?.customerAddress || '');
   const [consigneeGstin, setConsigneeGstin] = useState(sheet?.consigneeGstin || '');
-  const [consigneeState, setConsigneeState] = useState(sheet?.consigneeState || sheet?.destination || 'Karnataka');
+  const [consigneeState, setConsigneeState] = useState(initialShipState);
   const [consigneeStateCode, setConsigneeStateCode] = useState(sheet?.consigneeStateCode || sheet?.customerStateCode || '29');
 
   // Buyer (Bill to)
@@ -114,50 +119,60 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const [buyerPhone, setBuyerPhone] = useState(sheet?.customerPhone || sheet?.consigneePhone || '');
   const [buyerAddress, setBuyerAddress] = useState(sheet?.customerAddress || sheet?.consigneeAddress || '');
   const [buyerGstin, setBuyerGstin] = useState(sheet?.customerGstin || '');
-  const [buyerState, setBuyerState] = useState(sheet?.customerState || sheet?.destination || 'Karnataka');
+  const [buyerState, setBuyerState] = useState(initialBuyerState);
   const [buyerStateCode, setBuyerStateCode] = useState(sheet?.customerStateCode || '29');
 
-  // Synchronize modal fields with live sheet data whenever the modal opens
-  const prevIsOpenRef = React.useRef(isOpen);
+  // Always keep synced with live sheet data whenever modal is opened
   useEffect(() => {
-    if (!isOpen) {
-      prevIsOpenRef.current = false;
-      return;
+    if (!isOpen || !sheet) return;
+
+    if (sheet.referenceNumber) {
+      setInvoiceNo(sheet.referenceNumber.replace('REF-', ''));
+      setRefNoAndDate(sheet.referenceNumber);
     }
-    if (!prevIsOpenRef.current) {
-      prevIsOpenRef.current = true;
-      if (!sheet) return;
-
-      if (sheet.referenceNumber) {
-        setInvoiceNo(sheet.referenceNumber.replace('REF-', ''));
-        setRefNoAndDate(sheet.referenceNumber);
-      }
-      if (sheet.measurementDate) {
-        setInvoiceDate(formatToInvoiceDate(sheet.measurementDate));
-      }
-
-      const shipState = sheet.consigneeState || 'Karnataka';
-      const shipDistrict = sheet.consigneeDistrict || '';
-      const dest = sheet.destination || (shipDistrict ? shipDistrict.toUpperCase() : shipState.toUpperCase());
-      setDestination(dest);
-
-      // Consignee (Ship to)
-      setConsigneeName(sheet.consigneeName || sheet.customerName || '');
-      setConsigneePhone(sheet.consigneePhone || sheet.customerPhone || '');
-      setConsigneeAddress(sheet.consigneeAddress || sheet.customerAddress || '');
-      setConsigneeGstin(sheet.consigneeGstin || '');
-      setConsigneeState(sheet.consigneeState || 'Karnataka');
-      setConsigneeStateCode(sheet.consigneeStateCode || sheet.customerStateCode || '29');
-
-      // Buyer (Bill to)
-      setBuyerName(sheet.customerName || sheet.consigneeName || '');
-      setBuyerPhone(sheet.customerPhone || sheet.consigneePhone || '');
-      setBuyerAddress(sheet.customerAddress || sheet.consigneeAddress || '');
-      setBuyerGstin(sheet.customerGstin || '');
-      setBuyerState(sheet.customerState || 'Karnataka');
-      setBuyerStateCode(sheet.customerStateCode || '29');
+    if (sheet.measurementDate) {
+      setInvoiceDate(formatToInvoiceDate(sheet.measurementDate));
     }
-  }, [isOpen, sheet]);
+
+    const shipDistrict = sheet.consigneeDistrict?.trim() || '';
+    const shipState = sheet.consigneeState?.trim() || sheet.destination?.trim() || sheet.customerState?.trim() || 'Karnataka';
+    const buyerSt = sheet.customerState?.trim() || sheet.destination?.trim() || sheet.consigneeState?.trim() || 'Karnataka';
+    const dest = (shipDistrict || sheet.destination || shipState).toUpperCase();
+
+    setDestination(dest);
+
+    // Consignee (Ship to)
+    setConsigneeName(sheet.consigneeName || sheet.customerName || '');
+    setConsigneePhone(sheet.consigneePhone || sheet.customerPhone || '');
+    setConsigneeAddress(sheet.consigneeAddress || sheet.customerAddress || '');
+    setConsigneeGstin(sheet.consigneeGstin || '');
+    setConsigneeState(shipState);
+    setConsigneeStateCode(sheet.consigneeStateCode || sheet.customerStateCode || '29');
+
+    // Buyer (Bill to)
+    setBuyerName(sheet.customerName || sheet.consigneeName || '');
+    setBuyerPhone(sheet.customerPhone || sheet.consigneePhone || '');
+    setBuyerAddress(sheet.customerAddress || sheet.consigneeAddress || '');
+    setBuyerGstin(sheet.customerGstin || '');
+    setBuyerState(buyerSt);
+    setBuyerStateCode(sheet.customerStateCode || '29');
+  }, [
+    isOpen,
+    sheet?.customerName,
+    sheet?.customerPhone,
+    sheet?.customerAddress,
+    sheet?.customerGstin,
+    sheet?.customerState,
+    sheet?.customerStateCode,
+    sheet?.destination,
+    sheet?.consigneeName,
+    sheet?.consigneePhone,
+    sheet?.consigneeAddress,
+    sheet?.consigneeGstin,
+    sheet?.consigneeDistrict,
+    sheet?.consigneeState,
+    sheet?.consigneeStateCode
+  ]);
 
   // Default global rate per CFT
   const [globalRate, setGlobalRate] = useState<number>(businessSettings?.ratePerCft || 1200);

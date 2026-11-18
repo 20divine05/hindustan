@@ -787,15 +787,15 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       customerPhone,
       customerAddress,
       customerGstin,
-      customerState,
+      customerState: customerState || destination || 'Karnataka',
       customerStateCode,
-      destination,
+      destination: destination || consigneeDistrict?.toUpperCase() || consigneeState?.toUpperCase() || 'Karnataka',
       consigneeName,
       consigneePhone,
       consigneeAddress,
       consigneeGstin,
       consigneeDistrict,
-      consigneeState,
+      consigneeState: consigneeState || customerState || destination || 'Karnataka',
       consigneeStateCode,
       projectName,
       referenceNumber,
@@ -863,15 +863,15 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       customerPhone,
       customerAddress,
       customerGstin,
-      customerState,
+      customerState: customerState || destination || 'Karnataka',
       customerStateCode,
-      destination,
+      destination: destination || consigneeDistrict?.toUpperCase() || consigneeState?.toUpperCase() || 'Karnataka',
       consigneeName,
       consigneePhone,
       consigneeAddress,
       consigneeGstin,
       consigneeDistrict,
-      consigneeState,
+      consigneeState: consigneeState || customerState || destination || 'Karnataka',
       consigneeStateCode,
       projectName,
       referenceNumber,
@@ -3798,12 +3798,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         />
 
         {/* Proforma Invoice A4 Industrial Modal */}
-        <ProformaInvoiceModal
-          isOpen={isProformaModalOpen}
-          onClose={() => setIsProformaModalOpen(false)}
-          sheet={getCurrentSheetObject()}
-          businessSettings={businessSettings}
-        />
+        {isProformaModalOpen && (
+          <ProformaInvoiceModal
+            isOpen={isProformaModalOpen}
+            onClose={() => setIsProformaModalOpen(false)}
+            sheet={getCurrentSheetObject()}
+            businessSettings={businessSettings}
+          />
+        )}
       </div>
 
       {/* Printable Official Proforma Invoice (Rendered strictly when user prints) */}

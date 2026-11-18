@@ -765,12 +765,14 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
       />
 
       {/* Proforma Invoice Modal */}
-      <ProformaInvoiceModal
-        isOpen={proformaSheet !== null}
-        onClose={() => setProformaSheet(null)}
-        sheet={proformaSheet}
-        businessSettings={businessSettings}
-      />
+      {proformaSheet !== null && (
+        <ProformaInvoiceModal
+          isOpen={proformaSheet !== null}
+          onClose={() => setProformaSheet(null)}
+          sheet={proformaSheet}
+          businessSettings={businessSettings}
+        />
+      )}
     </div>
   );
 };
