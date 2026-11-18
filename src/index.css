@@ -1639,11 +1639,14 @@ input[type="number"] {
 }
 
 .calc-step-card input::placeholder,
-.calc-step-card textarea::placeholder {
-  font-size: 0.74rem !important;
+.calc-step-card textarea::placeholder,
+.calc-step-card .calc-gst-input::placeholder,
+.calc-step-card .calc-address-textarea::placeholder {
+  font-size: 0.67rem !important;
   font-weight: 500 !important;
   color: #94a3b8 !important;
-  opacity: 0.85;
+  opacity: 0.82;
+  letter-spacing: 0.01em;
 }
 
 .calc-step-header {

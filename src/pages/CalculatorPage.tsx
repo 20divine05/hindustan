@@ -1502,10 +1502,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
                 {/* 5. Remaining Things: State & Code, Ref & Date */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.65rem' }}>
-                  {/* State & Code */}
+                  {/* District & Code */}
                   <div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <MapPin size={14} color="var(--primary-600)" /> State / Code:
+                      <MapPin size={14} color="var(--primary-600)" /> District / Code:
                     </label>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
                       <input
@@ -1519,7 +1519,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                           }
                         }}
                         onBlur={persistCurrentCustomer}
-                        placeholder="State"
+                        placeholder="District"
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                       <input
@@ -1533,15 +1533,15 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Destination / State */}
+                  {/* Destination / District */}
                   <div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <Truck size={14} color="var(--primary-600)" /> Destination / State:
+                      <Truck size={14} color="var(--primary-600)" /> Destination / District:
                     </label>
                     <input
                       type="text"
                       value={destination}
-                      placeholder="Destination / State"
+                      placeholder="Destination / District"
                       onChange={(e) => setDestination(e.target.value.toUpperCase())}
                       onBlur={persistCurrentCustomer}
                       style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
@@ -1765,10 +1765,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     />
                   </div>
 
-                  {/* State & Code */}
+                  {/* District & Code */}
                   <div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <MapPin size={14} color="var(--primary-600)" /> State / Code:
+                      <MapPin size={14} color="var(--primary-600)" /> District / Code:
                     </label>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
                       <input
@@ -1782,7 +1782,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                           }
                         }}
                         onBlur={persistCurrentCustomer}
-                        placeholder="State"
+                        placeholder="District"
                         style={{ flex: 2, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                       <input
@@ -1796,15 +1796,15 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Destination / State */}
+                  {/* Destination / District */}
                   <div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      <Truck size={14} color="var(--primary-600)" /> Destination / State:
+                      <Truck size={14} color="var(--primary-600)" /> Destination / District:
                     </label>
                     <input
                       type="text"
                       value={destination}
-                      placeholder="Destination / State"
+                      placeholder="Destination / District"
                       onChange={(e) => setDestination(e.target.value.toUpperCase())}
                       onBlur={persistCurrentCustomer}
                       style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
