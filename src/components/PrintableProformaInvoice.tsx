@@ -84,12 +84,14 @@ export interface PrintableProformaInvoiceProps {
   termsOfDelivery?: string;
 
   consigneeName?: string;
+  consigneePhone?: string;
   consigneeAddress?: string;
   consigneeGstin?: string;
   consigneeState?: string;
   consigneeStateCode?: string;
 
   buyerName?: string;
+  buyerPhone?: string;
   buyerAddress?: string;
   buyerGstin?: string;
   buyerState?: string;
@@ -134,12 +136,14 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
   termsOfDelivery = 'TRANSPORTATION EXTRA\nAPPLICABLE GST EXTRA',
 
   consigneeName = 'New India Saw Mill',
+  consigneePhone = '',
   consigneeAddress = 'Sy.No.10/7 Khata No.27/2/100/10/7, Sir M\nVishveshwaraiah Layout, 3rd Block, Bengaluru, Near\nNammoora Thindi, Bengaluru Urban',
   consigneeGstin = '29CJZPK3158H1ZG',
   consigneeState = 'Karnataka',
   consigneeStateCode = '29',
 
   buyerName = 'New India Saw Mill',
+  buyerPhone = '',
   buyerAddress = 'Sy.No.10/7 Khata No.27/2/100/10/7, Sir M\nVishveshwaraiah Layout, 3rd Block, Bengaluru, Near\nNammoora Thindi, Bengaluru Urban',
   buyerGstin = '29CJZPK3158H1ZG',
   buyerState = 'Karnataka',
@@ -279,7 +283,16 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
               <div className="p-print-preline" style={{ whiteSpace: 'pre-line', fontSize: '8.2px', lineHeight: 1.35, color: '#1a1a1a' }}>
                 {consigneeAddress || 'Local Mill Pickup'}
               </div>
-              <div className="p-party-meta" style={{ marginTop: '3px' }}>
+              {consigneePhone && (
+                <div className="p-party-meta" style={{ marginTop: '2px' }}>
+                  <span className="p-party-meta-label">Contact No.</span>
+                  <span className="p-party-meta-separator">: </span>
+                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 700 }}>
+                    {consigneePhone}
+                  </span>
+                </div>
+              )}
+              <div className="p-party-meta" style={{ marginTop: consigneePhone ? '1px' : '3px' }}>
                 <span className="p-party-meta-label">GSTIN/UIN</span>
                 <span className="p-party-meta-separator">: </span>
                 <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 800 }}>
@@ -306,7 +319,16 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
               <div className="p-print-preline" style={{ whiteSpace: 'pre-line', fontSize: '8.2px', lineHeight: 1.35, color: '#1a1a1a' }}>
                 {buyerAddress || consigneeAddress || 'Local Mill Pickup'}
               </div>
-              <div className="p-party-meta" style={{ marginTop: '3px' }}>
+              {(buyerPhone || consigneePhone) && (
+                <div className="p-party-meta" style={{ marginTop: '2px' }}>
+                  <span className="p-party-meta-label">Contact No.</span>
+                  <span className="p-party-meta-separator">: </span>
+                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 700 }}>
+                    {buyerPhone || consigneePhone}
+                  </span>
+                </div>
+              )}
+              <div className="p-party-meta" style={{ marginTop: (buyerPhone || consigneePhone) ? '1px' : '3px' }}>
                 <span className="p-party-meta-label">GSTIN/UIN</span>
                 <span className="p-party-meta-separator">: </span>
                 <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 800 }}>

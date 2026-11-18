@@ -103,6 +103,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
   // Consignee (Ship to)
   const [consigneeName, setConsigneeName] = useState(sheet?.customerName || '');
+  const [consigneePhone, setConsigneePhone] = useState(sheet?.customerPhone || '');
   const [consigneeAddress, setConsigneeAddress] = useState(sheet?.customerAddress || '');
   const [consigneeGstin, setConsigneeGstin] = useState(sheet?.customerGstin || '29CJZPK3158H1ZG');
   const [consigneeState, setConsigneeState] = useState(sheet?.customerState || 'Karnataka');
@@ -110,6 +111,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
   // Buyer (Bill to)
   const [buyerName, setBuyerName] = useState(sheet?.customerName || '');
+  const [buyerPhone, setBuyerPhone] = useState(sheet?.customerPhone || '');
   const [buyerAddress, setBuyerAddress] = useState(sheet?.customerAddress || '');
   const [buyerGstin, setBuyerGstin] = useState(sheet?.customerGstin || '29CJZPK3158H1ZG');
   const [buyerState, setBuyerState] = useState(sheet?.customerState || 'Karnataka');
@@ -207,12 +209,14 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
     const sampleAddr = 'Sy.No.10/7 Khata No.27/2/100/10/7, Sir M\nVishveshwaraiah Layout, 3rd Block, Bengaluru, Near\nNammoora Thindi, Bengaluru Urban';
     setConsigneeName('New India Saw Mill');
+    setConsigneePhone('9876543210');
     setConsigneeAddress(sampleAddr);
     setConsigneeGstin('29CJZPK3158H1ZG');
     setConsigneeState('Karnataka');
     setConsigneeStateCode('29');
 
     setBuyerName('New India Saw Mill');
+    setBuyerPhone('9876543210');
     setBuyerAddress(sampleAddr);
     setBuyerGstin('29CJZPK3158H1ZG');
     setBuyerState('Karnataka');
@@ -402,11 +406,13 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
       motorVehicleNo,
       termsOfDelivery,
       consigneeName,
+      consigneePhone,
       consigneeAddress,
       consigneeGstin,
       consigneeState,
       consigneeStateCode,
       buyerName,
+      buyerPhone,
       buyerAddress,
       buyerGstin,
       buyerState,
@@ -441,11 +447,13 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
       motorVehicleNo,
       termsOfDelivery,
       consigneeName,
+      consigneePhone,
       consigneeAddress,
       consigneeGstin,
       consigneeState,
       consigneeStateCode,
       buyerName,
+      buyerPhone,
       buyerAddress,
       buyerGstin,
       buyerState,
@@ -594,6 +602,18 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                 />
                 <div className="print-only p-print-preline">{consigneeAddress}</div>
                 <div className="p-party-meta">
+                  <span className="p-party-meta-label">Contact No.</span>
+                  <span className="p-party-meta-separator">: </span>
+                  <input
+                    type="text"
+                    className="p-input p-party-meta-input no-print"
+                    placeholder="Contact / Phone"
+                    value={consigneePhone}
+                    onChange={(e) => setConsigneePhone(e.target.value)}
+                  />
+                  <span className="print-only" style={{ fontWeight: 700 }}>{consigneePhone}</span>
+                </div>
+                <div className="p-party-meta">
                   <span className="p-party-meta-label">GSTIN/UIN</span>
                   <span className="p-party-meta-separator">: </span>
                   <input
@@ -640,6 +660,18 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                   onChange={(e) => setBuyerAddress(e.target.value)}
                 />
                 <div className="print-only p-print-preline">{buyerAddress}</div>
+                <div className="p-party-meta">
+                  <span className="p-party-meta-label">Contact No.</span>
+                  <span className="p-party-meta-separator">: </span>
+                  <input
+                    type="text"
+                    className="p-input p-party-meta-input no-print"
+                    placeholder="Contact / Phone"
+                    value={buyerPhone}
+                    onChange={(e) => setBuyerPhone(e.target.value)}
+                  />
+                  <span className="print-only" style={{ fontWeight: 700 }}>{buyerPhone}</span>
+                </div>
                 <div className="p-party-meta">
                   <span className="p-party-meta-label">GSTIN/UIN</span>
                   <span className="p-party-meta-separator">: </span>

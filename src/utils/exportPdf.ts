@@ -26,12 +26,14 @@ export interface ProformaInvoiceExportData {
   termsOfDelivery?: string;
 
   consigneeName?: string;
+  consigneePhone?: string;
   consigneeAddress?: string;
   consigneeGstin?: string;
   consigneeState?: string;
   consigneeStateCode?: string;
 
   buyerName?: string;
+  buyerPhone?: string;
   buyerAddress?: string;
   buyerGstin?: string;
   buyerState?: string;
@@ -115,8 +117,10 @@ export function createProformaInvoiceDoc(
   const consigneeGstin = invoiceData?.consigneeGstin || '29CJZPK3158H1ZG';
   const consigneeState = invoiceData?.consigneeState || 'Karnataka';
   const consigneeStateCode = invoiceData?.consigneeStateCode || '29';
+  const consigneePhone = invoiceData?.consigneePhone || sheet.customerPhone || '';
 
   const buyerName = invoiceData?.buyerName || consigneeName;
+  const buyerPhone = invoiceData?.buyerPhone || consigneePhone;
   const buyerAddress = invoiceData?.buyerAddress || consigneeAddress;
   const buyerGstin = invoiceData?.buyerGstin || consigneeGstin;
   const buyerState = invoiceData?.buyerState || consigneeState;
@@ -249,39 +253,54 @@ export function createProformaInvoiceDoc(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(80, 80, 80);
-  doc.text('Consignee (Ship to)', 11.5, 43.5);
+  doc.text('Consignee (Ship to)', 11.5, 43.2);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.4);
   doc.setTextColor(0, 0, 0);
-  doc.text(consigneeName || 'New India Saw Mill', 11.5, 47.2);
+  doc.text(consigneeName || 'New India Saw Mill', 11.5, 46.8);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.0);
   doc.setTextColor(40, 40, 40);
   const splitConsigneeAddr = doc.splitTextToSize(consigneeAddress || 'Local Mill Pickup', 90);
-  let cY = 50.8;
-  for (let i = 0; i < Math.min(splitConsigneeAddr.length, 2); i++) {
+  const maxConsigneeAddrLines = consigneePhone ? 1 : 2;
+  let cY = 50.2;
+  for (let i = 0; i < Math.min(splitConsigneeAddr.length, maxConsigneeAddrLines); i++) {
     doc.text(splitConsigneeAddr[i], 11.5, cY);
     cY += 3.3;
   }
 
-  // Aligned GSTIN & State rows
+  // Aligned Contact No, GSTIN & State rows
+  let cMetaY = consigneePhone ? 54.0 : 57.8;
+  if (consigneePhone) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.8);
+    doc.setTextColor(70, 70, 70);
+    doc.text('Contact No.', 11.5, cMetaY);
+    doc.text(':', 27.5, cMetaY);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(consigneePhone, 29.5, cMetaY);
+    cMetaY += 3.8;
+  }
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.8);
   doc.setTextColor(70, 70, 70);
-  doc.text('GSTIN/UIN', 11.5, 58.2);
-  doc.text(':', 27.5, 58.2);
+  doc.text('GSTIN/UIN', 11.5, cMetaY);
+  doc.text(':', 27.5, cMetaY);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
-  doc.text(consigneeGstin || '', 29.5, 58.2);
+  doc.text(consigneeGstin || '', 29.5, cMetaY);
+  cMetaY += 3.6;
 
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(70, 70, 70);
-  doc.text('State Name', 11.5, 61.8);
-  doc.text(':', 27.5, 61.8);
+  doc.text('State Name', 11.5, cMetaY);
+  doc.text(':', 27.5, cMetaY);
   doc.setTextColor(0, 0, 0);
-  doc.text(`${consigneeState || ''}, Code : ${consigneeStateCode || ''}`, 29.5, 61.8);
+  doc.text(`${consigneeState || ''}, Code : ${consigneeStateCode || ''}`, 29.5, cMetaY);
 
   doc.line(10, 63.5, 105, 63.5); // Divider below consignee
 
@@ -289,39 +308,54 @@ export function createProformaInvoiceDoc(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(80, 80, 80);
-  doc.text('Buyer (Bill to)', 11.5, 67.5);
+  doc.text('Buyer (Bill to)', 11.5, 67.2);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.4);
   doc.setTextColor(0, 0, 0);
-  doc.text(buyerName || consigneeName || 'New India Saw Mill', 11.5, 71.2);
+  doc.text(buyerName || consigneeName || 'New India Saw Mill', 11.5, 70.8);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.0);
   doc.setTextColor(40, 40, 40);
   const splitBuyerAddr = doc.splitTextToSize(buyerAddress || consigneeAddress || 'Local Mill Pickup', 90);
-  let bY = 74.8;
-  for (let i = 0; i < Math.min(splitBuyerAddr.length, 2); i++) {
+  const maxBuyerAddrLines = buyerPhone ? 1 : 2;
+  let bY = 74.2;
+  for (let i = 0; i < Math.min(splitBuyerAddr.length, maxBuyerAddrLines); i++) {
     doc.text(splitBuyerAddr[i], 11.5, bY);
     bY += 3.3;
   }
 
-  // Aligned GSTIN & State rows
+  // Aligned Contact No, GSTIN & State rows
+  let bMetaY = buyerPhone ? 78.0 : 81.8;
+  if (buyerPhone) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.8);
+    doc.setTextColor(70, 70, 70);
+    doc.text('Contact No.', 11.5, bMetaY);
+    doc.text(':', 27.5, bMetaY);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(buyerPhone, 29.5, bMetaY);
+    bMetaY += 3.8;
+  }
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.8);
   doc.setTextColor(70, 70, 70);
-  doc.text('GSTIN/UIN', 11.5, 82.2);
-  doc.text(':', 27.5, 82.2);
+  doc.text('GSTIN/UIN', 11.5, bMetaY);
+  doc.text(':', 27.5, bMetaY);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
-  doc.text(buyerGstin || '', 29.5, 82.2);
+  doc.text(buyerGstin || '', 29.5, bMetaY);
+  bMetaY += 3.6;
 
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(70, 70, 70);
-  doc.text('State Name', 11.5, 85.8);
-  doc.text(':', 27.5, 85.8);
+  doc.text('State Name', 11.5, bMetaY);
+  doc.text(':', 27.5, bMetaY);
   doc.setTextColor(0, 0, 0);
-  doc.text(`${buyerState || ''}, Code : ${buyerStateCode || ''}`, 29.5, 85.8);
+  doc.text(`${buyerState || ''}, Code : ${buyerStateCode || ''}`, 29.5, bMetaY);
 
   // --- RIGHT COLUMN: Dispatch and Order Metadata Table ---
   const rightDividerX = 152.5;
