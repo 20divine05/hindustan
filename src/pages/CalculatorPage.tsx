@@ -1401,15 +1401,15 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         {currentStep === 2 && (
           <div className="card calc-step-card">
             {/* Top Indicator: Bill to (Centered, Highlighted & Bold) */}
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem' }}>
               <span style={{
-                fontSize: '0.84rem',
+                fontSize: '0.88rem',
                 fontWeight: 900,
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
                 color: '#1d4ed8',
                 background: '#dbeafe',
-                padding: '3px 14px',
+                padding: '4px 18px',
                 borderRadius: '6px',
                 border: '1.5px solid #60a5fa',
                 whiteSpace: 'nowrap',
@@ -1417,9 +1417,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 boxShadow: '0 1px 3px rgba(29, 78, 216, 0.15)'
               }}>
                 BILL TO
-              </span>
-              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main, #1e293b)', whiteSpace: 'nowrap' }}>
-                {customerType === 'b2b' ? 'Buyer Business GST' : 'Buyer Customer Details'}
               </span>
             </div>
 
@@ -1961,28 +1958,23 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         {currentStep === 3 && (
           <div className="card calc-step-card">
             {/* Top Indicator: Ship to (Centered, Highlighted & Bold) */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0.5rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{
-                  fontSize: '0.84rem',
-                  fontWeight: 900,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: '#0284c7',
-                  background: '#e0f2fe',
-                  padding: '3px 14px',
-                  borderRadius: '6px',
-                  border: '1.5px solid #38bdf8',
-                  whiteSpace: 'nowrap',
-                  lineHeight: 1.25,
-                  boxShadow: '0 1px 3px rgba(2, 132, 199, 0.15)'
-                }}>
-                  SHIP TO
-                </span>
-                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main, #1e293b)', whiteSpace: 'nowrap' }}>
-                  Consignee Details
-                </span>
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem' }}>
+              <span style={{
+                fontSize: '0.88rem',
+                fontWeight: 900,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: '#0284c7',
+                background: '#e0f2fe',
+                padding: '4px 18px',
+                borderRadius: '6px',
+                border: '1.5px solid #38bdf8',
+                whiteSpace: 'nowrap',
+                lineHeight: 1.25,
+                boxShadow: '0 1px 3px rgba(2, 132, 199, 0.15)'
+              }}>
+                SHIP TO
+              </span>
 
               {/* Action: Copy from Bill To Button */}
               <button
