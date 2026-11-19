@@ -1457,7 +1457,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       persistCurrentCustomer();
                     }}
                     style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
-                    placeholder="Phone number"
+                    placeholder=""
                   />
                   {/* Phone Suggestions */}
                   {showPhoneSuggestions && phoneSuggestions.length > 0 && (
@@ -1529,7 +1529,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       }}
                       maxLength={15}
                       className="calc-gst-input"
-                      placeholder="15-digit GSTIN"
+                      placeholder=""
                       style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)' }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -1580,7 +1580,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       persistCurrentCustomer();
                     }}
                     autoComplete="off"
-                    placeholder="Company or firm name"
+                    placeholder=""
                     style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
 
@@ -1642,7 +1642,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
                     onBlur={persistCurrentCustomer}
-                    placeholder="Delivery site / address"
+                    placeholder=""
                     style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -1658,7 +1658,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       <input
                         type="text"
                         value={destination}
-                        placeholder="State"
+                        placeholder=""
                         onChange={(e) => {
                           setDestination(e.target.value);
                           setCustomerState(e.target.value);
@@ -1671,7 +1671,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         value={customerStateCode}
                         onChange={(e) => setCustomerStateCode(e.target.value)}
                         onBlur={persistCurrentCustomer}
-                        placeholder="Code"
+                        placeholder=""
                         style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
@@ -1687,7 +1687,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         type="text"
                         value={referenceNumber}
                         onChange={(e) => setReferenceNumber(e.target.value)}
-                        placeholder="Ref number"
+                        placeholder=""
                         style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
@@ -1738,7 +1738,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       persistCurrentCustomer();
                     }}
                     style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
-                    placeholder="Phone number"
+                    placeholder=""
                   />
                   {/* Phone Suggestions */}
                   {showPhoneSuggestions && phoneSuggestions.length > 0 && (
@@ -1810,7 +1810,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       persistCurrentCustomer();
                     }}
                     autoComplete="off"
-                    placeholder="Customer name"
+                    placeholder=""
                     style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
 
@@ -1872,7 +1872,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
                     onBlur={persistCurrentCustomer}
-                    placeholder="Delivery site / address"
+                    placeholder=""
                     style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -1889,7 +1889,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       value={customerGstin}
                       onChange={(e) => setCustomerGstin(e.target.value.toUpperCase())}
                       onBlur={persistCurrentCustomer}
-                      placeholder="Optional GSTIN"
+                      placeholder=""
                       style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                     />
                   </div>
@@ -1903,7 +1903,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       <input
                         type="text"
                         value={destination}
-                        placeholder="State"
+                        placeholder=""
                         onChange={(e) => {
                           setDestination(e.target.value);
                           setCustomerState(e.target.value);
@@ -1916,7 +1916,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         value={customerStateCode}
                         onChange={(e) => setCustomerStateCode(e.target.value)}
                         onBlur={persistCurrentCustomer}
-                        placeholder="Code"
+                        placeholder=""
                         style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
@@ -1932,7 +1932,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         type="text"
                         value={referenceNumber}
                         onChange={(e) => setReferenceNumber(e.target.value)}
-                        placeholder="Ref number"
+                        placeholder=""
                         style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
@@ -2020,7 +2020,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setIsShipToTouched(true);
                       setConsigneePhone(e.target.value.replace(/[^0-9+ ]/g, ''));
                     }}
-                    placeholder="Phone number"
+                    placeholder=""
                     style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -2049,7 +2049,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       }}
                       maxLength={15}
                       className="calc-gst-input"
-                      placeholder="15-digit GSTIN"
+                      placeholder=""
                       style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)' }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -2089,7 +2089,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setIsShipToTouched(true);
                       setConsigneeName(e.target.value);
                     }}
-                    placeholder="Receiving company or firm name"
+                    placeholder=""
                     style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -2107,7 +2107,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setIsShipToTouched(true);
                       setConsigneeAddress(e.target.value);
                     }}
-                    placeholder="Shipping address / delivery site"
+                    placeholder=""
                     style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -2125,7 +2125,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         setIsShipToTouched(true);
                         setConsigneeDistrict(e.target.value);
                       }}
-                      placeholder="District"
+                      placeholder=""
                       style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                     />
                   </div>
@@ -2138,7 +2138,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       <input
                         type="text"
                         value={consigneeState}
-                        placeholder="State"
+                        placeholder=""
                         onChange={(e) => {
                           setIsShipToTouched(true);
                           setConsigneeState(e.target.value);
@@ -2152,7 +2152,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                           setIsShipToTouched(true);
                           setConsigneeStateCode(e.target.value);
                         }}
-                        placeholder="29"
+                        placeholder=""
                         style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
@@ -2173,7 +2173,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setIsShipToTouched(true);
                       setConsigneePhone(e.target.value.replace(/[^0-9+ ]/g, ''));
                     }}
-                    placeholder="Phone number"
+                    placeholder=""
                     style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -2190,7 +2190,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setIsShipToTouched(true);
                       setConsigneeName(e.target.value);
                     }}
-                    placeholder="Receiving customer name"
+                    placeholder=""
                     style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -2208,7 +2208,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setIsShipToTouched(true);
                       setConsigneeAddress(e.target.value);
                     }}
-                    placeholder="Delivery site / address"
+                    placeholder=""
                     style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -2226,7 +2226,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         setIsShipToTouched(true);
                         setConsigneeGstin(e.target.value.toUpperCase());
                       }}
-                      placeholder="Optional GSTIN"
+                      placeholder=""
                       style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                     />
                   </div>
@@ -2242,7 +2242,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         setIsShipToTouched(true);
                         setConsigneeDistrict(e.target.value);
                       }}
-                      placeholder="District"
+                      placeholder=""
                       style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
                     />
                   </div>
@@ -2255,7 +2255,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       <input
                         type="text"
                         value={consigneeState}
-                        placeholder="State"
+                        placeholder=""
                         onChange={(e) => {
                           setIsShipToTouched(true);
                           setConsigneeState(e.target.value);
@@ -2269,7 +2269,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                           setIsShipToTouched(true);
                           setConsigneeStateCode(e.target.value);
                         }}
-                        placeholder="29"
+                        placeholder=""
                         style={{ width: '55px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}
                       />
                     </div>
@@ -4175,7 +4175,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       className="calc-input"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Customer or firm name"
+                      placeholder=""
                       style={{ width: '100%', fontWeight: 700, fontSize: '0.78rem', height: '29px', minHeight: '29px', padding: '0.22rem 0.5rem' }}
                     />
                   </div>
@@ -4189,7 +4189,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       className="calc-input"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="Mobile number"
+                      placeholder=""
                       style={{ width: '100%', fontSize: '0.78rem', height: '29px', minHeight: '29px', padding: '0.22rem 0.5rem' }}
                     />
                   </div>
@@ -4203,7 +4203,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       rows={2}
                       value={customerAddress}
                       onChange={(e) => setCustomerAddress(e.target.value)}
-                      placeholder="Billing or delivery site address"
+                      placeholder=""
                       style={{ width: '100%', resize: 'vertical', fontSize: '0.78rem', minHeight: '40px', padding: '0.22rem 0.5rem' }}
                     />
                   </div>
@@ -4217,7 +4217,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       className="calc-input font-mono"
                       value={customerGstin}
                       onChange={(e) => setCustomerGstin(e.target.value.toUpperCase())}
-                      placeholder="15-digit GSTIN"
+                      placeholder=""
                       style={{ width: '100%', fontSize: '0.78rem', height: '29px', minHeight: '29px', padding: '0.22rem 0.5rem' }}
                     />
                   </div>
@@ -4232,7 +4232,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         className="calc-input"
                         value={customerState}
                         onChange={(e) => setCustomerState(e.target.value)}
-                        placeholder="State"
+                        placeholder=""
                         style={{ width: '100%', fontSize: '0.78rem', height: '29px', minHeight: '29px', padding: '0.22rem 0.5rem' }}
                       />
                     </div>
@@ -4245,7 +4245,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         className="calc-input font-mono"
                         value={customerStateCode}
                         onChange={(e) => setCustomerStateCode(e.target.value)}
-                        placeholder="Code"
+                        placeholder=""
                         style={{ width: '100%', textAlign: 'center', fontSize: '0.78rem', height: '29px', minHeight: '29px', padding: '0.22rem 0.35rem' }}
                       />
                     </div>
@@ -4261,7 +4261,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         className="calc-input font-mono"
                         value={referenceNumber}
                         onChange={(e) => setReferenceNumber(e.target.value)}
-                        placeholder="REF-..."
+                        placeholder=""
                         style={{ width: '100%', fontSize: '0.78rem', height: '29px', minHeight: '29px', padding: '0.22rem 0.5rem' }}
                       />
                     </div>
@@ -4318,7 +4318,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         setConsigneeName(e.target.value);
                         setIsShipToTouched(true);
                       }}
-                      placeholder="Receiving customer name"
+                      placeholder=""
                       style={{ width: '100%', fontWeight: 700, fontSize: '0.78rem', height: '29px', minHeight: '29px', padding: '0.22rem 0.5rem' }}
                     />
                   </div>
@@ -4335,7 +4335,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         setConsigneePhone(e.target.value);
                         setIsShipToTouched(true);
                       }}
-                      placeholder="Mobile number"
+                      placeholder=""
                       style={{ width: '100%', fontSize: '0.78rem', height: '29px', minHeight: '29px', padding: '0.22rem 0.5rem' }}
                     />
                   </div>
@@ -4352,7 +4352,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         setConsigneeAddress(e.target.value);
                         setIsShipToTouched(true);
                       }}
-                      placeholder="Delivery site or shipping address"
+                      placeholder=""
                       style={{ width: '100%', resize: 'vertical', fontSize: '0.78rem', minHeight: '40px', padding: '0.22rem 0.5rem' }}
                     />
                   </div>
@@ -4369,7 +4369,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         setConsigneeGstin(e.target.value.toUpperCase());
                         setIsShipToTouched(true);
                       }}
-                      placeholder="Consignee GSTIN"
+                      placeholder=""
                       style={{ width: '100%', fontSize: '0.78rem', height: '29px', minHeight: '29px', padding: '0.22rem 0.5rem' }}
                     />
                   </div>
@@ -4387,7 +4387,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         if (e.target.value.trim()) setDestination(e.target.value.trim().toUpperCase());
                         setIsShipToTouched(true);
                       }}
-                      placeholder="e.g. Mysore, Mandya, Bangalore..."
+                      placeholder=""
                       style={{ width: '100%', fontSize: '0.78rem', height: '29px', minHeight: '29px', padding: '0.22rem 0.5rem' }}
                     />
                   </div>
@@ -4406,7 +4406,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                           if (!consigneeDistrict && e.target.value.trim()) setDestination(e.target.value.trim().toUpperCase());
                           setIsShipToTouched(true);
                         }}
-                        placeholder="State"
+                        placeholder=""
                         style={{ width: '100%', fontSize: '0.78rem', height: '29px', minHeight: '29px', padding: '0.22rem 0.5rem' }}
                       />
                     </div>
@@ -4422,7 +4422,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                           setConsigneeStateCode(e.target.value);
                           setIsShipToTouched(true);
                         }}
-                        placeholder="Code"
+                        placeholder=""
                         style={{ width: '100%', textAlign: 'center', fontSize: '0.78rem', height: '29px', minHeight: '29px', padding: '0.22rem 0.35rem' }}
                       />
                     </div>
