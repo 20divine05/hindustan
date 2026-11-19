@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, X, RotateCcw, Copy, Sparkles, FileText, Check, FileDown } from 'lucide-react';
+import { Printer, X, RotateCcw, Copy, Sparkles, FileText, Check, FileDown, Save } from 'lucide-react';
 import type { MeasurementSheet, BusinessSettings } from '../types';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from '../utils/indianNumberWords';
 import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
@@ -13,6 +13,7 @@ export interface ProformaInvoiceProps {
   onClose: () => void;
   sheet: MeasurementSheet | null;
   businessSettings?: BusinessSettings;
+  onUpdateSheet?: (updated: Partial<MeasurementSheet>) => void;
 }
 
 export interface InvoiceItemRow {
@@ -65,10 +66,12 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   isOpen,
   onClose,
   sheet,
-  businessSettings
+  businessSettings,
+  onUpdateSheet
 }) => {
   const [useSampleData, setUseSampleData] = useState(false);
   const [copiedShipTo, setCopiedShipTo] = useState(false);
+  const [isSavedNotice, setIsSavedNotice] = useState(false);
 
   // Initialize editable fields with sensible blanks or sheet data
   const initialInvoiceNo = sheet?.referenceNumber?.replace('REF-', '') || '';
@@ -122,56 +125,71 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const [buyerState, setBuyerState] = useState(initialBuyerState);
   const [buyerStateCode, setBuyerStateCode] = useState(sheet?.customerStateCode || '29');
 
-  // Always keep synced with live sheet data whenever modal is opened
+  // Construct payload of current modal state for saving & syncing
+  const getLatestPayload = () => ({
+    consigneeName,
+    consigneePhone,
+    consigneeAddress,
+    consigneeGstin,
+    consigneeState,
+    consigneeStateCode,
+    consigneeDistrict: destination,
+    customerName: buyerName,
+    customerPhone: buyerPhone,
+    customerAddress: buyerAddress,
+    customerGstin: buyerGstin,
+    customerState: buyerState,
+    customerStateCode: buyerStateCode,
+    destination,
+    motorVehicleNo,
+    termsOfDelivery,
+    paymentTerms,
+    buyerOrderNo,
+    buyerOrderDate
+  });
+
+  // Manual save handler for toolbar button
+  const handleManualSave = () => {
+    if (onUpdateSheet) {
+      onUpdateSheet(getLatestPayload());
+    }
+    setIsSavedNotice(true);
+    setTimeout(() => setIsSavedNotice(false), 2500);
+  };
+
+  // Real-time debounced auto-sync when user edits any field inside modal
+  const isFirstRender = useRef(true);
   useEffect(() => {
-    if (!isOpen || !sheet) return;
-
-    if (sheet.referenceNumber) {
-      setInvoiceNo(sheet.referenceNumber.replace('REF-', ''));
-      setRefNoAndDate(sheet.referenceNumber);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
     }
-    if (sheet.measurementDate) {
-      setInvoiceDate(formatToInvoiceDate(sheet.measurementDate));
-    }
+    if (!onUpdateSheet) return;
 
-    const shipDistrict = sheet.consigneeDistrict?.trim() || '';
-    const shipState = sheet.consigneeState?.trim() || sheet.destination?.trim() || sheet.customerState?.trim() || 'Karnataka';
-    const buyerSt = sheet.customerState?.trim() || sheet.destination?.trim() || sheet.consigneeState?.trim() || 'Karnataka';
-    const dest = (shipDistrict || sheet.destination || shipState).toUpperCase();
+    const timer = setTimeout(() => {
+      onUpdateSheet(getLatestPayload());
+    }, 350);
 
-    setDestination(dest);
-
-    // Consignee (Ship to)
-    setConsigneeName(sheet.consigneeName || sheet.customerName || '');
-    setConsigneePhone(sheet.consigneePhone || sheet.customerPhone || '');
-    setConsigneeAddress(sheet.consigneeAddress || sheet.customerAddress || '');
-    setConsigneeGstin(sheet.consigneeGstin || '');
-    setConsigneeState(shipState);
-    setConsigneeStateCode(sheet.consigneeStateCode || sheet.customerStateCode || '29');
-
-    // Buyer (Bill to)
-    setBuyerName(sheet.customerName || sheet.consigneeName || '');
-    setBuyerPhone(sheet.customerPhone || sheet.consigneePhone || '');
-    setBuyerAddress(sheet.customerAddress || sheet.consigneeAddress || '');
-    setBuyerGstin(sheet.customerGstin || '');
-    setBuyerState(buyerSt);
-    setBuyerStateCode(sheet.customerStateCode || '29');
+    return () => clearTimeout(timer);
   }, [
-    isOpen,
-    sheet?.customerName,
-    sheet?.customerPhone,
-    sheet?.customerAddress,
-    sheet?.customerGstin,
-    sheet?.customerState,
-    sheet?.customerStateCode,
-    sheet?.destination,
-    sheet?.consigneeName,
-    sheet?.consigneePhone,
-    sheet?.consigneeAddress,
-    sheet?.consigneeGstin,
-    sheet?.consigneeDistrict,
-    sheet?.consigneeState,
-    sheet?.consigneeStateCode
+    consigneeName,
+    consigneePhone,
+    consigneeAddress,
+    consigneeGstin,
+    consigneeState,
+    consigneeStateCode,
+    buyerName,
+    buyerPhone,
+    buyerAddress,
+    buyerGstin,
+    buyerState,
+    buyerStateCode,
+    destination,
+    motorVehicleNo,
+    termsOfDelivery,
+    paymentTerms,
+    buyerOrderNo,
+    buyerOrderDate
   ]);
 
   // Default global rate per CFT
@@ -540,6 +558,30 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
         </div>
 
         <div className="proforma-toolbar-right">
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={handleManualSave}
+            title="Save changes to sheet and database"
+            style={{
+              backgroundColor: isSavedNotice ? '#15803d' : '#16a34a',
+              color: '#ffffff',
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.28rem 0.65rem',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+            }}
+          >
+            {isSavedNotice ? <Check size={14} /> : <Save size={14} />}
+            <span>{isSavedNotice ? 'Saved!' : 'Save'}</span>
+          </button>
+
           <button
             type="button"
             className="btn btn-secondary btn-sm"

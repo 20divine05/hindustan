@@ -46,6 +46,22 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
   const [editingSheet, setEditingSheet] = useState<{ id: string; name: string } | null>(null);
   const [proformaSheet, setProformaSheet] = useState<MeasurementSheet | null>(null);
 
+  const handleUpdateFromProforma = async (updated: Partial<MeasurementSheet>) => {
+    if (!proformaSheet) return;
+    const merged: MeasurementSheet = {
+      ...proformaSheet,
+      ...updated,
+      updatedAt: new Date().toISOString()
+    };
+    setProformaSheet(merged);
+    setSheets(prev => prev.map(s => s.id === merged.id ? merged : s));
+    try {
+      await dbService.saveSheet(merged, user?.id || 'guest');
+    } catch (e) {
+      console.warn('Failed to save updated proforma sheet:', e);
+    }
+  };
+
   useEffect(() => {
     loadSheets();
   }, [user]);
@@ -771,6 +787,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
           onClose={() => setProformaSheet(null)}
           sheet={proformaSheet}
           businessSettings={businessSettings}
+          onUpdateSheet={handleUpdateFromProforma}
         />
       )}
     </div>

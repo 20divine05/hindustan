@@ -57,6 +57,11 @@ export interface MeasurementSheet {
   consigneeDistrict?: string;
   consigneeState?: string;
   consigneeStateCode?: string;
+  motorVehicleNo?: string;
+  termsOfDelivery?: string;
+  paymentTerms?: string;
+  buyerOrderNo?: string;
+  buyerOrderDate?: string;
   projectName: string;
   referenceNumber: string;
   measurementDate: string;

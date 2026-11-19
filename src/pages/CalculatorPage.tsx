@@ -1144,6 +1144,33 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     printProformaInvoicePdf(current, businessSettings, exportData);
   };
 
+  // Sync back edits made in Proforma Invoice Modal to form state and storage
+  const handleUpdateFromProforma = (updated: Partial<MeasurementSheet>) => {
+    if (updated.consigneeName !== undefined) setConsigneeName(updated.consigneeName);
+    if (updated.consigneePhone !== undefined) setConsigneePhone(updated.consigneePhone);
+    if (updated.consigneeAddress !== undefined) setConsigneeAddress(updated.consigneeAddress);
+    if (updated.consigneeGstin !== undefined) setConsigneeGstin(updated.consigneeGstin);
+    if (updated.consigneeState !== undefined) setConsigneeState(updated.consigneeState);
+    if (updated.consigneeStateCode !== undefined) setConsigneeStateCode(updated.consigneeStateCode);
+    if (updated.consigneeDistrict !== undefined) setConsigneeDistrict(updated.consigneeDistrict);
+
+    if (updated.customerName !== undefined) setCustomerName(updated.customerName);
+    if (updated.customerPhone !== undefined) setCustomerPhone(updated.customerPhone);
+    if (updated.customerAddress !== undefined) setCustomerAddress(updated.customerAddress);
+    if (updated.customerGstin !== undefined) setCustomerGstin(updated.customerGstin);
+    if (updated.customerState !== undefined) setCustomerState(updated.customerState);
+    if (updated.customerStateCode !== undefined) setCustomerStateCode(updated.customerStateCode);
+
+    if (updated.destination !== undefined) setDestination(updated.destination);
+    if (updated.motorVehicleNo !== undefined) setMotorVehicleNo(updated.motorVehicleNo);
+    if (updated.termsOfDelivery !== undefined) setTermsOfDelivery(updated.termsOfDelivery);
+    if (updated.paymentTerms !== undefined) setPaymentTerms(updated.paymentTerms);
+    if (updated.buyerOrderNo !== undefined) setBuyerOrderNo(updated.buyerOrderNo);
+    if (updated.buyerOrderDate !== undefined) setBuyerOrderDate(updated.buyerOrderDate);
+
+    setIsShipToTouched(true);
+  };
+
   // Share Invoice PDF directly to customer's WhatsApp chat
   const handleShareWhatsApp = async () => {
     persistCurrentCustomer();
@@ -3804,6 +3831,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             onClose={() => setIsProformaModalOpen(false)}
             sheet={getCurrentSheetObject()}
             businessSettings={businessSettings}
+            onUpdateSheet={handleUpdateFromProforma}
           />
         )}
       </div>
