@@ -284,6 +284,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isProformaModalOpen, setIsProformaModalOpen] = useState(false);
   const [isActionsModalOpen, setIsActionsModalOpen] = useState(false);
+  const [editModalTarget, setEditModalTarget] = useState<'bill_to' | 'ship_to' | null>(null);
 
   // Global listener so the top header Actions button on mobile can trigger sheet actions
   useEffect(() => {
@@ -3448,7 +3449,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    onClick={() => setCurrentStep(2)}
+                    onClick={() => setEditModalTarget('bill_to')}
                     style={{ width: '100%', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700 }}
                   >
                     <Edit3 size={14} /> Edit Bill To Details
@@ -3534,7 +3535,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    onClick={() => setCurrentStep(3)}
+                    onClick={() => setEditModalTarget('ship_to')}
                     style={{ width: '100%', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700 }}
                   >
                     <Edit3 size={14} /> Edit Ship To Details
@@ -3542,6 +3543,360 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Direct In-Place Edit Modal for Bill To / Ship To */}
+            {editModalTarget && (
+              <div className="modal-overlay" onClick={() => { persistCurrentCustomer(); setEditModalTarget(null); }}>
+                <div
+                  className="modal-content"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ maxWidth: '520px', padding: '1.25rem', borderRadius: '12px', border: '1.5px solid var(--border-medium)' }}
+                >
+                  {/* Modal Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.65rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Edit3 size={18} color="var(--primary-600)" />
+                      <h3 style={{ fontSize: '1.1rem', margin: 0, fontWeight: 800 }}>
+                        {editModalTarget === 'bill_to' ? 'Edit Bill To Details' : 'Edit Ship To Details'}
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => { persistCurrentCustomer(); setEditModalTarget(null); }}
+                      style={{ padding: '4px' }}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  {/* Tab switchers so user can easily toggle between Bill To and Ship To in the same popup */}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setEditModalTarget('bill_to')}
+                      style={{
+                        flex: 1,
+                        padding: '6px 10px',
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        backgroundColor: editModalTarget === 'bill_to' ? '#1d4ed8' : 'transparent',
+                        color: editModalTarget === 'bill_to' ? '#ffffff' : '#475569',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      BILL TO DETAILS
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditModalTarget('ship_to')}
+                      style={{
+                        flex: 1,
+                        padding: '6px 10px',
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        backgroundColor: editModalTarget === 'ship_to' ? '#0284c7' : 'transparent',
+                        color: editModalTarget === 'ship_to' ? '#ffffff' : '#475569',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      SHIP TO DETAILS
+                    </button>
+                  </div>
+
+                  {/* Form Body: Bill To */}
+                  {editModalTarget === 'bill_to' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                          Customer / Company Name:
+                        </label>
+                        <input
+                          type="text"
+                          className="calc-input"
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                          placeholder="Customer or business name"
+                          style={{ width: '100%', fontWeight: 700 }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                          Phone Number:
+                        </label>
+                        <input
+                          type="tel"
+                          className="calc-input"
+                          value={customerPhone}
+                          onChange={(e) => setCustomerPhone(e.target.value)}
+                          placeholder="10-digit mobile number"
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                          Address / Delivery Site:
+                        </label>
+                        <textarea
+                          className="calc-input"
+                          rows={2}
+                          value={customerAddress}
+                          onChange={(e) => setCustomerAddress(e.target.value)}
+                          placeholder="Delivery site or street address"
+                          style={{ width: '100%', resize: 'vertical' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                          GSTIN Number (Optional):
+                        </label>
+                        <input
+                          type="text"
+                          className="calc-input font-mono"
+                          value={customerGstin}
+                          onChange={(e) => setCustomerGstin(e.target.value.toUpperCase())}
+                          placeholder="15-digit GSTIN"
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px', gap: '0.5rem' }}>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                            State:
+                          </label>
+                          <input
+                            type="text"
+                            className="calc-input"
+                            value={customerState}
+                            onChange={(e) => setCustomerState(e.target.value)}
+                            placeholder="State"
+                            style={{ width: '100%' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                            State Code:
+                          </label>
+                          <input
+                            type="text"
+                            className="calc-input font-mono"
+                            value={customerStateCode}
+                            onChange={(e) => setCustomerStateCode(e.target.value)}
+                            placeholder="Code"
+                            style={{ width: '100%', textAlign: 'center' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                            Ref Number:
+                          </label>
+                          <input
+                            type="text"
+                            className="calc-input font-mono"
+                            value={referenceNumber}
+                            onChange={(e) => setReferenceNumber(e.target.value)}
+                            placeholder="REF-..."
+                            style={{ width: '100%' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                            Invoice Date:
+                          </label>
+                          <input
+                            type="date"
+                            className="calc-input"
+                            value={measurementDate}
+                            onChange={(e) => {
+                              setMeasurementDate(e.target.value);
+                              setInvoiceDate(formatToInvoiceDate(e.target.value));
+                            }}
+                            style={{ width: '100%' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Form Body: Ship To */}
+                  {editModalTarget === 'ship_to' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            setConsigneeName(customerName);
+                            setConsigneePhone(customerPhone);
+                            setConsigneeAddress(customerAddress);
+                            setConsigneeGstin(customerGstin);
+                            setConsigneeStateCode(customerStateCode || '29');
+                            setConsigneeState(destination || customerState || 'Karnataka');
+                            setIsShipToTouched(true);
+                          }}
+                          style={{ fontSize: '0.72rem', padding: '3px 8px', fontWeight: 700 }}
+                        >
+                          📋 Copy from Bill To
+                        </button>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                          Receiving Person / Customer Name:
+                        </label>
+                        <input
+                          type="text"
+                          className="calc-input"
+                          value={consigneeName}
+                          onChange={(e) => {
+                            setConsigneeName(e.target.value);
+                            setIsShipToTouched(true);
+                          }}
+                          placeholder="Receiving customer or site contact"
+                          style={{ width: '100%', fontWeight: 700 }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                          Contact Phone:
+                        </label>
+                        <input
+                          type="tel"
+                          className="calc-input"
+                          value={consigneePhone}
+                          onChange={(e) => {
+                            setConsigneePhone(e.target.value);
+                            setIsShipToTouched(true);
+                          }}
+                          placeholder="Phone number"
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                          Delivery Site / Shipping Address:
+                        </label>
+                        <textarea
+                          className="calc-input"
+                          rows={2}
+                          value={consigneeAddress}
+                          onChange={(e) => {
+                            setConsigneeAddress(e.target.value);
+                            setIsShipToTouched(true);
+                          }}
+                          placeholder="Shipping address"
+                          style={{ width: '100%', resize: 'vertical' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                          GSTIN Number (Optional):
+                        </label>
+                        <input
+                          type="text"
+                          className="calc-input font-mono"
+                          value={consigneeGstin}
+                          onChange={(e) => {
+                            setConsigneeGstin(e.target.value.toUpperCase());
+                            setIsShipToTouched(true);
+                          }}
+                          placeholder="Consignee GSTIN"
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                          District:
+                        </label>
+                        <input
+                          type="text"
+                          className="calc-input"
+                          value={consigneeDistrict}
+                          onChange={(e) => {
+                            setConsigneeDistrict(e.target.value);
+                            if (e.target.value.trim()) setDestination(e.target.value.trim().toUpperCase());
+                            setIsShipToTouched(true);
+                          }}
+                          placeholder="e.g. Mysore, Mandya, Bangalore..."
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px', gap: '0.5rem' }}>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                            State:
+                          </label>
+                          <input
+                            type="text"
+                            className="calc-input"
+                            value={consigneeState}
+                            onChange={(e) => {
+                              setConsigneeState(e.target.value);
+                              if (!consigneeDistrict && e.target.value.trim()) setDestination(e.target.value.trim().toUpperCase());
+                              setIsShipToTouched(true);
+                            }}
+                            placeholder="e.g. Karnataka"
+                            style={{ width: '100%' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                            State Code:
+                          </label>
+                          <input
+                            type="text"
+                            className="calc-input font-mono"
+                            value={consigneeStateCode}
+                            onChange={(e) => {
+                              setConsigneeStateCode(e.target.value);
+                              setIsShipToTouched(true);
+                            }}
+                            placeholder="Code"
+                            style={{ width: '100%', textAlign: 'center' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Modal Footer */}
+                  <div style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <CheckCircle size={14} /> Auto-synced live
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => {
+                        persistCurrentCustomer();
+                        setEditModalTarget(null);
+                      }}
+                      style={{ padding: '0.5rem 1.25rem', fontSize: '0.88rem', fontWeight: 800, backgroundColor: '#15803d' }}
+                    >
+                      ✓ Save &amp; Done
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Quick full proforma preview button */}
             <div style={{ display: 'flex', justifyContent: 'center' }}>
