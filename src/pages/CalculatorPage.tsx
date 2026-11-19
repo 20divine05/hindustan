@@ -1400,12 +1400,25 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             ========================================================================= */}
         {currentStep === 2 && (
           <div className="card calc-step-card">
-            {/* Top Indicator: Bill to (Ultra-compact & slim) */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', paddingBottom: '0.15rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.2rem' }}>
-              <span style={{ fontSize: '0.64rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--primary-700)', background: 'var(--primary-100, #e2e8f0)', padding: '1px 5px', borderRadius: '3px', border: '1px solid var(--primary-300)', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
-                Bill to
+            {/* Top Indicator: Bill to (Centered, Highlighted & Bold) */}
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem' }}>
+              <span style={{
+                fontSize: '0.84rem',
+                fontWeight: 900,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: '#1d4ed8',
+                background: '#dbeafe',
+                padding: '3px 14px',
+                borderRadius: '6px',
+                border: '1.5px solid #60a5fa',
+                whiteSpace: 'nowrap',
+                lineHeight: 1.25,
+                boxShadow: '0 1px 3px rgba(29, 78, 216, 0.15)'
+              }}>
+                BILL TO
               </span>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main, #1e293b)', whiteSpace: 'nowrap' }}>
                 {customerType === 'b2b' ? 'Buyer Business GST' : 'Buyer Customer Details'}
               </span>
             </div>
@@ -1947,13 +1960,26 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             ========================================================================= */}
         {currentStep === 3 && (
           <div className="card calc-step-card">
-            {/* Top Indicator: Ship to (Ultra-compact & slim) */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.15rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span style={{ fontSize: '0.64rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0369a1', background: '#e0f2fe', padding: '1px 5px', borderRadius: '3px', border: '1px solid #7dd3fc', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
-                  Ship to
+            {/* Top Indicator: Ship to (Centered, Highlighted & Bold) */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0.5rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{
+                  fontSize: '0.84rem',
+                  fontWeight: 900,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: '#0284c7',
+                  background: '#e0f2fe',
+                  padding: '3px 14px',
+                  borderRadius: '6px',
+                  border: '1.5px solid #38bdf8',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.25,
+                  boxShadow: '0 1px 3px rgba(2, 132, 199, 0.15)'
+                }}>
+                  SHIP TO
                 </span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main, #1e293b)', whiteSpace: 'nowrap' }}>
                   Consignee Details
                 </span>
               </div>
@@ -1973,7 +1999,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   setShipToCopyNotice('✓ Copied from Bill To');
                   setTimeout(() => setShipToCopyNotice(null), 2500);
                 }}
-                style={{ fontSize: '0.65rem', padding: '1px 5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.2rem', whiteSpace: 'nowrap', height: '22px', minHeight: '22px' }}
+                style={{ fontSize: '0.68rem', padding: '2px 8px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.2rem', whiteSpace: 'nowrap', height: '24px', minHeight: '24px' }}
               >
                 <span>📋 Copy from Bill To</span>
               </button>
