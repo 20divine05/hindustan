@@ -27,7 +27,8 @@ import {
   Tag,
   Percent,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Eye
 } from 'lucide-react';
 import type { MeasurementItem, MeasurementSheet, BusinessSettings } from '../types';
 import { MeasurementTable } from '../components/MeasurementTable';
@@ -167,9 +168,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   // 8: Other Miscellaneous Charges (with image)
   // 9: GST Tax Configuration (with image)
   // 10: Customer Discount (with image)
-  // 11: Timber Order / Sorting
-  // 12: Final Invoice & Share
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12>(1);
+  // 11: Timber Order / Sorting (Preview Calculation)
+  // 12: Preview Bill To & Ship To Details
+  // 13: Final Invoice & Share
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13>(1);
 
   // Sheet Metadata State
   const [sheetId, setSheetId] = useState<string>(sheetToEdit?.id || generateId());
@@ -3352,9 +3354,213 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 12: FINAL REVIEW, WHATSAPP SHARE, PDF DOWNLOAD & PRINT
+            STEP 12: PREVIEW BILL TO & SHIP TO DETAILS
             ========================================================================= */}
         {currentStep === 12 && (
+          <div className="card calc-step-card">
+            <div className="calc-step-header" style={{ marginBottom: '0.85rem' }}>
+              <h3 className="calc-step-title" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <Eye size={18} color="var(--primary-600)" /> Preview Bill To &amp; Ship To Details
+              </h3>
+              <p className="calc-step-desc">
+                Review and verify buyer billing and consignee shipping destinations before generating final invoice
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+              {/* Card 1: BILL TO Preview */}
+              <div
+                style={{
+                  border: '1.5px solid #bfdbfe',
+                  borderRadius: '10px',
+                  backgroundColor: '#ffffff',
+                  boxShadow: '0 2px 8px rgba(30, 58, 138, 0.06)',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}
+              >
+                {/* Header */}
+                <div
+                  style={{
+                    backgroundColor: '#eff6ff',
+                    padding: '0.65rem 0.85rem',
+                    borderBottom: '1.5px solid #bfdbfe',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <span style={{
+                    fontSize: '0.88rem',
+                    fontWeight: 900,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    color: '#1d4ed8',
+                    background: '#dbeafe',
+                    padding: '4px 18px',
+                    borderRadius: '6px',
+                    border: '1.5px solid #60a5fa',
+                    whiteSpace: 'nowrap',
+                    lineHeight: 1.25,
+                    boxShadow: '0 1px 3px rgba(29, 78, 216, 0.15)'
+                  }}>
+                    BILL TO
+                  </span>
+                </div>
+
+                {/* Details list */}
+                <div style={{ padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.55rem', flex: 1, fontSize: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.35rem' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Buyer / Name:</span>
+                    <strong style={{ color: 'var(--text-main, #0f172a)', textAlign: 'right' }}>{customerName || 'Direct Cash Customer'}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.35rem' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Phone Number:</span>
+                    <strong style={{ color: 'var(--text-main, #0f172a)', textAlign: 'right' }}>{customerPhone || '—'}</strong>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.35rem' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Billing Address:</span>
+                    <span style={{ color: 'var(--text-main, #0f172a)', fontWeight: 700, wordBreak: 'break-word' }}>{customerAddress || '—'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.35rem' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>GSTIN / UIN:</span>
+                    <strong style={{ fontFamily: 'monospace', color: customerGstin ? '#1d4ed8' : 'var(--text-muted)', textAlign: 'right' }}>{customerGstin || 'Unregistered'}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.35rem' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>State &amp; Code:</span>
+                    <strong style={{ color: 'var(--text-main, #0f172a)', textAlign: 'right' }}>
+                      {customerState || 'Karnataka'} {customerStateCode ? `(Code: ${customerStateCode})` : '(Code: 29)'}
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.35rem' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Ref Number:</span>
+                    <strong style={{ fontFamily: 'monospace', color: 'var(--text-main, #0f172a)', textAlign: 'right' }}>{referenceNumber || '—'}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Invoice Date:</span>
+                    <strong style={{ color: 'var(--text-main, #0f172a)', textAlign: 'right' }}>{invoiceDate || measurementDate || '—'}</strong>
+                  </div>
+                </div>
+
+                {/* Edit Button */}
+                <div style={{ padding: '0.65rem 1rem', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setCurrentStep(2)}
+                    style={{ width: '100%', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700 }}
+                  >
+                    <Edit3 size={14} /> Edit Bill To Details
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 2: SHIP TO Preview */}
+              <div
+                style={{
+                  border: '1.5px solid #bae6fd',
+                  borderRadius: '10px',
+                  backgroundColor: '#ffffff',
+                  boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}
+              >
+                {/* Header */}
+                <div
+                  style={{
+                    backgroundColor: '#f0f9ff',
+                    padding: '0.65rem 0.85rem',
+                    borderBottom: '1.5px solid #bae6fd',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <span style={{
+                    fontSize: '0.88rem',
+                    fontWeight: 900,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    color: '#0284c7',
+                    background: '#e0f2fe',
+                    padding: '4px 18px',
+                    borderRadius: '6px',
+                    border: '1.5px solid #38bdf8',
+                    whiteSpace: 'nowrap',
+                    lineHeight: 1.25,
+                    boxShadow: '0 1px 3px rgba(2, 132, 199, 0.15)'
+                  }}>
+                    SHIP TO
+                  </span>
+                </div>
+
+                {/* Details list */}
+                <div style={{ padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.55rem', flex: 1, fontSize: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.35rem' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Consignee / Receiving:</span>
+                    <strong style={{ color: 'var(--text-main, #0f172a)', textAlign: 'right' }}>{consigneeName || customerName || 'Direct Cash Customer'}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.35rem' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Contact Phone:</span>
+                    <strong style={{ color: 'var(--text-main, #0f172a)', textAlign: 'right' }}>{consigneePhone || customerPhone || '—'}</strong>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.35rem' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Shipping / Delivery Site:</span>
+                    <span style={{ color: 'var(--text-main, #0f172a)', fontWeight: 700, wordBreak: 'break-word' }}>{consigneeAddress || customerAddress || '—'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.35rem' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>GSTIN / UIN:</span>
+                    <strong style={{ fontFamily: 'monospace', color: (consigneeGstin || customerGstin) ? '#0284c7' : 'var(--text-muted)', textAlign: 'right' }}>
+                      {consigneeGstin || customerGstin || 'Unregistered'}
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.35rem' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>District:</span>
+                    <strong style={{ color: 'var(--text-main, #0f172a)', textAlign: 'right' }}>{consigneeDistrict || 'Mysore'}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>State &amp; Code:</span>
+                    <strong style={{ color: 'var(--text-main, #0f172a)', textAlign: 'right' }}>
+                      {consigneeState || destination || customerState || 'Karnataka'} {consigneeStateCode ? `(Code: ${consigneeStateCode})` : (customerStateCode ? `(Code: ${customerStateCode})` : '(Code: 29)')}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Edit Button */}
+                <div style={{ padding: '0.65rem 1rem', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setCurrentStep(3)}
+                    style={{ width: '100%', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700 }}
+                  >
+                    <Edit3 size={14} /> Edit Ship To Details
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick full proforma preview button */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setIsProformaModalOpen(true)}
+                style={{ fontWeight: 700, padding: '0.55rem 1.15rem', fontSize: '0.88rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <FileText size={16} /> Full Invoice Preview Modal
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            STEP 13: FINAL REVIEW, WHATSAPP SHARE, PDF DOWNLOAD & PRINT
+            ========================================================================= */}
+        {currentStep === 13 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
 
             {/* 3 High-Impact Primary Mobile Action Buttons (WhatsApp, PDF, Print) */}
@@ -3488,6 +3694,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <div className="summary-preview-item">
                   <span className="preview-label">Address:</span>
                   <span className="preview-val">{customerAddress || 'Local Mill Pickup'}</span>
+                </div>
+                <div className="summary-preview-item">
+                  <span className="preview-label">Ship To Consignee:</span>
+                  <span className="preview-val font-bold">{consigneeName || customerName || 'Direct Cash Customer'}</span>
+                </div>
+                <div className="summary-preview-item">
+                  <span className="preview-label">Ship To Destination:</span>
+                  <span className="preview-val">{consigneeDistrict || consigneeState || customerState || 'Karnataka'}</span>
                 </div>
                 <div className="summary-preview-item">
                   <span className="preview-label">Total Volume:</span>
@@ -3655,14 +3869,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               <button
                 type="button"
                 className="btn btn-secondary calc-dock-btn calc-dock-prev"
-                onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12)}
+                onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13)}
                 style={{ flex: '0 0 auto', padding: '0.45rem 0.85rem' }}
               >
                 <ArrowLeft size={15} /> Back
               </button>
             )}
 
-            {currentStep < 12 ? (
+            {currentStep < 13 ? (
               <button
                 type="button"
                 className="btn btn-primary calc-dock-btn calc-dock-next"
@@ -3679,7 +3893,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setConsigneeState(destination || customerState || 'Karnataka');
                     }
                   }
-                  setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12);
+                  setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13);
                 }}
               >
                 <span>
@@ -3693,7 +3907,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   {currentStep === 8 && 'Next: GST Tax →'}
                   {currentStep === 9 && 'Next: Discount →'}
                   {currentStep === 10 && 'Next: Order Sorting →'}
-                  {currentStep === 11 && 'Next: Invoice & Share →'}
+                  {currentStep === 11 && 'Next: Preview Bill To & Ship To →'}
+                  {currentStep === 12 && 'Next: Invoice & Share →'}
                 </span>
               </button>
             ) : (
