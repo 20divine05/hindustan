@@ -1641,7 +1641,9 @@ input[type="number"] {
 .calc-step-card input::placeholder,
 .calc-step-card textarea::placeholder,
 .calc-step-card .calc-gst-input::placeholder,
-.calc-step-card .calc-address-textarea::placeholder {
+.calc-step-card .calc-address-textarea::placeholder,
+.calc-edit-compact-modal input::placeholder,
+.calc-edit-compact-modal textarea::placeholder {
   font-size: 0.67rem !important;
   font-weight: 500 !important;
   color: #94a3b8 !important;
