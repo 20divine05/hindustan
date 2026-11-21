@@ -1376,15 +1376,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 }}
               >
                 <div className="calc-type-card-icon">
-                  <TrendingUp size={28} />
+                  <TrendingUp size={36} />
                 </div>
                 <div className="calc-type-card-content">
                   <h4>Sales</h4>
-                  <p>Timber sale to customer, outward delivery, and sales proforma tax invoice</p>
                 </div>
-                <span className="calc-type-card-arrow">
-                  Select Sales &rarr;
-                </span>
               </div>
 
               {/* 2. Purchase Card */}
@@ -1396,15 +1392,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 }}
               >
                 <div className="calc-type-card-icon">
-                  <Truck size={28} />
+                  <Truck size={36} />
                 </div>
                 <div className="calc-type-card-content">
                   <h4>Purchase</h4>
-                  <p>Inward procurement, log / timber purchase from supplier or timber trader</p>
                 </div>
-                <span className="calc-type-card-arrow">
-                  Select Purchase &rarr;
-                </span>
               </div>
             </div>
           </div>
@@ -1434,15 +1426,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 }}
               >
                 <div className="calc-type-card-icon">
-                  <User size={28} />
+                  <User size={36} />
                 </div>
                 <div className="calc-type-card-content">
-                  <h4>Retail / Cash (B2C)</h4>
-                  <p>Direct consumer, contractor or walk-in buyer without mandatory GST tax invoicing</p>
+                  <h4>B2C</h4>
                 </div>
-                <span className="calc-type-card-arrow">
-                  Select Retail (B2C) &rarr;
-                </span>
               </div>
 
               {/* 2. Business GST (B2B) Card */}
@@ -1454,15 +1442,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 }}
               >
                 <div className="calc-type-card-icon">
-                  <Building size={28} />
+                  <Building size={36} />
                 </div>
                 <div className="calc-type-card-content">
-                  <h4>Business GST (B2B)</h4>
-                  <p>Registered enterprise or timber trader with 15-digit GSTIN lookup and tax invoice</p>
+                  <h4>B2B</h4>
                 </div>
-                <span className="calc-type-card-arrow">
-                  Select Business (B2B) &rarr;
-                </span>
               </div>
             </div>
           </div>
