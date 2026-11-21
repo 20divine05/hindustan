@@ -1356,7 +1356,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             STEP 1: SELECT ORDER / VOUCHER TYPE (Sales vs Purchase)
             ========================================================================= */}
         {currentStep === 1 && (
-          <div className="card calc-step-card">
+          <div className="card calc-step-card calc-type-step-card">
             <div className="calc-step-header" style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
               <h3 className="calc-step-title" style={{ justifyContent: 'center', fontSize: '1.15rem' }}>
                 <ShoppingBag size={18} color="var(--primary-600)" /> Select Order Type
@@ -1376,7 +1376,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 }}
               >
                 <div className="calc-type-card-icon">
-                  <TrendingUp size={36} />
+                  <TrendingUp size={44} />
                 </div>
                 <div className="calc-type-card-content">
                   <h4>Sales</h4>
@@ -1392,7 +1392,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 }}
               >
                 <div className="calc-type-card-icon">
-                  <Truck size={36} />
+                  <Truck size={44} />
                 </div>
                 <div className="calc-type-card-content">
                   <h4>Purchase</h4>
@@ -1406,7 +1406,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             STEP 2: SELECT CUSTOMER TYPE (B2B vs B2C Selection Only)
             ========================================================================= */}
         {currentStep === 2 && (
-          <div className="card calc-step-card">
+          <div className="card calc-step-card calc-type-step-card">
             <div className="calc-step-header" style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
               <h3 className="calc-step-title" style={{ justifyContent: 'center', fontSize: '1.15rem' }}>
                 <User size={18} color="var(--primary-600)" /> Select Customer Type
@@ -1417,7 +1417,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             </div>
 
             <div className="calc-type-choice-grid">
-              {/* 1. Retail / Cash (B2C) Card */}
+              {/* 1. B2C Card */}
               <div
                 className={`calc-type-card ${customerType === 'b2c' ? 'selected' : ''}`}
                 onClick={() => {
@@ -1426,14 +1426,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 }}
               >
                 <div className="calc-type-card-icon">
-                  <User size={36} />
+                  <User size={44} />
                 </div>
                 <div className="calc-type-card-content">
                   <h4>B2C</h4>
                 </div>
               </div>
 
-              {/* 2. Business GST (B2B) Card */}
+              {/* 2. B2B Card */}
               <div
                 className={`calc-type-card ${customerType === 'b2b' ? 'selected' : ''}`}
                 onClick={() => {
@@ -1442,7 +1442,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 }}
               >
                 <div className="calc-type-card-icon">
-                  <Building size={36} />
+                  <Building size={44} />
                 </div>
                 <div className="calc-type-card-content">
                   <h4>B2B</h4>
