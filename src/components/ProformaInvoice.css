@@ -349,7 +349,8 @@
 .p-items-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11px;
+  font-size: 10.5px;
+  table-layout: fixed;
 }
 
 .p-items-table th {
@@ -357,9 +358,11 @@
   border-right: 1px solid #222222;
   padding: 2px 3px;
   font-weight: 700;
-  font-size: 10px;
+  font-size: 9.5px;
   background-color: #f6f7f6;
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .p-items-table th:last-child {
@@ -367,13 +370,16 @@
 }
 
 .p-item-row td {
-  padding: 0.5px 4px;
+  padding: 0.5px 3px;
   border-right: 1px solid #222222 !important;
   border-left: none !important;
   border-top: none !important;
   border-bottom: none !important;
   vertical-align: middle;
   line-height: 1.08;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
 }
 
 .p-item-row td:first-child {
@@ -456,7 +462,8 @@
 .p-mono {
   font-family: 'JetBrains Mono', Courier, monospace;
   font-variant-numeric: tabular-nums;
-  font-size: 10px;
+  font-size: 9.5px;
+  letter-spacing: -0.01em;
 }
 
 /* Individual Item Amount - Lighter weight & softer color */
@@ -473,7 +480,10 @@
   border-right: 1px solid #222222 !important;
   color: #000000 !important;
   font-weight: 800 !important;
-  padding: 1px 4px;
+  padding: 1px 3px;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
 }
 
 .p-wood-subtotal-row td:first-child {
@@ -495,9 +505,12 @@
   border-bottom: 1.5px solid #222222 !important;
   border-right: 1px solid #222222 !important;
   border-left: none !important;
-  padding: 1.2px 4px;
+  padding: 1.2px 3px;
   background-color: #e5e7eb !important;
   font-weight: 800;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
 }
 
 .p-total-wood-row td:first-child {
@@ -519,8 +532,11 @@
   border-bottom: 1.5px solid #222222 !important;
   border-right: 1px solid #222222 !important;
   border-left: none !important;
-  padding: 1.5px 4px;
+  padding: 1.5px 3px;
   background-color: #f6f7f6;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
 }
 
 .p-total-row td:first-child {
@@ -534,10 +550,10 @@
 /* Final Total Price Highlight (bolded and clear, standard row size) */
 .p-final-total-highlight {
   color: #000000 !important;
-  font-size: 13px !important;
+  font-size: 12.5px !important;
   font-weight: 900 !important;
-  padding-right: 8px !important;
-  letter-spacing: 0.01em;
+  padding-right: 6px !important;
+  letter-spacing: -0.015em;
 }
 
 /* Words Bar */

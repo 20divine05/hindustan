@@ -919,14 +919,14 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
             <table className="p-items-table">
               <thead>
                 <tr>
-                  <th style={{ width: '4%' }}>Sl<br />No.</th>
-                  <th style={{ width: '32%', textAlign: 'left', paddingLeft: '8px' }}>Description of Goods</th>
-                  <th style={{ width: '11%', textAlign: 'right' }}>Quantity</th>
-                  <th style={{ width: '13%', textAlign: 'right' }}>Alt. Quantity</th>
-                  <th style={{ width: '12%', textAlign: 'right' }}>SQFT</th>
-                  <th style={{ width: '11%', textAlign: 'right' }}>Rate</th>
-                  <th style={{ width: '6%', textAlign: 'center', whiteSpace: 'nowrap' }}>per</th>
-                  <th style={{ width: '12%', textAlign: 'left', paddingLeft: '8px' }}>Amount</th>
+                  <th style={{ width: '3.5%' }}>Sl<br />No.</th>
+                  <th style={{ width: '17.5%', textAlign: 'left', paddingLeft: '8px' }}>Description of Goods</th>
+                  <th style={{ width: '8.5%', textAlign: 'right' }}>Quantity</th>
+                  <th style={{ width: '16.5%', textAlign: 'right' }}>Alt. Quantity</th>
+                  <th style={{ width: '16.5%', textAlign: 'right' }}>SQFT</th>
+                  <th style={{ width: '9%', textAlign: 'right' }}>Rate</th>
+                  <th style={{ width: '5%', textAlign: 'center', whiteSpace: 'nowrap' }}>per</th>
+                  <th style={{ width: '23.5%', textAlign: 'left', paddingLeft: '8px' }}>Amount</th>
                 </tr>
               </thead>
               <tbody>

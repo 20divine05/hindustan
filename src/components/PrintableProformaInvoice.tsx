@@ -37,30 +37,43 @@ export const renderWithSmallDecimalHtml = (val: string | number | undefined | nu
   const str = typeof val === 'number' ? val.toString() : val;
   if (!str || str === '-') return null;
   const dotIdx = str.lastIndexOf('.');
+
+  // Auto-scale font size dynamically based on number/text length to prevent overflowing box boundaries
+  const rawText = `${prefix}${str}${suffix}`;
+  const charCount = rawText.length;
+  let scaleStyle: React.CSSProperties = { display: 'inline-block', whiteSpace: 'nowrap' };
+  if (charCount >= 18) {
+    scaleStyle = { display: 'inline-block', fontSize: '0.84em', letterSpacing: '-0.025em', whiteSpace: 'nowrap' };
+  } else if (charCount >= 15) {
+    scaleStyle = { display: 'inline-block', fontSize: '0.9em', letterSpacing: '-0.015em', whiteSpace: 'nowrap' };
+  } else if (charCount >= 13) {
+    scaleStyle = { display: 'inline-block', fontSize: '0.95em', letterSpacing: '-0.01em', whiteSpace: 'nowrap' };
+  }
+
   if (dotIdx === -1) {
-    return <>{prefix}{str}{suffix}</>;
+    return <span style={scaleStyle}>{prefix}{str}{suffix}</span>;
   }
   const before = str.slice(0, dotIdx);
   if (!/\d/.test(before)) {
-    return <>{prefix}{str}{suffix}</>;
+    return <span style={scaleStyle}>{prefix}{str}{suffix}</span>;
   }
   const after = str.slice(dotIdx + 1);
   const match = after.match(/^(\d+)(.*)$/);
   if (!match) {
-    return <>{prefix}{str}{suffix}</>;
+    return <span style={scaleStyle}>{prefix}{str}{suffix}</span>;
   }
   const intStr = str.slice(0, dotIdx + 1);
   const decStr = match[1];
   const postStr = match[2];
 
   return (
-    <>
+    <span style={scaleStyle}>
       {prefix}
       <span>{intStr}</span>
       <span className="p-dec-small">{decStr}</span>
       {postStr}
       {suffix}
-    </>
+    </span>
   );
 };
 
@@ -421,14 +434,14 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
           <table className="p-items-table">
             <thead>
               <tr>
-                <th style={{ width: '4%' }}>Sl<br />No.</th>
-                <th style={{ width: '30%', textAlign: 'left', paddingLeft: '8px' }}>Description of Goods</th>
-                <th style={{ width: '11%', textAlign: 'right' }}>Quantity</th>
-                <th style={{ width: '13%', textAlign: 'right' }}>Alt. Quantity</th>
-                <th style={{ width: '13%', textAlign: 'right' }}>SQFT</th>
-                <th style={{ width: '11%', textAlign: 'right' }}>Rate</th>
-                <th style={{ width: '7%', textAlign: 'center', whiteSpace: 'nowrap' }}>per</th>
-                <th style={{ width: '12%', textAlign: 'left', paddingLeft: '8px' }}>Amount</th>
+                <th style={{ width: '3.5%' }}>Sl<br />No.</th>
+                <th style={{ width: '17.5%', textAlign: 'left', paddingLeft: '8px' }}>Description of Goods</th>
+                <th style={{ width: '8.5%', textAlign: 'right' }}>Quantity</th>
+                <th style={{ width: '16.5%', textAlign: 'right' }}>Alt. Quantity</th>
+                <th style={{ width: '16.5%', textAlign: 'right' }}>SQFT</th>
+                <th style={{ width: '9%', textAlign: 'right' }}>Rate</th>
+                <th style={{ width: '5%', textAlign: 'center', whiteSpace: 'nowrap' }}>per</th>
+                <th style={{ width: '23.5%', textAlign: 'left', paddingLeft: '8px' }}>Amount</th>
               </tr>
             </thead>
             <tbody>
