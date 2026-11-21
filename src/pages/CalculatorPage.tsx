@@ -2503,14 +2503,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
             {/* Input Card */}
             <div className="calc-charge-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
-                  <Scissors size={15} color="var(--primary-600)" /> Carpentry Charges (₹):
-                </label>
-                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-700)' }}>
-                  ₹ {formatIndianCurrency(carpentryCharges)}
-                </span>
-              </div>
               <div style={{ position: 'relative', width: '100%' }}>
                 <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
                   ₹
@@ -2518,6 +2510,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <input
                   type="number"
                   className="calc-prefixed-input"
+                  placeholder="Carpentry Charges"
                   value={carpentryCharges === 0 ? '' : carpentryCharges}
                   onChange={(e) => setCarpentryCharges(Math.max(0, Number(e.target.value) || 0))}
                   style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
@@ -2559,14 +2552,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
             {/* Input Card */}
             <div className="calc-charge-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
-                  <Truck size={15} color="var(--primary-600)" /> Transportation Charges (₹):
-                </label>
-                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-700)' }}>
-                  ₹ {formatIndianCurrency(transportationCharges)}
-                </span>
-              </div>
               <div style={{ position: 'relative', width: '100%' }}>
                 <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
                   ₹
@@ -2574,6 +2559,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <input
                   type="number"
                   className="calc-prefixed-input"
+                  placeholder="Transportation Charges"
                   value={transportationCharges === 0 ? '' : transportationCharges}
                   onChange={(e) => setTransportationCharges(Math.max(0, Number(e.target.value) || 0))}
                   style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
@@ -2615,17 +2601,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
             {/* Input Card */}
             <div className="calc-charge-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
-                  <Layers size={15} color="var(--primary-600)" /> Other Charges (₹):
-                </label>
-                {otherCharges > 0 && (
-                  <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-700)' }}>
-                    ₹ {formatIndianCurrency(otherCharges)}
-                  </span>
-                )}
-              </div>
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', width: '100%' }}>
                 <div style={{ position: 'relative', width: '100%' }}>
                   <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
@@ -2634,6 +2609,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <input
                     type="number"
                     className="calc-prefixed-input"
+                    placeholder="Other Charges Amount"
                     value={otherCharges === 0 ? '' : otherCharges}
                     onChange={(e) => setOtherCharges(Math.max(0, Number(e.target.value) || 0))}
                     style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
@@ -2643,6 +2619,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <div>
                   <input
                     type="text"
+                    placeholder="Charge description (e.g. Loading / Unloading)"
                     value={otherChargesLabel}
                     onChange={(e) => setOtherChargesLabel(e.target.value)}
                     style={{ width: '100%', fontSize: '0.88rem', fontWeight: 600, padding: '0.4rem 0.65rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
@@ -2685,17 +2662,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
             {/* Input Card */}
             <div className="calc-charge-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
-                  <Percent size={15} color="var(--primary-600)" /> GST Taxable Base (₹):
-                </label>
-                {gstAmount > 0 && (
-                  <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-800)' }}>
-                    +₹{formatIndianCurrency(gstAmount)} ({gstPercent}%)
-                  </span>
-                )}
-              </div>
-
               {/* Taxable Base Amount input */}
               <div style={{ position: 'relative', width: '100%', marginBottom: '0.5rem' }}>
                 <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
@@ -2810,19 +2776,15 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
             {/* Input Card */}
             <div className="calc-charge-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
-                  <Tag size={15} color="var(--primary-600)" /> Discount Value:
-                </label>
-
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
                 {/* Mode Toggle: Rupees vs Percentage */}
-                <div style={{ display: 'inline-flex', borderRadius: '6px', border: '1px solid var(--border-medium)', overflow: 'hidden', flexShrink: 0 }}>
+                <div style={{ display: 'inline-flex', borderRadius: '6px', border: '1px solid var(--border-medium)', overflow: 'hidden' }}>
                   <button
                     type="button"
                     onClick={() => setDiscountType('rupees')}
                     style={{
-                      padding: '0.3rem 0.65rem',
-                      fontSize: '0.8rem',
+                      padding: '0.35rem 0.85rem',
+                      fontSize: '0.82rem',
                       fontWeight: 700,
                       backgroundColor: discountType === 'rupees' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
                       color: discountType === 'rupees' ? '#fff' : 'var(--text-main)',
@@ -2836,8 +2798,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="button"
                     onClick={() => setDiscountType('percentage')}
                     style={{
-                      padding: '0.3rem 0.65rem',
-                      fontSize: '0.8rem',
+                      padding: '0.35rem 0.85rem',
+                      fontSize: '0.82rem',
                       fontWeight: 700,
                       backgroundColor: discountType === 'percentage' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
                       color: discountType === 'percentage' ? '#fff' : 'var(--text-main)',
