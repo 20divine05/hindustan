@@ -1787,6 +1787,13 @@ input[type="number"] {
   }
 }
 
+/* Input placeholder emoji styling */
+input::placeholder,
+textarea::placeholder {
+  opacity: 0.55;
+  font-size: 0.95em;
+}
+
 /* Customer Type Choice Cards (Step 1 & Step 2) */
 .calc-type-choice-grid {
   display: grid;
