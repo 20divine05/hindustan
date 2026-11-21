@@ -126,10 +126,11 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const isQuickSqft = wVal >= 7 && quickRateUnit !== 'CFT';
   const liveCft = lVal > 0 && wVal > 0 && tVal > 0 && pVal > 0 ? (lVal * wVal * tVal * pVal) / 144 : 0;
   const liveSqft = liveCft * 12;
-  const currentRateVal = isQuickSqft
-    ? (parseFloat(quickRateSqft) || 120)
-    : (parseFloat(quickRateCft) || parseFloat(quickRate) || defaultRate);
-  const liveAmount = isQuickSqft ? (liveSqft * currentRateVal) : (liveCft * currentRateVal);
+  const rawEnteredRate = isQuickSqft
+    ? parseFloat(quickRateSqft)
+    : (parseFloat(quickRateCft) || parseFloat(quickRate));
+  const currentRateVal = !isNaN(rawEnteredRate) && rawEnteredRate > 0 ? rawEnteredRate : 0;
+  const liveAmount = currentRateVal > 0 ? (isQuickSqft ? (liveSqft * currentRateVal) : (liveCft * currentRateVal)) : 0;
 
   // Real-time table totals
   const totals = calculateTotals(items, sqftConvention, defaultRate);
@@ -380,29 +381,30 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     }
 
     const isWide = w >= 7;
-    let finalRateUnit: 'CFT' | 'SQFT' = 'CFT';
-    let itemRate = defaultRate;
+    const finalRateUnit: 'CFT' | 'SQFT' = (isWide && quickRateUnit === 'SQFT') ? 'SQFT' : 'CFT';
 
     // Check direct input value in DOM to ensure no React state lag on mobile
     const directRateInput = rateInputRef.current?.value?.trim();
     const domRateVal = directRateInput !== undefined && directRateInput !== '' ? parseFloat(directRateInput) : NaN;
 
-    if (isWide) {
-      if (quickRateUnit === 'CFT') {
-        finalRateUnit = 'CFT';
-        const parsedCftRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : (parseFloat(quickRateCft) || parseFloat(quickRate));
-        itemRate = !isNaN(parsedCftRate) && parsedCftRate > 0 ? parsedCftRate : defaultRate;
-      } else {
-        // Width >= 7 directly defaults to SQFT
-        finalRateUnit = 'SQFT';
-        const parsedSqftRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : (parseFloat(quickRateSqft) || parseFloat(quickRate));
-        itemRate = !isNaN(parsedSqftRate) && parsedSqftRate > 0 ? parsedSqftRate : 120;
-      }
+    let enteredRate: number | null = null;
+    if (!isNaN(domRateVal) && domRateVal > 0) {
+      enteredRate = domRateVal;
+    } else if (finalRateUnit === 'SQFT') {
+      const parsed = parseFloat(quickRateSqft) || parseFloat(quickRate);
+      if (!isNaN(parsed) && parsed > 0) enteredRate = parsed;
     } else {
-      finalRateUnit = 'CFT';
-      const parsedRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : (parseFloat(quickRate) || parseFloat(quickRateCft));
-      itemRate = !isNaN(parsedRate) && parsedRate > 0 ? parsedRate : defaultRate;
+      const parsed = parseFloat(quickRateCft) || parseFloat(quickRate);
+      if (!isNaN(parsed) && parsed > 0) enteredRate = parsed;
     }
+
+    if (!enteredRate || isNaN(enteredRate) || enteredRate <= 0) {
+      setQuickError('Please enter price / rate before adding row');
+      rateInputRef.current?.focus();
+      return;
+    }
+
+    const itemRate = enteredRate;
 
     const calc = calculateRow(l, w, t, p, sqftConvention);
     const multiplier = (isWide && finalRateUnit === 'SQFT') ? calc.sqft : calc.cft;
