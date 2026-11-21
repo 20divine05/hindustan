@@ -2409,14 +2409,43 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
             {/* Input Card */}
             <div className="calc-charge-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
-                  <Sparkles size={15} color="var(--primary-600)" /> Planing Charges (₹):
-                </label>
-                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary-700)' }}>
-                  ₹ {formatIndianCurrency(planingCharges)}
+              {/* Compact Rate per CFT */}
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+                    ₹
+                  </span>
+                  <input
+                    type="number"
+                    step="any"
+                    className="calc-prefixed-input"
+                    placeholder="Rate per CFT"
+                    value={planingRatePerCft === 0 ? '' : planingRatePerCft}
+                    onChange={(e) => {
+                      const rate = Math.max(0, parseFloat(e.target.value) || 0);
+                      setPlaningRatePerCft(rate);
+                      const calculated = Math.round(totals.totalCft * rate * 100) / 100;
+                      setPlaningCharges(calculated);
+                    }}
+                    style={{ width: '100%', fontSize: '1.05rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                  />
+                </div>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                  / CFT
                 </span>
               </div>
+
+              {/* Compact Volume & Rate info */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--primary-50, #f8f6f0)', border: '1px solid var(--border-light)', borderRadius: '6px', padding: '0.35rem 0.65rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  Total Timber Volume:
+                </span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, fontFamily: 'var(--font-mono, monospace)', color: 'var(--primary-800)' }}>
+                  {totals.totalCft > 0 ? totals.totalCft.toFixed(3) : '0.000'} CFT
+                </span>
+              </div>
+
+              {/* Total Planing Charges */}
               <div style={{ position: 'relative', width: '100%' }}>
                 <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
                   ₹
@@ -2424,6 +2453,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <input
                   type="number"
                   className="calc-prefixed-input"
+                  placeholder="Total Planing Charges"
                   value={planingCharges === 0 ? '' : planingCharges}
                   onChange={(e) => {
                     const val = Math.max(0, Number(e.target.value) || 0);
@@ -2436,67 +2466,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   }}
                   style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                 />
-              </div>
-
-              {/* Compact Volume & Rate info */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--primary-50, #f8f6f0)', border: '1px solid var(--border-light)', borderRadius: '6px', padding: '0.35rem 0.65rem', marginTop: '0.5rem', marginBottom: '0.45rem' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  Total Timber Volume:
-                </span>
-                <span style={{ fontSize: '0.84rem', fontWeight: 700, fontFamily: 'var(--font-mono, monospace)', color: 'var(--primary-800)' }}>
-                  {totals.totalCft > 0 ? totals.totalCft.toFixed(3) : '0.000'} CFT
-                </span>
-              </div>
-
-              {/* Compact Rate per CFT */}
-              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginBottom: '0.45rem' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <span style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                    ₹
-                  </span>
-                  <input
-                    type="number"
-                    step="any"
-                    className="calc-prefixed-input"
-                    value={planingRatePerCft === 0 ? '' : planingRatePerCft}
-                    onChange={(e) => {
-                      const rate = Math.max(0, parseFloat(e.target.value) || 0);
-                      setPlaningRatePerCft(rate);
-                      const calculated = Math.round(totals.totalCft * rate * 100) / 100;
-                      setPlaningCharges(calculated);
-                    }}
-                    style={{ width: '100%', fontSize: '0.95rem', fontWeight: 700, borderRadius: '6px', border: '1px solid var(--border-medium)' }}
-                  />
-                </div>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                  / CFT
-                </span>
-              </div>
-
-              {/* Quick Rate Buttons */}
-              <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                {[10, 15, 20, 25, 30].map(r => (
-                  <button
-                    key={r}
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => {
-                      setPlaningRatePerCft(r);
-                      const calculated = Math.round(totals.totalCft * r * 100) / 100;
-                      setPlaningCharges(calculated);
-                    }}
-                    style={{
-                      fontSize: '0.78rem',
-                      padding: '0.2rem 0.5rem',
-                      background: planingRatePerCft === r ? 'var(--primary-100, #eedfc8)' : 'var(--bg-card)',
-                      borderColor: planingRatePerCft === r ? 'var(--primary-600)' : 'var(--border-medium)',
-                      fontWeight: planingRatePerCft === r ? 700 : 600,
-                      borderRadius: '5px'
-                    }}
-                  >
-                    ₹{r}
-                  </button>
-                ))}
               </div>
             </div>
 
@@ -2554,29 +2523,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                 />
               </div>
-              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
-                {[500, 1000, 2000, 5000].map(amt => (
-                  <button
-                    key={amt}
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setCarpentryCharges(amt)}
-                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
-                  >
-                    +₹{amt}
-                  </button>
-                ))}
-                {carpentryCharges > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setCarpentryCharges(0)}
-                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
             </div>
 
             {/* Quick Running Total Banner */}
@@ -2632,29 +2578,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   onChange={(e) => setTransportationCharges(Math.max(0, Number(e.target.value) || 0))}
                   style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                 />
-              </div>
-              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
-                {[1000, 2000, 3500, 5000].map(amt => (
-                  <button
-                    key={amt}
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setTransportationCharges(amt)}
-                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
-                  >
-                    +₹{amt}
-                  </button>
-                ))}
-                {transportationCharges > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setTransportationCharges(0)}
-                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
-                  >
-                    Clear
-                  </button>
-                )}
               </div>
             </div>
 
@@ -2725,33 +2648,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     style={{ width: '100%', fontSize: '0.88rem', fontWeight: 600, padding: '0.4rem 0.65rem', borderRadius: '6px', border: '1px solid var(--border-medium)' }}
                   />
                 </div>
-              </div>
-
-              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
-                {[500, 1000, 2000, 5000].map(amt => (
-                  <button
-                    key={amt}
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setOtherCharges(amt)}
-                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
-                  >
-                    +₹{amt}
-                  </button>
-                ))}
-                {otherCharges > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => {
-                      setOtherCharges(0);
-                      setOtherChargesLabel('');
-                    }}
-                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
-                  >
-                    Clear
-                  </button>
-                )}
               </div>
             </div>
 
