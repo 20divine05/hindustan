@@ -28,7 +28,9 @@ import {
   Percent,
   ShieldCheck,
   Sparkles,
-  Eye
+  Eye,
+  ShoppingBag,
+  TrendingUp
 } from 'lucide-react';
 import type { MeasurementItem, MeasurementSheet, BusinessSettings } from '../types';
 import { MeasurementTable } from '../components/MeasurementTable';
@@ -157,25 +159,29 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 }) => {
   const { user } = useAuth();
 
-  // 11-Step Linear Workflow State:
-  // 1: Customer Type (B2B vs B2C)
-  // 2: Buyer (Bill to) Details
-  // 3: Consignee (Ship to) Details
-  // 4: Timber Calculator
-  // 5: Planing Charges (with image)
-  // 6: Carpentry Charges (with image)
-  // 7: Transportation Charges (with image)
-  // 8: Other Miscellaneous Charges (with image)
-  // 9: GST Tax Configuration (with image)
-  // 10: Customer Discount (with image)
-  // 11: Timber Order / Sorting (Preview Calculation)
-  // 12: Preview Bill To & Ship To Details
-  // 13: Final Invoice & Share
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13>(1);
+  // 14-Step Linear Workflow State:
+  // 1: Order / Voucher Type (Sales vs Purchase)
+  // 2: Customer Type (B2B vs B2C)
+  // 3: Buyer (Bill to) Details
+  // 4: Consignee (Ship to) Details
+  // 5: Timber Calculator
+  // 6: Planing Charges (with image)
+  // 7: Carpentry Charges (with image)
+  // 8: Transportation Charges (with image)
+  // 9: Other Miscellaneous Charges (with image)
+  // 10: GST Tax Configuration (with image)
+  // 11: Customer Discount (with image)
+  // 12: Timber Order / Sorting (Preview Calculation)
+  // 13: Preview Bill To & Ship To Details
+  // 14: Final Invoice & Share
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14>(1);
 
   // Sheet Metadata State
   const [sheetId, setSheetId] = useState<string>(sheetToEdit?.id || generateId());
   const [sheetName, setSheetName] = useState<string>(sheetToEdit?.sheetName || 'Daily Timber Tally Sheet');
+
+  // Step 1: Order / Voucher Type (Sales vs Purchase)
+  const [voucherType, setVoucherType] = useState<'sales' | 'purchase'>(sheetToEdit?.voucherType || 'sales');
 
   // Step 2: Buyer (Bill to) Customer Details
   const [customerType, setCustomerType] = useState<'b2b' | 'b2c'>(sheetToEdit?.customerType || 'b2c');
@@ -311,6 +317,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       hasProceededPastStep1Ref.current = true;
       setSheetId(sheetToEdit.id);
       setSheetName(sheetToEdit.sheetName);
+      setVoucherType(sheetToEdit.voucherType || 'sales');
       setCustomerType(sheetToEdit.customerType || 'b2c');
       setCustomerName(sheetToEdit.customerName || '');
       setCustomerPhone(sheetToEdit.customerPhone || '');
@@ -785,6 +792,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const raw: Partial<MeasurementSheet> = {
       id: sheetId,
       sheetName,
+      voucherType,
       customerType,
       customerName,
       customerPhone,
@@ -861,6 +869,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const draftSheet: Partial<MeasurementSheet> = {
       id: sheetId,
       sheetName,
+      voucherType,
       customerType,
       customerName,
       customerPhone,
@@ -931,6 +940,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   }, [
     currentStep,
     sheetName,
+    voucherType,
     customerType,
     customerName,
     customerPhone,
@@ -1046,6 +1056,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setCustomGstTaxableAmount(0);
     setIsCustomGstRate(false);
     setGstPercent(18);
+    setVoucherType('sales');
     setCurrentStep(1);
     setSaveStatus('saved');
     dbService.clearDraft();
@@ -1090,6 +1101,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       });
 
     const exportData: ProformaInvoiceExportData = {
+      voucherType,
       customerName: customerName || undefined,
       invoiceNo,
       eWayBillNo,
@@ -1341,16 +1353,74 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 1: SELECT CUSTOMER TYPE (B2B vs B2C Selection Only)
+            STEP 1: SELECT ORDER / VOUCHER TYPE (Sales vs Purchase)
             ========================================================================= */}
         {currentStep === 1 && (
+          <div className="card calc-step-card">
+            <div className="calc-step-header" style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
+              <h3 className="calc-step-title" style={{ justifyContent: 'center', fontSize: '1.15rem' }}>
+                <ShoppingBag size={18} color="var(--primary-600)" /> Select Order Type
+              </h3>
+              <p className="calc-step-desc">
+                Choose whether this transaction is for Sales or Purchase
+              </p>
+            </div>
+
+            <div className="calc-type-choice-grid">
+              {/* 1. Sales Card */}
+              <div
+                className={`calc-type-card ${voucherType === 'sales' ? 'selected' : ''}`}
+                onClick={() => {
+                  setVoucherType('sales');
+                  setCurrentStep(2);
+                }}
+              >
+                <div className="calc-type-card-icon">
+                  <TrendingUp size={28} />
+                </div>
+                <div className="calc-type-card-content">
+                  <h4>Sales</h4>
+                  <p>Timber sale to customer, outward delivery, and sales proforma tax invoice</p>
+                </div>
+                <span className="calc-type-card-arrow">
+                  Select Sales &rarr;
+                </span>
+              </div>
+
+              {/* 2. Purchase Card */}
+              <div
+                className={`calc-type-card ${voucherType === 'purchase' ? 'selected' : ''}`}
+                onClick={() => {
+                  setVoucherType('purchase');
+                  setCurrentStep(2);
+                }}
+              >
+                <div className="calc-type-card-icon">
+                  <Truck size={28} />
+                </div>
+                <div className="calc-type-card-content">
+                  <h4>Purchase</h4>
+                  <p>Inward procurement, log / timber purchase from supplier or timber trader</p>
+                </div>
+                <span className="calc-type-card-arrow">
+                  Select Purchase &rarr;
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            STEP 2: SELECT CUSTOMER TYPE (B2B vs B2C Selection Only)
+            ========================================================================= */}
+        {currentStep === 2 && (
           <div className="card calc-step-card">
             <div className="calc-step-header" style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
               <h3 className="calc-step-title" style={{ justifyContent: 'center', fontSize: '1.15rem' }}>
                 <User size={18} color="var(--primary-600)" /> Select Customer Type
               </h3>
               <p className="calc-step-desc">
-                Choose the transaction type to proceed with customer details &amp; billing
+                Choose party category to proceed with customer details &amp; billing
               </p>
             </div>
 
@@ -1360,7 +1430,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 className={`calc-type-card ${customerType === 'b2c' ? 'selected' : ''}`}
                 onClick={() => {
                   setCustomerType('b2c');
-                  setCurrentStep(2);
+                  setCurrentStep(3);
                 }}
               >
                 <div className="calc-type-card-icon">
@@ -1380,7 +1450,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 className={`calc-type-card ${customerType === 'b2b' ? 'selected' : ''}`}
                 onClick={() => {
                   setCustomerType('b2b');
-                  setCurrentStep(2);
+                  setCurrentStep(3);
                 }}
               >
                 <div className="calc-type-card-icon">
@@ -1399,9 +1469,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 2: BUYER (BILL TO) DETAILS (DYNAMIC B2C vs B2B)
+            STEP 3: BUYER (BILL TO) DETAILS (DYNAMIC B2C vs B2B)
             ========================================================================= */}
-        {currentStep === 2 && (
+        {currentStep === 3 && (
           <div className="card calc-step-card">
             {/* Top Indicator: Bill to (Centered, Highlighted & Bold) */}
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem' }}>
@@ -1956,9 +2026,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 3: CONSIGNEE (SHIP TO) DETAILS (DYNAMIC B2C vs B2B)
+            STEP 4: CONSIGNEE (SHIP TO) DETAILS (DYNAMIC B2C vs B2B)
             ========================================================================= */}
-        {currentStep === 3 && (
+        {currentStep === 4 && (
           <div className="card calc-step-card">
             {/* Top Indicator: Ship to (Centered, Highlighted & Bold) */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem' }}>
@@ -2281,9 +2351,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 4: TIMBER CALCULATOR (MEASUREMENTS, WOOD DROPDOWN & TALLY)
+            STEP 5: TIMBER CALCULATOR (MEASUREMENTS, WOOD DROPDOWN & TALLY)
             ========================================================================= */}
-        {currentStep === 4 && (
+        {currentStep === 5 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="card calc-table-card" style={{ padding: '0.85rem' }}>
               <div className="calc-step2-top-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
@@ -2330,9 +2400,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 5: PLANING CHARGES (WITH IMAGE)
+            STEP 6: PLANING CHARGES (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 5 && (
+        {currentStep === 6 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2455,9 +2525,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 6: CARPENTRY CHARGES (WITH IMAGE)
+            STEP 7: CARPENTRY CHARGES (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 6 && (
+        {currentStep === 7 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2534,9 +2604,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 7: TRANSPORTATION CHARGES (WITH IMAGE)
+            STEP 8: TRANSPORTATION CHARGES (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 7 && (
+        {currentStep === 8 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2613,9 +2683,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 8: OTHER CHARGES (WITH IMAGE)
+            STEP 9: OTHER CHARGES (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 8 && (
+        {currentStep === 9 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2710,9 +2780,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 9: GST TAX (WITH IMAGE)
+            STEP 10: GST TAX (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 9 && (
+        {currentStep === 10 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2835,9 +2905,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 10: DISCOUNT (WITH IMAGE)
+            STEP 11: DISCOUNT (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 10 && (
+        {currentStep === 11 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2963,10 +3033,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 11: ORDER / SORTING OF TIMBER ENTRIES
+            STEP 12: ORDER / SORTING OF TIMBER ENTRIES
             Width (IN) - Ascending, Thickness (IN) - Descending, Length (FT) - Descending
             ========================================================================= */}
-        {currentStep === 11 && (
+        {currentStep === 12 && (
           <div className="card calc-step-card">
             <div className="calc-step-header">
               <h3 className="calc-step-title">
@@ -2983,7 +3053,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() => setCurrentStep(4)}
+                  onClick={() => setCurrentStep(5)}
                   style={{ marginTop: '0.65rem', padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
                 >
                   Go to Timber Calculator to add timber entries
@@ -3355,9 +3425,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 12: PREVIEW BILL TO & SHIP TO DETAILS
+            STEP 13: PREVIEW BILL TO & SHIP TO DETAILS
             ========================================================================= */}
-        {currentStep === 12 && (
+        {currentStep === 13 && (
           <div className="card calc-step-card">
             <div className="calc-step-header" style={{ marginBottom: '0.85rem' }}>
               <h3 className="calc-step-title" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
@@ -3559,9 +3629,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 13: FINAL REVIEW, WHATSAPP SHARE, PDF DOWNLOAD & PRINT
+            STEP 14: FINAL REVIEW, WHATSAPP SHARE, PDF DOWNLOAD & PRINT
             ========================================================================= */}
-        {currentStep === 13 && (
+        {currentStep === 14 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
 
             {/* 3 High-Impact Primary Mobile Action Buttons (WhatsApp, PDF, Print) */}
@@ -3870,20 +3940,20 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               <button
                 type="button"
                 className="btn btn-secondary calc-dock-btn calc-dock-prev"
-                onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13)}
+                onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14)}
                 style={{ flex: '0 0 auto', padding: '0.45rem 0.85rem' }}
               >
                 <ArrowLeft size={15} /> Back
               </button>
             )}
 
-            {currentStep < 13 ? (
+            {currentStep < 14 ? (
               <button
                 type="button"
                 className="btn btn-primary calc-dock-btn calc-dock-next"
                 style={{ flex: 1 }}
                 onClick={() => {
-                  if (currentStep === 2) {
+                  if (currentStep === 3) {
                     persistCurrentCustomer();
                     if (!isShipToTouched && !consigneeName && !consigneeAddress) {
                       setConsigneeName(customerName);
@@ -3894,22 +3964,23 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setConsigneeState(destination || customerState || 'Karnataka');
                     }
                   }
-                  setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13);
+                  setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14);
                 }}
               >
                 <span>
-                  {currentStep === 1 && 'Next: Bill To Details →'}
-                  {currentStep === 2 && 'Next: Ship To Details →'}
-                  {currentStep === 3 && 'Next: Timber Calculator →'}
-                  {currentStep === 4 && 'Next: Planing →'}
-                  {currentStep === 5 && 'Next: Carpentry →'}
-                  {currentStep === 6 && 'Next: Transport →'}
-                  {currentStep === 7 && 'Next: Other Charges →'}
-                  {currentStep === 8 && 'Next: GST Tax →'}
-                  {currentStep === 9 && 'Next: Discount →'}
-                  {currentStep === 10 && 'Next: Order Sorting →'}
-                  {currentStep === 11 && 'Next: Preview Bill To & Ship To →'}
-                  {currentStep === 12 && 'Next: Invoice & Share →'}
+                  {currentStep === 1 && 'Next: Customer Type (B2B / B2C) →'}
+                  {currentStep === 2 && 'Next: Bill To Details →'}
+                  {currentStep === 3 && 'Next: Ship To Details →'}
+                  {currentStep === 4 && 'Next: Timber Calculator →'}
+                  {currentStep === 5 && 'Next: Planing →'}
+                  {currentStep === 6 && 'Next: Carpentry →'}
+                  {currentStep === 7 && 'Next: Transport →'}
+                  {currentStep === 8 && 'Next: Other Charges →'}
+                  {currentStep === 9 && 'Next: GST Tax →'}
+                  {currentStep === 10 && 'Next: Discount →'}
+                  {currentStep === 11 && 'Next: Order Sorting →'}
+                  {currentStep === 12 && 'Next: Preview Bill To & Ship To →'}
+                  {currentStep === 13 && 'Next: Invoice & Share →'}
                 </span>
               </button>
             ) : (
@@ -4456,6 +4527,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       <div className="sheet-print-container">
         <PrintableProformaInvoice
           businessSettings={businessSettings}
+          voucherType={voucherType}
           invoiceNo={invoiceNo}
           eWayBillNo={eWayBillNo}
           invoiceDate={invoiceDate}

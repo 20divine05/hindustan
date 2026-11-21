@@ -66,6 +66,7 @@ export const renderWithSmallDecimalHtml = (val: string | number | undefined | nu
 
 export interface PrintableProformaInvoiceProps {
   businessSettings?: BusinessSettings;
+  voucherType?: 'sales' | 'purchase';
   invoiceNo?: string;
   eWayBillNo?: string;
   invoiceDate?: string;
@@ -125,6 +126,7 @@ export interface PrintableProformaInvoiceProps {
 
 export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> = ({
   businessSettings,
+  voucherType = 'sales',
   invoiceNo = '8',
   eWayBillNo = '',
   invoiceDate = '29-Oct-26',
@@ -238,7 +240,12 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
     <div className="proforma-document-container">
       <div className="proforma-box">
         {/* 1. Header Box */}
-        <div className="p-header-title">PROFORMA INVOICE</div>
+        <div className="p-header-title">
+          <span>PROFORMA INVOICE</span>
+          <div className="p-header-voucher-badge">
+            {voucherType === 'purchase' ? 'PURCHASE' : 'SALES'}
+          </div>
+        </div>
 
         {/* 2. Top Grid: Left (Seller + Consignee + Buyer) | Right (Dispatch Table) */}
         <div className="p-top-grid">

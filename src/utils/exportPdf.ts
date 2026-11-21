@@ -7,6 +7,7 @@ import { numberToIndianCurrencyWords, formatIndianCurrency } from './indianNumbe
 import { sortTimberEntries } from './calculator';
 
 export interface ProformaInvoiceExportData {
+  voucherType?: 'sales' | 'purchase';
   customerName?: string;
   invoiceNo?: string;
   eWayBillNo?: string;
@@ -210,11 +211,21 @@ export function createProformaInvoiceDoc(
   doc.setLineWidth(0.2);
 
   // 1. Top Header Box: "PROFORMA INVOICE"
+  const voucherType = invoiceData?.voucherType || sheet.voucherType || 'sales';
   doc.rect(10, 8, 190, 7);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(0, 0, 0);
   doc.text('PROFORMA INVOICE', 105, 13, { align: 'center' });
+
+  // Top-Right Rectangle Box: "SALES" or "PURCHASE"
+  const badgeText = voucherType === 'purchase' ? 'PURCHASE' : 'SALES';
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  const badgeWidth = badgeText === 'PURCHASE' ? 20 : 15;
+  const badgeX = 200 - 2.5 - badgeWidth;
+  doc.rect(badgeX, 9.3, badgeWidth, 4.4);
+  doc.text(badgeText, badgeX + badgeWidth / 2, 12.5, { align: 'center' });
 
   // 2. Main Top Information Box (y: 15 to 87, height = 72)
   doc.rect(10, 15, 190, 72);

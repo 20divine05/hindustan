@@ -42,6 +42,7 @@ export interface MeasurementSheet {
   id: string;
   userId: string;
   sheetName: string;
+  voucherType?: 'sales' | 'purchase';
   customerType?: 'b2b' | 'b2c';
   customerName: string;
   customerPhone?: string;

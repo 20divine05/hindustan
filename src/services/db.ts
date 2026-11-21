@@ -60,6 +60,7 @@ export function sanitizeAndComputeSheet(
     id: sheet.id || generateId(),
     userId,
     sheetName: sheet.sheetName?.trim() || 'Untitled Measurement Sheet',
+    voucherType: sheet.voucherType || 'sales',
     customerType: sheet.customerType || 'b2c',
     customerName: sheet.customerName?.trim() || '',
     customerPhone: sheet.customerPhone?.trim() || '',
@@ -360,6 +361,7 @@ export const dbService = {
         id: sheetData.id,
         userId: sheetData.user_id,
         sheetName: sheetData.sheet_name,
+        voucherType: parsedMeta?.voucherType || localSheet?.voucherType || 'sales',
         customerType: parsedMeta?.customerType || localSheet?.customerType || 'b2c',
         customerName: sheetData.customer_name || localSheet?.customerName || '',
         customerPhone: parsedMeta?.customerPhone || localSheet?.customerPhone || '',
@@ -429,6 +431,7 @@ export const dbService = {
 
       // Encode full metadata envelope into notes for 100% cloud schema compatibility
       const metaPayload = {
+        voucherType: sanitized.voucherType || 'sales',
         customerType: sanitized.customerType,
         customerPhone: sanitized.customerPhone,
         customerAddress: sanitized.customerAddress,

@@ -646,7 +646,10 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
           {/* 1. Header Box */}
           <div className="p-header-title">
-            PROFORMA INVOICE
+            <span>PROFORMA INVOICE</span>
+            <div className="p-header-voucher-badge">
+              {sheet?.voucherType === 'purchase' ? 'PURCHASE' : 'SALES'}
+            </div>
           </div>
 
           {/* 2. Top Grid: Left (Seller + Consignee + Buyer) | Right (Dispatch Table) */}
