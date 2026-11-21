@@ -152,6 +152,7 @@ input, select, textarea, button {
 }
 
 input[type="text"],
+input[type="tel"],
 input[type="number"],
 input[type="email"],
 input[type="password"],
@@ -1644,7 +1645,7 @@ input[type="number"] {
 .calc-step-card .calc-address-textarea::placeholder,
 .calc-edit-compact-modal input::placeholder,
 .calc-edit-compact-modal textarea::placeholder {
-  font-size: 0.67rem !important;
+  font-size: 0.95rem !important;
   font-weight: 500 !important;
   color: #94a3b8 !important;
   opacity: 0.82;
@@ -1790,8 +1791,13 @@ input[type="number"] {
 /* Input placeholder emoji styling */
 input::placeholder,
 textarea::placeholder {
-  opacity: 0.55;
-  font-size: 0.95em;
+  opacity: 0.65;
+  font-size: 1rem;
+}
+
+input[type="tel"]::placeholder {
+  font-size: 1.15rem !important;
+  opacity: 0.85 !important;
 }
 
 /* Customer Type Choice Cards (Step 1 & Step 2) */

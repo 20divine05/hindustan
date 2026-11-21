@@ -1495,6 +1495,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   </label>
                   <input
                     type="tel"
+                    className="calc-input"
                     value={customerPhone}
                     onChange={(e) => handlePhoneInputChange(e.target.value)}
                     onFocus={() => {
@@ -1776,6 +1777,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   </label>
                   <input
                     type="tel"
+                    className="calc-input"
                     value={customerPhone}
                     onChange={(e) => handlePhoneInputChange(e.target.value)}
                     onFocus={() => {
@@ -2014,8 +2016,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             ========================================================================= */}
         {currentStep === 4 && (
           <div className="card calc-step-card">
-            {/* Top Indicator: Ship to (Centered, Highlighted & Bold) */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem' }}>
+            {/* Top Indicator: Ship to (Centered, Highlighted & Bold) with Copy from Bill To beside it */}
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '0.65rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem', flexWrap: 'wrap' }}>
               <span style={{
                 fontSize: '0.88rem',
                 fontWeight: 900,
@@ -2048,7 +2050,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   setShipToCopyNotice('✓ Copied from Bill To');
                   setTimeout(() => setShipToCopyNotice(null), 2500);
                 }}
-                style={{ fontSize: '0.68rem', padding: '2px 8px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.2rem', whiteSpace: 'nowrap', height: '24px', minHeight: '24px' }}
+                style={{ fontSize: '0.74rem', padding: '3px 10px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap', height: '28px', minHeight: '28px', borderRadius: '6px', border: '1.5px solid #93c5fd', color: '#0369a1', backgroundColor: '#ffffff', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
               >
                 <span>📋 Copy from Bill To</span>
               </button>
@@ -2069,6 +2071,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   </label>
                   <input
                     type="tel"
+                    className="calc-input"
                     value={consigneePhone}
                     onChange={(e) => {
                       setIsShipToTouched(true);
@@ -2222,6 +2225,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   </label>
                   <input
                     type="tel"
+                    className="calc-input"
                     value={consigneePhone}
                     onChange={(e) => {
                       setIsShipToTouched(true);
