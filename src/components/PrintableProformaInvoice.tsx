@@ -42,12 +42,14 @@ export const renderWithSmallDecimalHtml = (val: string | number | undefined | nu
   const rawText = `${prefix}${str}${suffix}`;
   const charCount = rawText.length;
   let scaleStyle: React.CSSProperties = { display: 'inline-block', whiteSpace: 'nowrap' };
-  if (charCount >= 18) {
-    scaleStyle = { display: 'inline-block', fontSize: '0.84em', letterSpacing: '-0.025em', whiteSpace: 'nowrap' };
-  } else if (charCount >= 15) {
-    scaleStyle = { display: 'inline-block', fontSize: '0.9em', letterSpacing: '-0.015em', whiteSpace: 'nowrap' };
-  } else if (charCount >= 13) {
-    scaleStyle = { display: 'inline-block', fontSize: '0.95em', letterSpacing: '-0.01em', whiteSpace: 'nowrap' };
+  if (charCount >= 22) {
+    scaleStyle = { display: 'inline-block', fontSize: '0.72em', letterSpacing: '-0.035em', whiteSpace: 'nowrap' };
+  } else if (charCount >= 18) {
+    scaleStyle = { display: 'inline-block', fontSize: '0.80em', letterSpacing: '-0.025em', whiteSpace: 'nowrap' };
+  } else if (charCount >= 14) {
+    scaleStyle = { display: 'inline-block', fontSize: '0.88em', letterSpacing: '-0.015em', whiteSpace: 'nowrap' };
+  } else if (charCount >= 11) {
+    scaleStyle = { display: 'inline-block', fontSize: '0.94em', letterSpacing: '-0.01em', whiteSpace: 'nowrap' };
   }
 
   if (dotIdx === -1) {

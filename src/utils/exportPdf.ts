@@ -830,14 +830,14 @@ export function createProformaInvoiceDoc(
       lineWidth: 0.2
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 8 },
-      1: { halign: 'left', cellWidth: 57, fontStyle: 'bold' },
-      2: { halign: 'right', cellWidth: 18 },
-      3: { halign: 'right', cellWidth: 24 },
-      4: { halign: 'right', cellWidth: 23 },
-      5: { halign: 'right', cellWidth: 18 },
-      6: { halign: 'center', cellWidth: 13, cellPadding: { left: 0.5, right: 0.5 } },
-      7: { halign: 'left', cellWidth: 29, fontStyle: 'bold', cellPadding: { left: 2.2 } }
+      0: { halign: 'center', cellWidth: 7 },
+      1: { halign: 'left', cellWidth: 31, fontStyle: 'bold' },
+      2: { halign: 'right', cellWidth: 15 },
+      3: { halign: 'right', cellWidth: 32 },
+      4: { halign: 'right', cellWidth: 32 },
+      5: { halign: 'right', cellWidth: 15 },
+      6: { halign: 'center', cellWidth: 9, cellPadding: { left: 0.5, right: 0.5 } },
+      7: { halign: 'left', cellWidth: 49, fontStyle: 'bold', cellPadding: { left: 2.2 } }
     },
     didDrawPage: (data) => {
       // Draw closing bottom line on table on every page (especially when table breaks to next page)
@@ -927,32 +927,59 @@ export function createProformaInvoiceDoc(
           const baseFontSize = isFootTotal ? 11.5 : 8.0;
           const decFontSize = isFootTotal ? 8.5 : 6.0;
 
+          // Maximum allowed text width strictly inside the column boundary
+          const maxAllowedWidth = Math.max(1, w - padRight - padLeft);
+
+          let currentBaseFontSize = baseFontSize;
+          let currentDecFontSize = decFontSize;
+
           doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-          doc.setFontSize(baseFontSize);
-          const wInt = doc.getTextWidth(decParts.intStr);
+          doc.setFontSize(currentBaseFontSize);
+          let wInt = doc.getTextWidth(decParts.intStr);
           doc.setFont('helvetica', 'normal');
-          doc.setFontSize(decFontSize);
-          const wDec = doc.getTextWidth(decParts.decStr);
+          doc.setFontSize(currentDecFontSize);
+          let wDec = doc.getTextWidth(decParts.decStr);
           doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-          doc.setFontSize(baseFontSize);
-          const wSuffix = doc.getTextWidth(decParts.suffix);
+          doc.setFontSize(currentBaseFontSize);
+          let wSuffix = doc.getTextWidth(decParts.suffix);
 
-          const totalW = wInt + wDec + wSuffix;
-          let curX = isItemAmount ? (x + padLeft) : (x + w - padRight - totalW);
+          let totalW = wInt + wDec + wSuffix;
+
+          // Auto-adjust font size dynamically when numbers are huge so they strictly fit inside the column
+          if (totalW > maxAllowedWidth && totalW > 0) {
+            const scale = Math.max(0.38, maxAllowedWidth / totalW);
+            currentBaseFontSize = Math.max(3.8, currentBaseFontSize * scale);
+            currentDecFontSize = Math.max(3.0, currentDecFontSize * scale);
+
+            doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+            doc.setFontSize(currentBaseFontSize);
+            wInt = doc.getTextWidth(decParts.intStr);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(currentDecFontSize);
+            wDec = doc.getTextWidth(decParts.decStr);
+            doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+            doc.setFontSize(currentBaseFontSize);
+            wSuffix = doc.getTextWidth(decParts.suffix);
+
+            totalW = wInt + wDec + wSuffix;
+          }
+
+          // Strict column confinement: curX will never drop below x + padLeft and will never overflow right boundary
+          let curX = isItemAmount ? (x + padLeft) : Math.max(x + padLeft, x + w - padRight - totalW);
 
           doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-          doc.setFontSize(baseFontSize);
+          doc.setFontSize(currentBaseFontSize);
           doc.text(decParts.intStr, curX, baseline);
           curX += wInt;
 
           doc.setFont('helvetica', 'normal');
-          doc.setFontSize(decFontSize);
+          doc.setFontSize(currentDecFontSize);
           doc.text(decParts.decStr, curX, baseline);
           curX += wDec;
 
           if (decParts.suffix) {
             doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-            doc.setFontSize(baseFontSize);
+            doc.setFontSize(currentBaseFontSize);
             doc.text(decParts.suffix, curX, baseline);
           }
         }

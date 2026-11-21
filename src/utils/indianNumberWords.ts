@@ -56,6 +56,33 @@ function convertBelowThousand(n: number): string {
   return words.join(' ');
 }
 
+function convertIndianNumber(n: number): string {
+  if (n <= 0) return '';
+  if (n < 1000) return convertBelowThousand(n);
+  const parts: string[] = [];
+  const cr = Math.floor(n / 10000000);
+  let rem = n % 10000000;
+  const lk = Math.floor(rem / 100000);
+  rem = rem % 100000;
+  const th = Math.floor(rem / 1000);
+  rem = rem % 1000;
+  const h = rem;
+
+  if (cr > 0) {
+    parts.push(convertIndianNumber(cr) + ' Crore');
+  }
+  if (lk > 0) {
+    parts.push(convertBelowThousand(lk) + ' Lakh');
+  }
+  if (th > 0) {
+    parts.push(convertBelowThousand(th) + ' Thousand');
+  }
+  if (h > 0) {
+    parts.push(convertBelowThousand(h));
+  }
+  return parts.join(' ').trim();
+}
+
 export function numberToIndianCurrencyWords(amount: number): string {
   if (isNaN(amount) || amount === 0) {
     return 'INR Zero Only';
@@ -70,33 +97,7 @@ export function numberToIndianCurrencyWords(amount: number): string {
     return 'INR Zero Only';
   }
 
-  let crore = Math.floor(rupees / 10000000);
-  let remainder = rupees % 10000000;
-
-  let lakh = Math.floor(remainder / 100000);
-  remainder = remainder % 100000;
-
-  let thousand = Math.floor(remainder / 1000);
-  remainder = remainder % 1000;
-
-  let hundredPart = remainder;
-
-  const parts: string[] = [];
-
-  if (crore > 0) {
-    parts.push(convertBelowThousand(crore) + ' Crore');
-  }
-  if (lakh > 0) {
-    parts.push(convertBelowThousand(lakh) + ' Lakh');
-  }
-  if (thousand > 0) {
-    parts.push(convertBelowThousand(thousand) + ' Thousand');
-  }
-  if (hundredPart > 0) {
-    parts.push(convertBelowThousand(hundredPart));
-  }
-
-  let words = parts.join(' ').trim();
+  let words = convertIndianNumber(rupees);
   if (!words) {
     words = 'Zero';
   }
