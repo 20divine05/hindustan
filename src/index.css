@@ -1787,69 +1787,44 @@ input[type="number"] {
   }
 }
 
-/* Step 1 & Step 2 Fullscreen Container */
-.calc-type-step-card {
-  min-height: 65vh;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-}
-
 /* Customer Type Choice Cards (Step 1 & Step 2) */
 .calc-type-choice-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.75rem;
-  max-width: 680px;
-  margin: 1.5rem auto;
-  width: 100%;
+  gap: 1rem;
+  margin: 0.75rem 0;
 }
 
-@media (max-width: 768px) {
-  .calc-type-step-card {
-    min-height: calc(100dvh - 125px) !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: stretch !important;
-    padding: 0.65rem !important;
-  }
+@media (max-width: 640px) {
   .calc-type-choice-grid {
-    grid-template-columns: 1fr !important;
-    grid-template-rows: 1fr 1fr !important;
-    gap: 0.85rem !important;
-    flex: 1 !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    margin: 0 !important;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+    margin: 0.35rem 0;
   }
   .calc-type-card {
-    flex-direction: column !important;
+    flex-direction: row !important;
     align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    padding: 1.5rem 1rem !important;
-    gap: 0.75rem !important;
-    border-radius: 20px !important;
-    height: 100% !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
+    text-align: left !important;
+    padding: 0.95rem 1.15rem !important;
+    gap: 0.95rem !important;
+    border-radius: 14px !important;
   }
   .calc-type-card-icon {
-    width: 84px !important;
-    height: 84px !important;
-    min-width: 84px !important;
-    border-radius: 22px !important;
-    margin-bottom: 0.35rem !important;
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    border-radius: 12px !important;
+    margin-bottom: 0 !important;
   }
   .calc-type-card-icon svg {
-    width: 44px !important;
-    height: 44px !important;
+    width: 26px !important;
+    height: 26px !important;
   }
   .calc-type-card-content h4 {
-    font-size: 1.85rem !important;
-    font-weight: 900 !important;
+    font-size: 1.35rem !important;
+    font-weight: 800 !important;
     margin: 0 !important;
-    letter-spacing: -0.02em !important;
+    letter-spacing: -0.01em !important;
   }
   .calc-type-card-content p {
     display: none !important;
@@ -1865,9 +1840,8 @@ input[type="number"] {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 2.5rem 2rem;
-  aspect-ratio: 1 / 1;
-  min-height: 250px;
+  padding: 1.75rem 1.35rem;
+  border-radius: 20px;
   border-radius: 24px;
   border: 1.5px solid rgba(255, 255, 255, 0.75);
   background: rgba(255, 255, 255, 0.55);
