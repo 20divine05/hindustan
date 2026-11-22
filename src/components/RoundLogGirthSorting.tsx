@@ -148,11 +148,11 @@ export const RoundLogGirthSorting: React.FC<RoundLogGirthSortingProps> = ({
                   🪵 {sp.woodType}
                 </span>
                 <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                  {sp.totalPieces} Pcs &bull; {formatValue(sp.totalVolume, 4)} {outputUnit}
+                  {sp.totalPieces} {sp.totalPieces === 1 ? 'Log' : 'Logs'} &bull; {formatValue(sp.totalVolume, 4)} {outputUnit}
                 </span>
               </div>
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                {sp.items.length} Log entries
+                {sp.activeSlabs.length} Active Slab{sp.activeSlabs.length === 1 ? '' : 's'}
               </span>
             </div>
 
@@ -285,105 +285,120 @@ export const RoundLogGirthSorting: React.FC<RoundLogGirthSortingProps> = ({
               </table>
             </div>
 
-            {/* Mobile View: 100% Screen Fit, Zero Scroll, All Logs & Slabs on Main Screen */}
-            <div className="mobile-show" style={{ width: '100%', overflowX: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', fontSize: '0.74rem' }}>
-                <thead>
-                  <tr style={{ backgroundColor: 'var(--bg-subtle, #f1f5f9)', borderBottom: '1px solid var(--border-medium)', color: 'var(--text-muted)', fontSize: '0.64rem', fontWeight: 800, textTransform: 'uppercase' }}>
-                    <th style={{ width: '48px', textAlign: 'center', padding: '0.28rem 0.12rem' }}>LOG</th>
-                    <th style={{ textAlign: 'left', padding: '0.28rem 0.2rem' }}>LENGTH × GIRTH</th>
-                    <th style={{ width: '74px', textAlign: 'right', padding: '0.28rem 0.2rem' }}>{outputUnit}</th>
-                    <th style={{ width: '82px', textAlign: 'center', padding: '0.28rem 0.15rem' }}>SLAB</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sp.items.map((it) => {
-                    const l = typeof it.length === 'number' ? it.length : 0;
-                    const cftVal = typeof it.cft === 'number' ? it.cft : (outputUnit === 'CFT' ? it.volume : it.volume * 35.3147);
-                    const cbmVal = typeof it.cbm === 'number' ? it.cbm : (outputUnit === 'CBM' ? it.volume : it.volume / 35.3147);
-                    const activeVol = outputUnit === 'CFT' ? cftVal : cbmVal;
-                    const gStr = it.girthFtInStr || (it.girthFt !== undefined ? `${it.girthFt}' ${it.girthInPart || 0}"` : `${it.girth}"`);
-                    const inStr = it.girthInches !== undefined ? `${formatValue(it.girthInches, 1)}"` : '';
+            {/* Mobile View: Clean Girth Slab Boxes - ONLY shows boxes with entries */}
+            <div className="mobile-show" style={{ width: '100%', padding: '0.4rem 0.45rem', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+              {sp.activeSlabs.map((s) => {
+                const slabDef = GIRTH_SLAB_LIST.find((g) => g.id === s.slabId);
+                const rangeStr = slabDef
+                  ? (slabDef.minGirthIn === 0 ? `≤${slabDef.maxGirthIn}"` : slabDef.maxGirthIn === Infinity ? `≥${slabDef.minGirthIn}"` : `${slabDef.minGirthIn}"-${slabDef.maxGirthIn}"`)
+                  : '';
 
-                    return (
-                      <tr key={it.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                        <td style={{ textAlign: 'center', fontWeight: 800, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)', padding: '0.25rem 0.12rem' }}>
-                          Log {it.serialNumber}
-                        </td>
-                        <td style={{ padding: '0.25rem 0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>
-                            {l} {unitConfig.lengthUnit} × {gStr}
-                          </span>
-                          {inStr && (
-                            <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginLeft: '0.18rem' }}>
-                              ({inStr})
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)', padding: '0.25rem 0.2rem' }}>
-                          {formatValue(activeVol, 4)}
-                        </td>
-                        <td style={{ textAlign: 'center', padding: '0.25rem 0.15rem' }}>
-                          <span style={{
-                            backgroundColor: 'rgba(245, 158, 11, 0.16)',
-                            color: 'var(--primary-900)',
-                            border: '1px solid rgba(245, 158, 11, 0.4)',
-                            padding: '0.1rem 0.35rem',
-                            borderRadius: '4px',
-                            fontWeight: 800,
-                            fontSize: '0.65rem',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {it.slabLabel}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-
-              {/* Active Slabs Subtotals for this Species */}
-              <div style={{
-                backgroundColor: 'var(--bg-subtle, #f8fafc)',
-                borderTop: '1px solid var(--border-medium)',
-                padding: '0.3rem 0.45rem',
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '0.25rem',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}>
-                <span style={{ fontSize: '0.66rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  Slab Summary:
-                </span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', justifyContent: 'flex-end' }}>
-                  {GIRTH_SLAB_LIST.filter((slab) => sp.slabs[slab.id]?.volume > 0).map((slab) => {
-                    const slabData = sp.slabs[slab.id];
-                    return (
-                      <div
-                        key={slab.id}
-                        style={{
-                          backgroundColor: '#ffffff',
-                          border: '1px solid var(--primary-300)',
-                          borderRadius: '4px',
-                          padding: '0.1rem 0.35rem',
-                          fontSize: '0.68rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.2rem'
-                        }}
-                      >
-                        <strong style={{ color: 'var(--primary-800)' }}>{slab.label}:</strong>
-                        <span style={{ fontWeight: 800, color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
-                          {formatValue(slabData.volume, 4)} {outputUnit}
+                return (
+                  <div
+                    key={s.slabId}
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      border: '1.5px solid var(--primary-300)',
+                      borderRadius: '8px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {/* Slab Box Header */}
+                    <div
+                      style={{
+                        backgroundColor: 'var(--primary-100, #fef3c7)',
+                        borderBottom: '1px solid var(--primary-200)',
+                        padding: '0.35rem 0.55rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span
+                          style={{
+                            backgroundColor: 'var(--primary-800)',
+                            color: '#ffffff',
+                            fontWeight: 900,
+                            fontSize: '0.76rem',
+                            padding: '0.12rem 0.45rem',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          {s.slabLabel}
                         </span>
-                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>({slabData.pieces} pcs)</span>
+                        {rangeStr && (
+                          <span style={{ fontSize: '0.68rem', color: 'var(--primary-900)', fontWeight: 700 }}>
+                            ({rangeStr})
+                          </span>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--primary-900)', fontFamily: 'var(--font-mono)' }}>
+                          {formatValue(s.volume, 4)} {outputUnit}
+                        </span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                          ({s.pieces} {s.pieces === 1 ? 'Log' : 'Logs'})
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Logs inside this Slab Box */}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {s.items.map((it, idx) => {
+                        const l = typeof it.length === 'number' ? it.length : 0;
+                        const cftVal = typeof it.cft === 'number' ? it.cft : (outputUnit === 'CFT' ? it.volume : it.volume * 35.3147);
+                        const cbmVal = typeof it.cbm === 'number' ? it.cbm : (outputUnit === 'CBM' ? it.volume : it.volume / 35.3147);
+                        const activeVol = outputUnit === 'CFT' ? cftVal : cbmVal;
+                        const gStr = it.girthFtInStr || (it.girthFt !== undefined ? `${it.girthFt}' ${it.girthInPart || 0}"` : `${it.girth}"`);
+                        const inStr = it.girthInches !== undefined ? `${formatValue(it.girthInches, 1)}"` : '';
+
+                        return (
+                          <div
+                            key={it.id}
+                            style={{
+                              padding: '0.35rem 0.55rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              borderBottom: idx < s.items.length - 1 ? '1px solid var(--border-light)' : 'none',
+                              backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(248, 250, 252, 0.6)'
+                            }}
+                          >
+                            <div style={{ minWidth: '50px' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)' }}>
+                                Log {it.serialNumber}
+                              </span>
+                            </div>
+
+                            <div style={{ flex: 1, textAlign: 'center', padding: '0 0.3rem' }}>
+                              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                                {l} {unitConfig.lengthUnit} × {gStr}
+                              </span>
+                              {inStr && (
+                                <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)', marginLeft: '0.2rem', fontWeight: 700 }}>
+                                  ({inStr})
+                                </span>
+                              )}
+                            </div>
+
+                            <div style={{ textAlign: 'right', minWidth: '65px' }}>
+                              <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
+                                {formatValue(activeVol, 4)}
+                              </span>
+                              <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginLeft: '0.15rem' }}>
+                                {outputUnit}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))
