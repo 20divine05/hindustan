@@ -42,7 +42,7 @@ export const RoundLogSlabPricing: React.FC<RoundLogSlabPricingProps> = ({
     <div className="measurement-tally-root" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
       {/* Top Header & Live Summary Badge with ₹ Amount */}
       <div className="calc-step2-top-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-        <div className="calc-step2-title-block">
+        <div className="calc-step2-title-block mobile-hide">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <span className="badge" style={{ backgroundColor: 'var(--primary-800)', color: '#fff', fontSize: '0.74rem', padding: '0.2rem 0.45rem', fontWeight: 800 }}>
               Stage 3
@@ -77,8 +77,8 @@ export const RoundLogSlabPricing: React.FC<RoundLogSlabPricingProps> = ({
         </div>
       </div>
 
-      {/* Pricing instruction banner */}
-      <div style={{
+      {/* Pricing instruction banner (Desktop only) */}
+      <div className="mobile-hide" style={{
         display: 'flex',
         alignItems: 'center',
         background: 'var(--bg-subtle, #f1f5f9)',
@@ -141,8 +141,8 @@ export const RoundLogSlabPricing: React.FC<RoundLogSlabPricingProps> = ({
               </div>
             </div>
 
-            {/* Active Slab Pricing Table */}
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            {/* Active Slab Pricing Table (Desktop Spreadsheet View) */}
+            <div className="mobile-hide" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <table className="calc-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f8fafc', fontSize: '0.76rem', borderBottom: '1px solid var(--border-medium)' }}>
@@ -247,12 +247,113 @@ export const RoundLogSlabPricing: React.FC<RoundLogSlabPricingProps> = ({
                 </tfoot>
               </table>
             </div>
+
+            {/* Mobile View: 100% Screen Fit, Zero Horizontal Scroll, Compact Slab Pricing Rows */}
+            <div className="mobile-show" style={{ width: '100%', padding: '0.3rem 0.45rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              {sp.activeSlabs.map((slab) => {
+                const rateKey = `${sp.woodType}__${slab.slabId}`;
+                const currentRate = slabRates[rateKey] !== undefined ? slabRates[rateKey] : (slab.rate || '');
+
+                return (
+                  <div
+                    key={slab.slabId}
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      border: '1px solid var(--border-medium)',
+                      borderRadius: '6px',
+                      padding: '0.35rem 0.55rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '0.4rem',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                    }}
+                  >
+                    {/* Slab Name & Volume */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <span style={{ fontWeight: 800, fontSize: '0.8rem', color: 'var(--primary-900)' }}>
+                          {slab.slabLabel}
+                        </span>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                          ({slab.pieces} Pcs)
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
+                        {formatValue(slab.volume, 4)} {outputUnit}
+                      </span>
+                    </div>
+
+                    {/* Rate Input & Subtotal */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: '6px', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                          ₹
+                        </span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          step="any"
+                          min="0"
+                          placeholder="Rate"
+                          className="calc-input"
+                          value={currentRate === 0 && slabRates[rateKey] === undefined ? '' : currentRate}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            onSlabRateChange(sp.woodType, slab.slabId, isNaN(val) ? 0 : val);
+                          }}
+                          style={{
+                            width: '80px',
+                            height: '28px',
+                            paddingLeft: '1.1rem',
+                            paddingRight: '0.3rem',
+                            textAlign: 'right',
+                            fontWeight: 800,
+                            fontSize: '0.82rem',
+                            borderColor: currentRate && Number(currentRate) > 0 ? 'var(--primary-500)' : 'var(--border-medium)',
+                            backgroundColor: currentRate && Number(currentRate) > 0 ? '#ffffff' : '#fffbeb'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ minWidth: '78px', textAlign: 'right', lineHeight: 1.15 }}>
+                        <span style={{ fontSize: '0.84rem', fontWeight: 900, color: 'var(--primary-900)', fontFamily: 'var(--font-mono)', display: 'block' }}>
+                          ₹ {formatIndianCurrency(slab.subtotal || 0)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Mobile Species Subtotal */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-subtle, #f8fafc)',
+                  border: '1px solid var(--border-medium)',
+                  borderRadius: '6px',
+                  padding: '0.3rem 0.55rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '0.1rem'
+                }}
+              >
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase' }}>
+                  Total {sp.woodType}:
+                </span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--primary-900)', fontFamily: 'var(--font-mono)' }}>
+                  ₹ {formatIndianCurrency(sp.totalAmount)}
+                </span>
+              </div>
+            </div>
           </div>
         ))
       )}
 
-      {/* Grand Summary Card */}
+      {/* Grand Summary Card (Desktop) */}
       <div
+        className="mobile-hide"
         style={{
           backgroundColor: 'var(--primary-50, #f8f6f0)',
           border: '2px solid var(--primary-400)',
@@ -279,6 +380,31 @@ export const RoundLogSlabPricing: React.FC<RoundLogSlabPricingProps> = ({
         </div>
 
         <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary-900)', fontFamily: 'var(--font-mono)' }}>
+          ₹ {formatIndianCurrency(overallTotals.totalAmount || 0)}
+        </div>
+      </div>
+
+      {/* Grand Summary Strip (Mobile - compact zero-scroll) */}
+      <div
+        className="mobile-show"
+        style={{
+          backgroundColor: 'var(--primary-100, #fef3c7)',
+          border: '1.5px solid var(--primary-400)',
+          borderRadius: '6px',
+          padding: '0.35rem 0.65rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+          <CheckCircle2 size={13} color="var(--primary-800)" />
+          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary-900)', textTransform: 'uppercase' }}>
+            Total Wood Amount:
+          </span>
+        </div>
+        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--primary-900)', fontFamily: 'var(--font-mono)' }}>
           ₹ {formatIndianCurrency(overallTotals.totalAmount || 0)}
         </div>
       </div>
