@@ -495,7 +495,7 @@ export function createProformaInvoiceDoc(
   if (isRoundLog) {
     for (const group of roundSpeciesData.speciesGroups) {
       // 1. Wood Species Heading Row
-      const headingBorder = { top: 0.2, bottom: 0, left: 0.2, right: 0.2 };
+      const headingBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
       tableBody.push([
         { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
         {
@@ -656,7 +656,7 @@ export function createProformaInvoiceDoc(
         return pB - pA;
       });
 
-      const headingBorder = { top: 0.2, bottom: 0, left: 0.2, right: 0.2 };
+      const headingBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
       tableBody.push([
         { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
         {
@@ -921,17 +921,37 @@ export function createProformaInvoiceDoc(
   ]];
 
   const roundFoot = [[
-    '',
-    'GRAND TOTAL',
-    `${totalPieces}`,
-    'LOGS',
-    '',
-    `${totalCft.toFixed(4)} CFT`,
-    `${totalCbm.toFixed(4)} CBM`,
+    {
+      content: 'GRAND TOTAL',
+      colSpan: 2,
+      styles: { halign: 'right', fontStyle: 'bold', cellPadding: { right: 2.5 } }
+    },
+    {
+      content: `${totalPieces} LOGS`,
+      colSpan: 2,
+      styles: { halign: 'center', fontStyle: 'bold' }
+    },
+    {
+      content: '',
+      styles: { halign: 'center' }
+    },
+    {
+      content: `${formatValue(totalCft, 4)} CFT`,
+      styles: { halign: 'right', fontStyle: 'bold' }
+    },
+    {
+      content: `${formatValue(totalCbm, 4)} CBM`,
+      styles: { halign: 'right', fontStyle: 'bold' }
+    },
+    {
+      content: '5 GIRTH SLABS BILLED',
+      colSpan: 5,
+      styles: { halign: 'center', fontStyle: 'bold', fontSize: 6.8, textColor: [75, 85, 99] }
+    },
     {
       content: `Rs. ${formatIndianCurrency(effectiveTotal)}`,
-      colSpan: 8,
-      styles: { halign: 'right', cellPadding: { right: 1.8 } }
+      colSpan: 3,
+      styles: { halign: 'right', fontStyle: 'bold', cellPadding: { right: 1.8 }, fontSize: 9.0 }
     }
   ]];
 
@@ -956,14 +976,14 @@ export function createProformaInvoiceDoc(
     4: { halign: 'center', cellWidth: 11 },
     5: { halign: 'right', cellWidth: 15 },
     6: { halign: 'right', cellWidth: 15 },
-    7: { halign: 'right', cellWidth: 12.5 },
-    8: { halign: 'right', cellWidth: 12.5 },
-    9: { halign: 'right', cellWidth: 12.5 },
-    10: { halign: 'right', cellWidth: 12.5 },
-    11: { halign: 'right', cellWidth: 12.5 },
+    7: { halign: 'right', cellWidth: 13 },
+    8: { halign: 'right', cellWidth: 13 },
+    9: { halign: 'right', cellWidth: 13 },
+    10: { halign: 'right', cellWidth: 13 },
+    11: { halign: 'right', cellWidth: 13 },
     12: { halign: 'right', cellWidth: 13.5 },
     13: { halign: 'center', cellWidth: 8 },
-    14: { halign: 'left', cellWidth: 26, fontStyle: 'bold', cellPadding: { left: 1.8 } }
+    14: { halign: 'left', cellWidth: 27.5, fontStyle: 'bold', cellPadding: { left: 1.8 } }
   };
 
   const cutColumnStyles = {
@@ -1036,36 +1056,51 @@ export function createProformaInvoiceDoc(
       }
     },
     didDrawCell: (data) => {
-      // Ensure crisp, solid vertical lines across body rows (especially column 0 separator and outer borders)
-      if (data.section === 'body') {
+      // Ensure crisp, solid vertical lines across body and foot rows
+      if (data.section === 'body' || data.section === 'foot') {
         doc.setDrawColor(0, 0, 0);
         doc.setLineWidth(0.2);
-        // Column 0 separator line (x = 18 mm)
+
+        // Column 0 left outer border (x = 10 mm)
         if (data.column.index === 0) {
           doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
-          doc.line(data.cell.x + data.cell.width, data.cell.y, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
         }
-        // Dashed divider between ft (Col 2) and in (Col 3) for Round Log
-        if (isRoundLog && data.column.index === 2) {
+
+        // Draw vertical right divider for every single cell
+        const isDashedGirthDivider = isRoundLog && data.column.index === 2 && data.cell.colSpan === 1 && data.section === 'body';
+        if (isDashedGirthDivider) {
           doc.setLineDashPattern([0.6, 0.6], 0);
           doc.line(data.cell.x + data.cell.width, data.cell.y, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
           doc.setLineDashPattern([], 0);
-        }
-        if (data.column.index === 1) {
-          doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
-        }
-        if (data.column.index === lastColIndex) {
-          doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
+        } else {
           doc.line(data.cell.x + data.cell.width, data.cell.y, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
         }
       }
 
-      // Draw guaranteed horizontal line under TOTAL WOOD AMOUNT row
-      if (data.section === 'body' && data.row.raw && Array.isArray(data.row.raw)) {
-        const c1 = (data.row.raw[1] as any)?.content;
-        if (c1 === 'TOTAL WOOD AMOUNT' && data.column.index === lastColIndex) {
-          doc.setDrawColor(0, 0, 0);
-          doc.setLineWidth(0.2);
+      // Draw guaranteed horizontal divider lines across entire table width (10 to 200 mm)
+      if (data.column.index === 0 && (data.section === 'body' || data.section === 'foot')) {
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.2);
+
+        const rawRow = Array.isArray(data.row.raw) ? data.row.raw : [];
+        const c0 = (rawRow[0] as any)?.content ?? (typeof rawRow[0] === 'string' ? rawRow[0] : '');
+        const c1 = (rawRow[1] as any)?.content ?? (typeof rawRow[1] === 'string' ? rawRow[1] : '');
+
+        const isWoodHeading = (rawRow[1] as any)?.colSpan >= (isRoundLog ? 14 : 7);
+        const isSubtotalRow = c1 === 'Total';
+        const isSummaryRow = typeof c1 === 'string' && c1.startsWith('GIRTH-SLAB SUMMARY');
+        const isTotalWoodRow = c1 === 'TOTAL WOOD AMOUNT';
+        const isFootRow = data.section === 'foot';
+        const isChargeRow = (rawRow[1] as any)?.colSpan === (isRoundLog ? 13 : 6);
+        const isEmptyPaddingRow = c0 === '' && c1 === '' && !isWoodHeading && !isSubtotalRow && !isSummaryRow && !isTotalWoodRow;
+
+        if (isWoodHeading) {
+          doc.line(10, data.cell.y, 200, data.cell.y);
+          doc.line(10, data.cell.y + data.cell.height, 200, data.cell.y + data.cell.height);
+        } else if (isSubtotalRow || isSummaryRow || isTotalWoodRow || isFootRow) {
+          doc.line(10, data.cell.y, 200, data.cell.y);
+          doc.line(10, data.cell.y + data.cell.height, 200, data.cell.y + data.cell.height);
+        } else if (!isChargeRow && !isEmptyPaddingRow) {
           doc.line(10, data.cell.y + data.cell.height, 200, data.cell.y + data.cell.height);
         }
       }
