@@ -37,7 +37,7 @@ export const RoundLogGirthSorting: React.FC<RoundLogGirthSortingProps> = ({
     <div className="measurement-tally-root" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
       {/* Top Header & Summary */}
       <div className="calc-step2-top-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-        <div className="calc-step2-title-block">
+        <div className="calc-step2-title-block mobile-hide">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <span className="badge" style={{ backgroundColor: 'var(--primary-800)', color: '#fff', fontSize: '0.74rem', padding: '0.2rem 0.45rem', fontWeight: 800 }}>
               Stage 2
@@ -72,8 +72,8 @@ export const RoundLogGirthSorting: React.FC<RoundLogGirthSortingProps> = ({
         </div>
       </div>
 
-      {/* Info Pill / Slab Definition Banner */}
-      <div style={{
+      {/* Info Pill / Slab Definition Banner (Desktop only - hidden on mobile to eliminate vertical scrolling) */}
+      <div className="mobile-hide" style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -156,8 +156,8 @@ export const RoundLogGirthSorting: React.FC<RoundLogGirthSortingProps> = ({
               </span>
             </div>
 
-            {/* Sawmill Sheet Table */}
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            {/* Sawmill Sheet Table (Desktop Spreadsheet View) */}
+            <div className="mobile-hide" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <table className="calc-table" style={{ width: '100%', minWidth: '780px', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f8fafc', fontSize: '0.74rem', borderBottom: '1px solid var(--border-medium)' }}>
@@ -283,6 +283,107 @@ export const RoundLogGirthSorting: React.FC<RoundLogGirthSortingProps> = ({
                   </tr>
                 </tfoot>
               </table>
+            </div>
+
+            {/* Mobile View: 100% Screen Fit, Zero Scroll, All Logs & Slabs on Main Screen */}
+            <div className="mobile-show" style={{ width: '100%', overflowX: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', fontSize: '0.74rem' }}>
+                <thead>
+                  <tr style={{ backgroundColor: 'var(--bg-subtle, #f1f5f9)', borderBottom: '1px solid var(--border-medium)', color: 'var(--text-muted)', fontSize: '0.64rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                    <th style={{ width: '48px', textAlign: 'center', padding: '0.28rem 0.12rem' }}>LOG</th>
+                    <th style={{ textAlign: 'left', padding: '0.28rem 0.2rem' }}>LENGTH × GIRTH</th>
+                    <th style={{ width: '74px', textAlign: 'right', padding: '0.28rem 0.2rem' }}>{outputUnit}</th>
+                    <th style={{ width: '82px', textAlign: 'center', padding: '0.28rem 0.15rem' }}>SLAB</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sp.items.map((it) => {
+                    const l = typeof it.length === 'number' ? it.length : 0;
+                    const cftVal = typeof it.cft === 'number' ? it.cft : (outputUnit === 'CFT' ? it.volume : it.volume * 35.3147);
+                    const cbmVal = typeof it.cbm === 'number' ? it.cbm : (outputUnit === 'CBM' ? it.volume : it.volume / 35.3147);
+                    const activeVol = outputUnit === 'CFT' ? cftVal : cbmVal;
+                    const gStr = it.girthFtInStr || (it.girthFt !== undefined ? `${it.girthFt}' ${it.girthInPart || 0}"` : `${it.girth}"`);
+                    const inStr = it.girthInches !== undefined ? `${formatValue(it.girthInches, 1)}"` : '';
+
+                    return (
+                      <tr key={it.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                        <td style={{ textAlign: 'center', fontWeight: 800, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)', padding: '0.25rem 0.12rem' }}>
+                          Log {it.serialNumber}
+                        </td>
+                        <td style={{ padding: '0.25rem 0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>
+                            {l} {unitConfig.lengthUnit} × {gStr}
+                          </span>
+                          {inStr && (
+                            <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginLeft: '0.18rem' }}>
+                              ({inStr})
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)', padding: '0.25rem 0.2rem' }}>
+                          {formatValue(activeVol, 4)}
+                        </td>
+                        <td style={{ textAlign: 'center', padding: '0.25rem 0.15rem' }}>
+                          <span style={{
+                            backgroundColor: 'rgba(245, 158, 11, 0.16)',
+                            color: 'var(--primary-900)',
+                            border: '1px solid rgba(245, 158, 11, 0.4)',
+                            padding: '0.1rem 0.35rem',
+                            borderRadius: '4px',
+                            fontWeight: 800,
+                            fontSize: '0.65rem',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {it.slabLabel}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {/* Active Slabs Subtotals for this Species */}
+              <div style={{
+                backgroundColor: 'var(--bg-subtle, #f8fafc)',
+                borderTop: '1px solid var(--border-medium)',
+                padding: '0.3rem 0.45rem',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '0.25rem',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <span style={{ fontSize: '0.66rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Slab Summary:
+                </span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', justifyContent: 'flex-end' }}>
+                  {GIRTH_SLAB_LIST.filter((slab) => sp.slabs[slab.id]?.volume > 0).map((slab) => {
+                    const slabData = sp.slabs[slab.id];
+                    return (
+                      <div
+                        key={slab.id}
+                        style={{
+                          backgroundColor: '#ffffff',
+                          border: '1px solid var(--primary-300)',
+                          borderRadius: '4px',
+                          padding: '0.1rem 0.35rem',
+                          fontSize: '0.68rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.2rem'
+                        }}
+                      >
+                        <strong style={{ color: 'var(--primary-800)' }}>{slab.label}:</strong>
+                        <span style={{ fontWeight: 800, color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
+                          {formatValue(slabData.volume, 4)} {outputUnit}
+                        </span>
+                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>({slabData.pieces} pcs)</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         ))
