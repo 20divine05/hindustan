@@ -40,7 +40,8 @@ import type {
   LogType,
   RoundLogOutputUnit,
   RoundLogInputUnitType,
-  RoundLogItem
+  RoundLogItem,
+  GirthSlabType
 } from '../types';
 import { MeasurementTable } from '../components/MeasurementTable';
 import { RoundLogTable } from '../components/RoundLogTable';
@@ -50,7 +51,14 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { ProformaInvoiceModal } from '../components/ProformaInvoiceModal';
 import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice';
 import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood, calculateRow } from '../utils/calculator';
-import { calculateRoundLogTotals, ROUND_LOG_INPUT_UNIT_OPTIONS, getRoundLogUnitConfig } from '../utils/roundLogCalculator';
+import {
+  calculateRoundLogTotals,
+  ROUND_LOG_INPUT_UNIT_OPTIONS,
+  getRoundLogUnitConfig,
+  groupRoundLogsBySpeciesAndSlab,
+  computeRoundLogDimensions,
+  GIRTH_SLAB_LIST
+} from '../utils/roundLogCalculator';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
 import { exportSheetToCsv } from '../utils/exportCsv';
 import { exportSheetToPdf, printProformaInvoicePdf, getProformaInvoicePdfBlob, type ProformaInvoiceExportData } from '../utils/exportPdf';
@@ -768,22 +776,106 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const sortedItems = useMemo(() => sortTimberEntries(items), [items]);
   const timberWoodGroups = useMemo(() => groupTimberByWood(items, ratePerCft), [items, ratePerCft]);
 
-  const roundWoodGroups = useMemo(() => {
-    if (logType !== 'round') return [];
-    const map = new Map<string, { woodType: string; items: RoundLogItem[]; totalPieces: number; totalVolume: number; totalAmount: number }>();
-    for (const it of roundLogItems) {
-      const wt = (it.woodType || 'ROUND LOG').trim().toUpperCase();
-      if (!map.has(wt)) {
-        map.set(wt, { woodType: wt, items: [], totalPieces: 0, totalVolume: 0, totalAmount: 0 });
-      }
-      const g = map.get(wt)!;
-      g.items.push(it);
-      g.totalPieces += (typeof it.pieces === 'number' ? it.pieces : 0);
-      g.totalVolume += (typeof it.volume === 'number' ? it.volume : 0);
-      g.totalAmount += (typeof it.amount === 'number' ? it.amount : 0);
+  // Round logs grouped by species and girth slabs for preview & invoice syncing
+  const roundLogSpeciesSlabData = useMemo(() => {
+    if (logType !== 'round') {
+      return {
+        speciesGroups: [],
+        overallTotals: { totalPieces: 0, totalVolume: 0, totalCft: 0, totalCbm: 0, totalAmount: 0, slabs: {} as any }
+      };
     }
-    return Array.from(map.values());
-  }, [logType, roundLogItems]);
+    return groupRoundLogsBySpeciesAndSlab(
+      roundLogItems,
+      roundLogOutputUnit,
+      roundLogInputUnit,
+      roundLogSlabRates
+    );
+  }, [logType, roundLogItems, roundLogOutputUnit, roundLogInputUnit, roundLogSlabRates]);
+
+  // In-place editing in Step 13 Preview: automatically re-classifies slab & jumps log to new slab box
+  const handleStep13UpdateRoundLogItem = (
+    itemId: string,
+    field: 'length' | 'girth' | 'girthFt' | 'girthInPart',
+    rawValue: string
+  ) => {
+    const itemIndex = roundLogItems.findIndex((it) => it.id === itemId);
+    if (itemIndex === -1) return;
+
+    const updated = [...roundLogItems];
+    const target = { ...updated[itemIndex] };
+    const parsed = rawValue === '' ? '' : parseFloat(rawValue);
+    const numVal = isNaN(parsed as number) ? '' : parsed;
+    (target as any)[field] = numVal;
+
+    if (field === 'girthFt') {
+      target.girth = typeof numVal === 'number' ? numVal : 0;
+      target.girthFt = typeof numVal === 'number' ? numVal : undefined;
+    } else if (field === 'girthInPart') {
+      target.girthInPart = typeof numVal === 'number' ? numVal : undefined;
+    }
+
+    const g = typeof target.girthFt === 'number' ? target.girthFt : (typeof target.girth === 'number' ? target.girth : 0);
+    const gInP = typeof target.girthInPart === 'number' ? target.girthInPart : 0;
+    const l = typeof target.length === 'number' ? target.length : 0;
+
+    const comp = computeRoundLogDimensions({
+      girth: g,
+      girthInPart: gInP,
+      length: l,
+      pieces: 1,
+      inputUnit: target.inputUnit || roundLogInputUnit,
+      outputUnit: target.outputUnit || roundLogOutputUnit
+    });
+
+    target.volume = comp.volume;
+    target.cft = comp.cft;
+    target.cbm = comp.cbm;
+    target.girthInches = comp.girthInches;
+    target.girthFtInStr = comp.girthFtInStr;
+    target.slabId = comp.slab.id;
+    target.slabLabel = comp.slab.label;
+    target.pieces = 1;
+
+    // Apply rate of the newly assigned girth slab from roundLogSlabRates
+    const wt = target.woodType || 'Mahagony';
+    const rateKey = `${wt}__${comp.slab.id}`;
+    const altKey = `${wt.toUpperCase()}__${comp.slab.id}`;
+    const slabRate = roundLogSlabRates[rateKey] ?? roundLogSlabRates[altKey] ?? (typeof target.rate === 'number' ? target.rate : 0);
+    target.rate = slabRate;
+    target.amount = slabRate > 0 ? Math.round(comp.volume * slabRate * 100) / 100 : 0;
+
+    updated[itemIndex] = target;
+    setRoundLogItems(updated);
+  };
+
+  const handleStep13DeleteRoundLogItem = (itemId: string) => {
+    const updated = roundLogItems.filter((it) => it.id !== itemId);
+    const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
+    setRoundLogItems(reindexed);
+  };
+
+  const handleStep13UpdateSlabRate = (woodType: string, slabId: GirthSlabType, rawRate: string) => {
+    const parsed = rawRate === '' ? 0 : parseFloat(rawRate);
+    const r = isNaN(parsed) ? 0 : parsed;
+    const key = `${woodType}__${slabId}`;
+    const nextRates = { ...roundLogSlabRates, [key]: r };
+    setRoundLogSlabRates(nextRates);
+
+    // Synchronize rates and amounts across all items of this species & slab
+    const updated = roundLogItems.map((item) => {
+      const itemWood = item.woodType || 'Mahagony';
+      if (itemWood === woodType && item.slabId === slabId) {
+        const vol = typeof item.volume === 'number' ? item.volume : 0;
+        return {
+          ...item,
+          rate: r,
+          amount: r > 0 ? Math.round(vol * r * 100) / 100 : 0
+        };
+      }
+      return item;
+    });
+    setRoundLogItems(updated);
+  };
 
   // Handle in-place row editing in Step 8 (Measurements, Pieces, Rates)
   const handleStep8UpdateItem = (
@@ -3295,23 +3387,24 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   </button>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {roundWoodGroups.map((group) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+                  {roundLogSpeciesSlabData.speciesGroups.map((sp) => (
                     <div
-                      key={group.woodType}
+                      key={sp.woodType}
                       style={{
-                        border: '1px solid var(--border-medium)',
-                        borderRadius: '6px',
+                        border: '1.5px solid var(--border-medium)',
+                        borderRadius: '8px',
                         overflow: 'hidden',
-                        backgroundColor: 'var(--bg-card)'
+                        backgroundColor: 'var(--bg-card)',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                       }}
                     >
-                      {/* Group Header */}
+                      {/* Species Header */}
                       <div
                         style={{
                           backgroundColor: 'var(--primary-50, #fcf7ee)',
-                          borderBottom: '1px solid var(--border-medium)',
-                          padding: '0.5rem 0.75rem',
+                          borderBottom: '1.5px solid var(--border-medium)',
+                          padding: '0.45rem 0.65rem',
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
@@ -3319,70 +3412,246 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                           gap: '0.35rem'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
                           <span style={{ backgroundColor: 'var(--primary-700)', color: '#fff', fontSize: '0.8rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '4px', letterSpacing: '0.04em' }}>
-                            {group.woodType}
+                            🪵 {sp.woodType}
                           </span>
                           <strong style={{ fontSize: '0.82rem', color: 'var(--text-main)' }}>
-                            {group.totalPieces} Pcs &bull; {formatValue(group.totalVolume, 4)} {roundLogOutputUnit}
+                            {sp.totalPieces} {sp.totalPieces === 1 ? 'Log' : 'Logs'} &bull; {formatValue(sp.totalVolume, 4)} {roundLogOutputUnit}
                           </strong>
                         </div>
-                        <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--primary-800)' }}>
-                          ₹ {formatIndianCurrency(group.totalAmount)}
+                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
+                          ₹ {formatIndianCurrency(sp.totalAmount)}
                         </span>
                       </div>
 
-                      {/* Table */}
-                      <div style={{ width: '100%', overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                          <thead>
-                            <tr style={{ backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                              <th style={{ padding: '0.35rem 0.5rem', width: '36px' }}>#</th>
-                              <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center' }}>Girth ({getRoundLogUnitConfig(roundLogInputUnit).girthUnit})</th>
-                              <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center' }}>Length ({getRoundLogUnitConfig(roundLogInputUnit).lengthUnit})</th>
-                              <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center' }}>Pieces</th>
-                              <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center' }}>Volume ({roundLogOutputUnit})</th>
-                              <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center' }}>Rate (₹)</th>
-                              <th style={{ padding: '0.35rem 0.5rem', textAlign: 'right' }}>Amount (₹)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {group.items.map((it, idx) => (
-                              <tr
-                                key={it.id || idx}
+                      {/* Girth Slab Boxes (Only shown when there are logs in that condition) */}
+                      <div style={{ padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {sp.activeSlabs.map((s) => {
+                          const slabDef = GIRTH_SLAB_LIST.find((g) => g.id === s.slabId);
+                          const rangeStr = slabDef
+                            ? (slabDef.minGirthIn === 0 ? `≤${slabDef.maxGirthIn}"` : slabDef.maxGirthIn === Infinity ? `≥${slabDef.minGirthIn}"` : `${slabDef.minGirthIn}"-${slabDef.maxGirthIn}"`)
+                            : '';
+
+                          return (
+                            <div
+                              key={s.slabId}
+                              style={{
+                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                border: '1.5px solid var(--primary-300)',
+                                borderRadius: '7px',
+                                overflow: 'hidden',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                              }}
+                            >
+                              {/* Slab Box Header */}
+                              <div
                                 style={{
-                                  borderBottom: idx < group.items.length - 1 ? '1px solid var(--border-light)' : 'none',
-                                  backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)'
+                                  backgroundColor: 'var(--primary-100, #fef3c7)',
+                                  borderBottom: '1px solid var(--primary-200)',
+                                  padding: '0.35rem 0.55rem',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  flexWrap: 'wrap',
+                                  gap: '0.35rem'
                                 }}
                               >
-                                <td style={{ padding: '0.35rem 0.5rem', color: 'var(--text-muted)', fontWeight: 700 }}>
-                                  {it.serialNumber || idx + 1}
-                                </td>
-                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'center', fontWeight: 700 }}>
-                                  {it.girth}
-                                </td>
-                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'center', fontWeight: 700 }}>
-                                  {it.length}
-                                </td>
-                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'center', fontWeight: 700 }}>
-                                  {it.pieces}
-                                </td>
-                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'center', fontWeight: 800, color: 'var(--primary-700)' }}>
-                                  {formatValue(it.volume, 4)} {roundLogOutputUnit}
-                                </td>
-                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'center', fontWeight: 700 }}>
-                                  ₹ {it.rate}
-                                </td>
-                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'right', fontWeight: 800 }}>
-                                  ₹ {formatIndianCurrency(it.amount || 0)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                                  <span
+                                    style={{
+                                      backgroundColor: 'var(--primary-800)',
+                                      color: '#ffffff',
+                                      fontWeight: 900,
+                                      fontSize: '0.76rem',
+                                      padding: '0.12rem 0.45rem',
+                                      borderRadius: '4px'
+                                    }}
+                                  >
+                                    {s.slabLabel}
+                                  </span>
+                                  {rangeStr && (
+                                    <span style={{ fontSize: '0.68rem', color: 'var(--primary-900)', fontWeight: 700 }}>
+                                      ({rangeStr})
+                                    </span>
+                                  )}
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                                    &bull; {s.pieces} {s.pieces === 1 ? 'Log' : 'Logs'} &bull; {formatValue(s.volume, 4)} {roundLogOutputUnit}
+                                  </span>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', backgroundColor: '#fff', border: '1px solid var(--border-medium)', borderRadius: '4px', padding: '0.05rem 0.25rem' }}>
+                                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700 }}>₹</span>
+                                    <input
+                                      type="number"
+                                      step="any"
+                                      min="0"
+                                      placeholder="Rate"
+                                      value={s.rate !== undefined && s.rate > 0 ? s.rate : ''}
+                                      onChange={(e) => handleStep13UpdateSlabRate(sp.woodType, s.slabId, e.target.value)}
+                                      style={{
+                                        width: '46px',
+                                        border: 'none',
+                                        background: 'transparent',
+                                        fontSize: '0.74rem',
+                                        fontWeight: 800,
+                                        textAlign: 'right',
+                                        outline: 'none',
+                                        padding: 0
+                                      }}
+                                      title={`Rate for ${s.slabLabel} (₹/${roundLogOutputUnit})`}
+                                    />
+                                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>/{roundLogOutputUnit}</span>
+                                  </div>
+                                  <span style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--primary-900)', fontFamily: 'var(--font-mono)' }}>
+                                    ₹ {formatIndianCurrency(s.subtotal || 0)}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Logs in this slab with inline editing */}
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                {s.items.map((it, idx) => {
+                                  const isFtIn = roundLogInputUnit === 'girth_ft_length_ft';
+                                  const cftVal = typeof it.cft === 'number' ? it.cft : (roundLogOutputUnit === 'CFT' ? it.volume : it.volume * 35.3147);
+                                  const cbmVal = typeof it.cbm === 'number' ? it.cbm : (roundLogOutputUnit === 'CBM' ? it.volume : it.volume / 35.3147);
+                                  const activeVol = roundLogOutputUnit === 'CFT' ? cftVal : cbmVal;
+                                  const unitCfg = getRoundLogUnitConfig(roundLogInputUnit);
+                                  const inStr = it.girthInches !== undefined ? `${formatValue(it.girthInches, 1)}"` : '';
+
+                                  return (
+                                    <div
+                                      key={it.id || idx}
+                                      style={{
+                                        padding: '0.35rem 0.5rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        borderBottom: idx < s.items.length - 1 ? '1px solid var(--border-light)' : 'none',
+                                        backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(248, 250, 252, 0.6)',
+                                        gap: '0.35rem'
+                                      }}
+                                    >
+                                      <div style={{ minWidth: '42px' }}>
+                                        <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)' }}>
+                                          Log {it.serialNumber || idx + 1}
+                                        </span>
+                                      </div>
+
+                                      {/* Editable Length x Girth */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', flex: 1, justifyContent: 'center' }}>
+                                        <input
+                                          type="number"
+                                          step="any"
+                                          min="0"
+                                          className="calc-input tally-cell-input"
+                                          value={it.length}
+                                          onChange={(e) => handleStep13UpdateRoundLogItem(it.id, 'length', e.target.value)}
+                                          style={{ width: '36px', height: '24px', padding: '0.1rem 0.04rem', textAlign: 'center', fontWeight: 800, fontSize: '0.78rem' }}
+                                          title="Edit Length"
+                                        />
+                                        <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>{unitCfg.lengthUnit}</span>
+                                        <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)', margin: '0 0.06rem' }}>×</span>
+
+                                        {isFtIn ? (
+                                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1px' }}>
+                                            <input
+                                              type="number"
+                                              step="any"
+                                              min="0"
+                                              className="calc-input tally-cell-input"
+                                              value={it.girthFt !== undefined ? it.girthFt : it.girth}
+                                              onChange={(e) => handleStep13UpdateRoundLogItem(it.id, 'girthFt', e.target.value)}
+                                              style={{ width: '30px', height: '24px', padding: '0.1rem 0.02rem', textAlign: 'center', fontWeight: 800, fontSize: '0.78rem' }}
+                                              title="Edit Girth Feet"
+                                            />
+                                            <span style={{ fontSize: '0.66rem', fontWeight: 800, color: 'var(--text-muted)' }}>'</span>
+                                            <input
+                                              type="number"
+                                              step="any"
+                                              min="0"
+                                              max="11.99"
+                                              className="calc-input tally-cell-input"
+                                              value={it.girthInPart !== undefined ? it.girthInPart : ''}
+                                              onChange={(e) => handleStep13UpdateRoundLogItem(it.id, 'girthInPart', e.target.value)}
+                                              style={{ width: '30px', height: '24px', padding: '0.1rem 0.02rem', textAlign: 'center', fontWeight: 800, fontSize: '0.78rem' }}
+                                              title="Edit Girth Inches"
+                                            />
+                                            <span style={{ fontSize: '0.66rem', fontWeight: 800, color: 'var(--text-muted)' }}>"</span>
+                                          </div>
+                                        ) : (
+                                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1px' }}>
+                                            <input
+                                              type="number"
+                                              step="any"
+                                              min="0"
+                                              className="calc-input tally-cell-input"
+                                              value={it.girth}
+                                              onChange={(e) => handleStep13UpdateRoundLogItem(it.id, 'girth', e.target.value)}
+                                              style={{ width: '38px', height: '24px', padding: '0.1rem 0.04rem', textAlign: 'center', fontWeight: 800, fontSize: '0.78rem' }}
+                                              title="Edit Girth"
+                                            />
+                                            <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>{unitCfg.girthUnit}</span>
+                                          </div>
+                                        )}
+                                        {inStr && (
+                                          <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginLeft: '0.12rem', fontWeight: 700 }}>
+                                            ({inStr})
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Volume & Amount & Delete */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end', minWidth: '105px' }}>
+                                        <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
+                                          {formatValue(activeVol, 4)} {roundLogOutputUnit}
+                                        </span>
+                                        <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
+                                          ₹{formatIndianCurrency(it.amount || 0)}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          className="btn btn-ghost btn-sm"
+                                          title="Delete log"
+                                          onClick={() => handleStep13DeleteRoundLogItem(it.id)}
+                                          style={{ padding: 0, color: 'var(--danger-500, #dc2626)', minWidth: 0, width: '20px', height: '20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                        >
+                                          <Trash2 size={12} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
+
+                  {/* Grand Total Strip across all Species */}
+                  <div
+                    style={{
+                      padding: '0.55rem 0.75rem',
+                      backgroundColor: 'var(--primary-50, #fcf7ee)',
+                      border: '1.5px solid var(--primary-300)',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--primary-900)' }}>
+                      Total: {roundLogSpeciesSlabData.overallTotals.totalPieces} {roundLogSpeciesSlabData.overallTotals.totalPieces === 1 ? 'Log' : 'Logs'} &bull; {formatValue(roundLogSpeciesSlabData.overallTotals.totalVolume, 4)} {roundLogOutputUnit}
+                    </span>
+                    <span style={{ fontSize: '0.96rem', fontWeight: 900, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
+                      ₹ {formatIndianCurrency(roundLogSpeciesSlabData.overallTotals.totalAmount)}
+                    </span>
+                  </div>
                 </div>
               )
             ) : items.length === 0 ? (
