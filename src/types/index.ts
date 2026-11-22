@@ -14,6 +14,37 @@ export interface MeasurementItem {
   remarks?: string;
 }
 
+export type LogType = 'cut' | 'round';
+export type RoundLogOutputUnit = 'CFT' | 'CBM';
+export type RoundLogInputUnitType =
+  | 'girth_in_length_ft'
+  | 'girth_ft_length_ft'
+  | 'girth_m_length_m'
+  | 'girth_cm_length_cm';
+
+export interface RoundLogItem {
+  id: string;
+  serialNumber: number;
+  woodType?: string;
+  girth: number | '';
+  length: number | '';
+  pieces: number | '';
+  volume: number;
+  outputUnit: RoundLogOutputUnit;
+  inputUnit: RoundLogInputUnitType;
+  rate?: number | '';
+  amount?: number;
+  remarks?: string;
+}
+
+export interface RoundLogTotals {
+  totalEntries: number;
+  totalPieces: number;
+  totalVolume: number;
+  outputUnit: RoundLogOutputUnit;
+  totalAmount: number;
+}
+
 export interface SheetTotals {
   totalEntries: number;
   totalPieces: number;
@@ -67,6 +98,10 @@ export interface MeasurementSheet {
   referenceNumber: string;
   measurementDate: string;
   notes: string;
+  logType?: LogType;
+  roundLogOutputUnit?: RoundLogOutputUnit;
+  roundLogInputUnit?: RoundLogInputUnitType;
+  roundLogItems?: RoundLogItem[];
   items: MeasurementItem[];
   additionalCharges?: AdditionalCharges;
   discount?: SheetDiscount;

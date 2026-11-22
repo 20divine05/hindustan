@@ -30,14 +30,25 @@ import {
   Sparkles,
   Eye,
   ShoppingBag,
-  TrendingUp
+  TrendingUp,
+  CircleDot
 } from 'lucide-react';
-import type { MeasurementItem, MeasurementSheet, BusinessSettings } from '../types';
+import type {
+  MeasurementItem,
+  MeasurementSheet,
+  BusinessSettings,
+  LogType,
+  RoundLogOutputUnit,
+  RoundLogInputUnitType,
+  RoundLogItem
+} from '../types';
 import { MeasurementTable } from '../components/MeasurementTable';
+import { RoundLogTable } from '../components/RoundLogTable';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ProformaInvoiceModal } from '../components/ProformaInvoiceModal';
 import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice';
 import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood, calculateRow } from '../utils/calculator';
+import { calculateRoundLogTotals, ROUND_LOG_INPUT_UNIT_OPTIONS, getRoundLogUnitConfig } from '../utils/roundLogCalculator';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
 import { exportSheetToCsv } from '../utils/exportCsv';
 import { exportSheetToPdf, printProformaInvoicePdf, getProformaInvoicePdfBlob, type ProformaInvoiceExportData } from '../utils/exportPdf';
@@ -159,22 +170,23 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 }) => {
   const { user } = useAuth();
 
-  // 14-Step Linear Workflow State:
+  // 15-Step Linear Workflow State:
   // 1: Order / Voucher Type (Sales vs Purchase)
   // 2: Customer Type (B2B vs B2C)
   // 3: Buyer (Bill to) Details
   // 4: Consignee (Ship to) Details
-  // 5: Timber Calculator
-  // 6: Planing Charges (with image)
-  // 7: Carpentry Charges (with image)
-  // 8: Transportation Charges (with image)
-  // 9: Other Miscellaneous Charges (with image)
-  // 10: GST Tax Configuration (with image)
-  // 11: Customer Discount (with image)
-  // 12: Timber Order / Sorting (Preview Calculation)
-  // 13: Preview Bill To & Ship To Details
-  // 14: Final Invoice & Share
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14>(1);
+  // 5: Log Type Selection (Cut Logs vs Round Logs)
+  // 6: Timber Calculator (Cut Logs MeasurementTable / RoundLogTable)
+  // 7: Planing Charges (with image)
+  // 8: Carpentry Charges (with image)
+  // 9: Transportation Charges (with image)
+  // 10: Other Miscellaneous Charges (with image)
+  // 11: GST Tax Configuration (with image)
+  // 12: Customer Discount (with image)
+  // 13: Timber Order / Sorting (Preview Calculation)
+  // 14: Preview Bill To & Ship To Details
+  // 15: Final Invoice & Share
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15>(1);
 
   // Sheet Metadata State
   const [sheetId, setSheetId] = useState<string>(sheetToEdit?.id || generateId());
@@ -236,6 +248,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     sheetToEdit?.items && sheetToEdit.items.length > 0 ? sortTimberEntries(sheetToEdit.items) : []
   );
   const [ratePerCft] = useState<number>(businessSettings?.ratePerCft || 1200);
+
+  // Round Log Flow State
+  const [logType, setLogType] = useState<LogType>(sheetToEdit?.logType || 'cut');
+  const [roundLogOutputUnit, setRoundLogOutputUnit] = useState<RoundLogOutputUnit>(sheetToEdit?.roundLogOutputUnit || 'CFT');
+  const [roundLogInputUnit, setRoundLogInputUnit] = useState<RoundLogInputUnitType>(sheetToEdit?.roundLogInputUnit || 'girth_in_length_ft');
+  const [roundLogItems, setRoundLogItems] = useState<RoundLogItem[]>(sheetToEdit?.roundLogItems || []);
 
   // Step 3: Additional Charges State
   const [carpentryCharges, setCarpentryCharges] = useState<number>(
@@ -354,6 +372,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       setConsigneeStateCode(sheetToEdit.consigneeStateCode || sheetToEdit.customerStateCode || '');
       setConsigneeState(sheetToEdit.consigneeState || sheetToEdit.destination || 'Karnataka');
       setIsShipToTouched(Boolean(sheetToEdit.consigneeName && sheetToEdit.consigneeName !== sheetToEdit.customerName));
+      setLogType(sheetToEdit.logType || 'cut');
+      setRoundLogOutputUnit(sheetToEdit.roundLogOutputUnit || 'CFT');
+      setRoundLogInputUnit(sheetToEdit.roundLogInputUnit || 'girth_in_length_ft');
+      setRoundLogItems(sheetToEdit.roundLogItems || []);
       setSaveStatus('saved');
     }
   }, [sheetToEdit]);
@@ -640,15 +662,13 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     }
   };
 
-  // Real-time unrounded totals calculation
+  // Real-time unrounded totals calculation for cut logs
   const totals = calculateTotals(items, businessSettings?.sqftFormulaType, ratePerCft);
 
-  // Auto-sync Planing Charges when rate per CFT or total CFT changes
-  useEffect(() => {
-    if (planingRatePerCft > 0 && totals.totalCft > 0) {
-      setPlaningCharges(Math.round(totals.totalCft * planingRatePerCft * 100) / 100);
-    }
-  }, [totals.totalCft, planingRatePerCft]);
+  // Real-time totals calculation for round logs
+  const roundLogTotals = useMemo(() => {
+    return calculateRoundLogTotals(roundLogItems);
+  }, [roundLogItems]);
 
   // Financial calculations with additional charges, discounts, and GST
   // Ensures timberSubtotal is never zero when timber items exist (supports both CFT and SQFT rates)
@@ -673,8 +693,44 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     return sum > 0 ? sum : (totals.totalAmount || 0);
   }, [items, ratePerCft, totals.totalAmount]);
 
+  // Active timber subtotal, volume, unit, and pieces depending on selected LogType (Cut Logs vs Round Logs)
+  const activeTimberSubtotal = useMemo(() => {
+    if (logType === 'round') {
+      return roundLogTotals.totalAmount;
+    }
+    return timberSubtotal;
+  }, [logType, roundLogTotals.totalAmount, timberSubtotal]);
+
+  const activeTotalVolume = useMemo(() => {
+    if (logType === 'round') {
+      return roundLogTotals.totalVolume;
+    }
+    return totals.totalCft;
+  }, [logType, roundLogTotals.totalVolume, totals.totalCft]);
+
+  const activeVolumeUnit = useMemo(() => {
+    if (logType === 'round') {
+      return roundLogOutputUnit;
+    }
+    return 'CFT';
+  }, [logType, roundLogOutputUnit]);
+
+  const activeTotalPieces = useMemo(() => {
+    if (logType === 'round') {
+      return roundLogTotals.totalPieces;
+    }
+    return totals.totalPieces;
+  }, [logType, roundLogTotals.totalPieces, totals.totalPieces]);
+
+  // Auto-sync Planing Charges when rate per CFT or total volume changes
+  useEffect(() => {
+    if (planingRatePerCft > 0 && activeTotalVolume > 0) {
+      setPlaningCharges(Math.round(activeTotalVolume * planingRatePerCft * 100) / 100);
+    }
+  }, [activeTotalVolume, planingRatePerCft]);
+
   const additionalChargesTotal = (carpentryCharges || 0) + (transportationCharges || 0) + (planingCharges || 0) + (sawingCharges || 0) + (otherCharges || 0);
-  const subtotalWithCharges = timberSubtotal + additionalChargesTotal;
+  const subtotalWithCharges = activeTimberSubtotal + additionalChargesTotal;
 
   // The specific amount on which GST is applied:
   // User enters custom amount directly (e.g. ₹ 5,000) or defaults to the subtotal with charges
@@ -706,6 +762,23 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   // Wood Species Grouping -> Width (IN) Ascending -> Length (FT) Descending -> Thickness (IN) Descending
   const sortedItems = useMemo(() => sortTimberEntries(items), [items]);
   const timberWoodGroups = useMemo(() => groupTimberByWood(items, ratePerCft), [items, ratePerCft]);
+
+  const roundWoodGroups = useMemo(() => {
+    if (logType !== 'round') return [];
+    const map = new Map<string, { woodType: string; items: RoundLogItem[]; totalPieces: number; totalVolume: number; totalAmount: number }>();
+    for (const it of roundLogItems) {
+      const wt = (it.woodType || 'ROUND LOG').trim().toUpperCase();
+      if (!map.has(wt)) {
+        map.set(wt, { woodType: wt, items: [], totalPieces: 0, totalVolume: 0, totalAmount: 0 });
+      }
+      const g = map.get(wt)!;
+      g.items.push(it);
+      g.totalPieces += (typeof it.pieces === 'number' ? it.pieces : 0);
+      g.totalVolume += (typeof it.volume === 'number' ? it.volume : 0);
+      g.totalAmount += (typeof it.amount === 'number' ? it.amount : 0);
+    }
+    return Array.from(map.values());
+  }, [logType, roundLogItems]);
 
   // Handle in-place row editing in Step 8 (Measurements, Pieces, Rates)
   const handleStep8UpdateItem = (
@@ -813,6 +886,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       measurementDate,
       notes,
       items: sortTimberEntries(items),
+      logType,
+      roundLogOutputUnit,
+      roundLogInputUnit,
+      roundLogItems,
       additionalCharges: {
         carpentry: carpentryCharges,
         transportation: transportationCharges,
@@ -843,10 +920,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   }, [currentStep]);
 
   useEffect(() => {
-    if (items.length > 0) {
+    if (items.length > 0 || roundLogItems.length > 0) {
       isSheetPersistedRef.current = true;
     }
-  }, [items.length]);
+  }, [items.length, roundLogItems.length]);
 
   // Auto-save sheet to database on every change
   useEffect(() => {
@@ -864,7 +941,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       isSheetPersistedRef.current ||
       hasProceededPastStep1Ref.current ||
       currentStep > 1 ||
-      items.length > 0;
+      items.length > 0 ||
+      roundLogItems.length > 0;
 
     const draftSheet: Partial<MeasurementSheet> = {
       id: sheetId,
@@ -890,6 +968,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       measurementDate,
       notes,
       items,
+      logType,
+      roundLogOutputUnit,
+      roundLogInputUnit,
+      roundLogItems,
       additionalCharges: {
         carpentry: carpentryCharges,
         transportation: transportationCharges,
@@ -961,6 +1043,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     measurementDate,
     notes,
     items,
+    logType,
+    roundLogOutputUnit,
+    roundLogInputUnit,
+    roundLogItems,
     carpentryCharges,
     transportationCharges,
     planingCharges,
@@ -1047,6 +1133,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setInvoiceDate(formatToInvoiceDate());
     setNotes('');
     setItems([]);
+    setLogType('cut');
+    setRoundLogOutputUnit('CFT');
+    setRoundLogInputUnit('girth_in_length_ft');
+    setRoundLogItems([]);
     setCarpentryCharges(0);
     setTransportationCharges(0);
     setPlaningCharges(0);
@@ -1075,7 +1165,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const sortedCurrentItems = sortTimberEntries(current.items);
 
     // Map items including additional charges as line items if present
-    const invoiceItems = sortedCurrentItems
+    const cutInvoiceItems = sortedCurrentItems
       .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)
       .map((it, idx) => {
         const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
@@ -1099,6 +1189,23 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           amount: rowAmount
         };
       });
+
+    const roundInvoiceItems = (roundLogItems || []).map((it, idx) => ({
+      slNo: idx + 1,
+      description: `G:${it.girth} L:${it.length} ${(it.woodType || 'ROUND LOG').toUpperCase()}`,
+      hsn: '4403',
+      cft: roundLogOutputUnit === 'CFT' ? it.volume : 0,
+      sqft: 0,
+      widthInches: typeof it.girth === 'number' ? it.girth : 0,
+      rateUnit: (roundLogOutputUnit === 'CBM' ? 'CBM' : 'CFT') as any,
+      pieces: typeof it.pieces === 'number' ? it.pieces : 0,
+      rate: typeof it.rate === 'number' ? it.rate : 0,
+      per: roundLogOutputUnit,
+      discPercent: '',
+      amount: it.amount || 0
+    }));
+
+    const invoiceItems = logType === 'round' ? roundInvoiceItems : cutInvoiceItems;
 
     const exportData: ProformaInvoiceExportData = {
       voucherType,
@@ -2339,58 +2446,275 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 5: TIMBER CALCULATOR (MEASUREMENTS, WOOD DROPDOWN & TALLY)
+            STEP 5: SELECT TIMBER LOG TYPE (CUT LOGS vs ROUND LOGS)
             ========================================================================= */}
         {currentStep === 5 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="card calc-table-card" style={{ padding: '0.85rem' }}>
-              <div className="calc-step2-top-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-                <div className="calc-step2-title-block">
-                  <h3 style={{ fontSize: '1.15rem', margin: 0, color: 'var(--text-main)', fontWeight: 800 }}>
-                    Timber Measurement Daily Tally
-                  </h3>
-                  <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Customer: <strong>{customerName || 'Direct Cash Buyer'}</strong> &bull; CFT = (L &times; W &times; T &times; Pcs) &divide; 144
-                  </p>
+          <div className="card calc-step-card">
+            <div className="calc-step-header" style={{ textAlign: 'center', marginBottom: '0.85rem' }}>
+              <h3 className="calc-step-title" style={{ justifyContent: 'center', fontSize: '1.2rem' }}>
+                <Layers size={20} color="var(--primary-600)" /> Select Timber Log Type
+              </h3>
+              <p className="calc-step-desc">
+                Choose <strong>Cut Logs</strong> for standard sawn timber or <strong>Round Logs</strong> for quarter-girth Hoppus tally
+              </p>
+            </div>
+
+            {/* Primary 2 Option Cards */}
+            <div className="calc-type-choice-grid" style={{ marginBottom: logType === 'round' ? '1.25rem' : '0.5rem' }}>
+              {/* 1. Cut Logs Card */}
+              <div
+                className={`calc-type-card ${logType === 'cut' ? 'selected' : ''}`}
+                onClick={() => {
+                  setLogType('cut');
+                  setCurrentStep(6);
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="calc-type-card-icon" style={{ backgroundColor: logType === 'cut' ? '#1e293b' : '#f1f5f9', color: logType === 'cut' ? '#ffffff' : '#334155' }}>
+                  <Scissors size={28} />
                 </div>
-
-                <div className="calc-step2-actions-block" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%', justifyContent: 'space-between' }}>
-                  <span className="badge calc-step2-total-badge" style={{ backgroundColor: 'var(--primary-100)', color: 'var(--primary-800)', border: '1px solid var(--primary-200)', fontSize: '0.74rem', padding: '0.22rem 0.5rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                    <span className="mobile-hide">{customerName ? `${customerName} • ` : ''}</span>
-                    Total: {formatValue(totals.totalCft, 3)} CFT &bull; ₹ {formatIndianCurrency(totals.totalAmount || 0)}
-                  </span>
-
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => {
-                      if (items.length > 0 && !window.confirm('Start a new clean sheet?')) return;
-                      handleNewCleanSheet();
-                    }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.74rem', fontWeight: 700, padding: '0.22rem 0.55rem', whiteSpace: 'nowrap' }}
-                  >
-                    <FilePlus size={13} color="var(--primary-600)" />
-                    <span className="mobile-hide">New Sheet</span>
-                    <span className="mobile-show">New</span>
-                  </button>
+                <div className="calc-type-card-content">
+                  <h4>Cut Logs</h4>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Sawn Timber &bull; L &times; W &times; T</span>
                 </div>
               </div>
 
-              {/* Measurement Table with Wood Species Dropdown & Rapid Row Entry */}
-              <MeasurementTable
-                items={items}
-                onChange={(newItems) => setItems(newItems)}
-                sqftConvention={businessSettings?.sqftFormulaType}
-                defaultRate={ratePerCft}
-              />
+              {/* 2. Round Logs Card */}
+              <div
+                className={`calc-type-card ${logType === 'round' ? 'selected' : ''}`}
+                onClick={() => {
+                  setLogType('round');
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="calc-type-card-icon" style={{ backgroundColor: logType === 'round' ? '#1e293b' : '#f1f5f9', color: logType === 'round' ? '#ffffff' : '#334155' }}>
+                  <CircleDot size={28} />
+                </div>
+                <div className="calc-type-card-content">
+                  <h4>Round Logs</h4>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Hoppus Rule &bull; Girth &times; Length</span>
+                </div>
+              </div>
             </div>
+
+            {/* Round Log Configuration Flow (Steps A and B revealed when Round Logs is selected) */}
+            {logType === 'round' && (
+              <div
+                style={{
+                  border: '1.5px solid var(--primary-300, #d4b996)',
+                  borderRadius: '12px',
+                  padding: '1.1rem',
+                  backgroundColor: '#fffdfa',
+                  marginTop: '0.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1.1rem',
+                  boxShadow: '0 4px 14px rgba(75, 54, 33, 0.06)'
+                }}
+              >
+                {/* Step A: Output Unit Selection */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.5rem' }}>
+                    <span style={{ backgroundColor: 'var(--primary-700)', color: '#fff', borderRadius: '50%', width: '22px', height: '22px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800 }}>A</span>
+                    <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)' }}>Step A: Select Output Volume Unit:</strong>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setRoundLogOutputUnit('CFT')}
+                      style={{
+                        padding: '0.75rem 0.5rem',
+                        borderRadius: '8px',
+                        border: roundLogOutputUnit === 'CFT' ? '2px solid var(--primary-700, #4b3621)' : '1px solid var(--border-medium)',
+                        backgroundColor: roundLogOutputUnit === 'CFT' ? 'var(--primary-700, #4b3621)' : '#ffffff',
+                        color: roundLogOutputUnit === 'CFT' ? '#ffffff' : 'var(--text-main)',
+                        fontWeight: 800,
+                        fontSize: '0.95rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.2rem',
+                        boxShadow: roundLogOutputUnit === 'CFT' ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <span>CFT</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 600, opacity: roundLogOutputUnit === 'CFT' ? 0.9 : 0.7 }}>Cubic Feet</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRoundLogOutputUnit('CBM')}
+                      style={{
+                        padding: '0.75rem 0.5rem',
+                        borderRadius: '8px',
+                        border: roundLogOutputUnit === 'CBM' ? '2px solid var(--primary-700, #4b3621)' : '1px solid var(--border-medium)',
+                        backgroundColor: roundLogOutputUnit === 'CBM' ? 'var(--primary-700, #4b3621)' : '#ffffff',
+                        color: roundLogOutputUnit === 'CBM' ? '#ffffff' : 'var(--text-main)',
+                        fontWeight: 800,
+                        fontSize: '0.95rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.2rem',
+                        boxShadow: roundLogOutputUnit === 'CBM' ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <span>CBM</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 600, opacity: roundLogOutputUnit === 'CBM' ? 0.9 : 0.7 }}>Cubic Meters</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Step B: Input Unit Type Selection */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.5rem' }}>
+                    <span style={{ backgroundColor: 'var(--primary-700)', color: '#fff', borderRadius: '50%', width: '22px', height: '22px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800 }}>B</span>
+                    <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)' }}>Step B: Select Input Measurement Unit:</strong>
+                    <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>(Mid-Point Girth &times; Length)</span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '0.55rem' }}>
+                    {ROUND_LOG_INPUT_UNIT_OPTIONS.map((opt, idx) => {
+                      const isSelected = roundLogInputUnit === opt.id;
+                      const formulaText = roundLogOutputUnit === 'CFT' ? opt.formulaDisplayCFT : opt.formulaDisplayCBM;
+                      return (
+                        <div
+                          key={opt.id}
+                          onClick={() => setRoundLogInputUnit(opt.id)}
+                          style={{
+                            padding: '0.65rem 0.75rem',
+                            borderRadius: '8px',
+                            border: isSelected ? '2px solid var(--primary-700, #4b3621)' : '1px solid var(--border-medium)',
+                            backgroundColor: isSelected ? 'var(--primary-50, #fcf7ee)' : '#ffffff',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.25rem',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '0.86rem', fontWeight: 800, color: isSelected ? 'var(--primary-900)' : 'var(--text-main)' }}>
+                              {idx + 1}. {opt.label}
+                            </span>
+                            <input
+                              type="radio"
+                              name="roundLogInputUnit"
+                              checked={isSelected}
+                              onChange={() => setRoundLogInputUnit(opt.id)}
+                              style={{ cursor: 'pointer', accentColor: 'var(--primary-700)' }}
+                            />
+                          </div>
+                          <span style={{ fontSize: '0.74rem', color: isSelected ? 'var(--primary-800)' : 'var(--text-muted)', fontFamily: 'monospace', fontWeight: 600 }}>
+                            {formulaText}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Proceed Action Button */}
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setCurrentStep(6)}
+                  style={{
+                    marginTop: '0.25rem',
+                    padding: '0.75rem 1rem',
+                    fontSize: '0.95rem',
+                    fontWeight: 800,
+                    justifyContent: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--primary-700, #4b3621)',
+                    color: '#fff'
+                  }}
+                >
+                  <span>Proceed to Round Log Calculator</span>
+                  <span>&rarr;</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {/* =========================================================================
-            STEP 6: PLANING CHARGES (WITH IMAGE)
+            STEP 6: TIMBER CALCULATOR (CUT LOGS vs ROUND LOGS)
             ========================================================================= */}
         {currentStep === 6 && (
+          logType === 'round' ? (
+            <RoundLogTable
+              items={roundLogItems}
+              outputUnit={roundLogOutputUnit}
+              inputUnit={roundLogInputUnit}
+              defaultRate={ratePerCft}
+              onChange={(newItems) => setRoundLogItems(newItems)}
+              onOutputUnitChange={(outU) => setRoundLogOutputUnit(outU)}
+              onInputUnitChange={(inU) => setRoundLogInputUnit(inU)}
+              customerName={customerName}
+              onNewSheet={() => {
+                if (roundLogItems.length > 0 && !window.confirm('Start a new clean sheet?')) return;
+                handleNewCleanSheet();
+              }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="card calc-table-card" style={{ padding: '0.85rem' }}>
+                <div className="calc-step2-top-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  <div className="calc-step2-title-block">
+                    <h3 style={{ fontSize: '1.15rem', margin: 0, color: 'var(--text-main)', fontWeight: 800 }}>
+                      Timber Measurement Daily Tally
+                    </h3>
+                    <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Customer: <strong>{customerName || 'Direct Cash Buyer'}</strong> &bull; CFT = (L &times; W &times; T &times; Pcs) &divide; 144
+                    </p>
+                  </div>
+
+                  <div className="calc-step2-actions-block" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%', justifyContent: 'space-between' }}>
+                    <span className="badge calc-step2-total-badge" style={{ backgroundColor: 'var(--primary-100)', color: 'var(--primary-800)', border: '1px solid var(--primary-200)', fontSize: '0.74rem', padding: '0.22rem 0.5rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                      <span className="mobile-hide">{customerName ? `${customerName} • ` : ''}</span>
+                      Total: {formatValue(totals.totalCft, 3)} CFT &bull; ₹ {formatIndianCurrency(totals.totalAmount || 0)}
+                    </span>
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        if (items.length > 0 && !window.confirm('Start a new clean sheet?')) return;
+                        handleNewCleanSheet();
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.74rem', fontWeight: 700, padding: '0.22rem 0.55rem', whiteSpace: 'nowrap' }}
+                    >
+                      <FilePlus size={13} color="var(--primary-600)" />
+                      <span className="mobile-hide">New Sheet</span>
+                      <span className="mobile-show">New</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Measurement Table with Wood Species Dropdown & Rapid Row Entry */}
+                <MeasurementTable
+                  items={items}
+                  onChange={(newItems) => setItems(newItems)}
+                  sqftConvention={businessSettings?.sqftFormulaType}
+                  defaultRate={ratePerCft}
+                />
+              </div>
+            </div>
+          )
+        )}
+
+        {/* =========================================================================
+            STEP 7: PLANING CHARGES (WITH IMAGE)
+            ========================================================================= */}
+        {currentStep === 7 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2419,19 +2743,19 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     type="number"
                     step="any"
                     className="calc-prefixed-input"
-                    placeholder="Rate per CFT"
+                    placeholder={`Rate per ${activeVolumeUnit}`}
                     value={planingRatePerCft === 0 ? '' : planingRatePerCft}
                     onChange={(e) => {
                       const rate = Math.max(0, parseFloat(e.target.value) || 0);
                       setPlaningRatePerCft(rate);
-                      const calculated = Math.round(totals.totalCft * rate * 100) / 100;
+                      const calculated = Math.round(activeTotalVolume * rate * 100) / 100;
                       setPlaningCharges(calculated);
                     }}
                     style={{ width: '100%', fontSize: '1.05rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                   />
                 </div>
                 <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                  / CFT
+                  / {activeVolumeUnit}
                 </span>
               </div>
 
@@ -2441,7 +2765,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   Total Timber Volume:
                 </span>
                 <span style={{ fontSize: '0.84rem', fontWeight: 700, fontFamily: 'var(--font-mono, monospace)', color: 'var(--primary-800)' }}>
-                  {totals.totalCft > 0 ? totals.totalCft.toFixed(3) : '0.000'} CFT
+                  {activeTotalVolume > 0 ? activeTotalVolume.toFixed(3) : '0.000'} {activeVolumeUnit}
                 </span>
               </div>
 
@@ -2458,8 +2782,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   onChange={(e) => {
                     const val = Math.max(0, Number(e.target.value) || 0);
                     setPlaningCharges(val);
-                    if (totals.totalCft > 0 && val > 0) {
-                      setPlaningRatePerCft(Math.round((val / totals.totalCft) * 100) / 100);
+                    if (activeTotalVolume > 0 && val > 0) {
+                      setPlaningRatePerCft(Math.round((val / activeTotalVolume) * 100) / 100);
                     } else if (val === 0) {
                       setPlaningRatePerCft(0);
                     }
@@ -2472,7 +2796,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             {/* Quick Running Total Banner */}
             <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
               <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                Timber Subtotal: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(timberSubtotal)}</strong>
+                Timber Subtotal: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(activeTimberSubtotal)}</strong>
               </span>
               <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
                 Planing: ₹{formatIndianCurrency(planingCharges)}
@@ -2482,9 +2806,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 7: CARPENTRY CHARGES (WITH IMAGE)
+            STEP 8: CARPENTRY CHARGES (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 7 && (
+        {currentStep === 8 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2521,7 +2845,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             {/* Quick Running Total Banner */}
             <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
               <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                Subtotal before Carpentry: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(timberSubtotal + planingCharges)}</strong>
+                Subtotal before Carpentry: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(activeTimberSubtotal + planingCharges)}</strong>
               </span>
               <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
                 Carpentry: ₹{formatIndianCurrency(carpentryCharges)}
@@ -2531,9 +2855,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 8: TRANSPORTATION CHARGES (WITH IMAGE)
+            STEP 9: TRANSPORTATION CHARGES (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 8 && (
+        {currentStep === 9 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2570,7 +2894,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             {/* Quick Running Total Banner */}
             <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
               <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                Subtotal before Transport: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(timberSubtotal + planingCharges + carpentryCharges)}</strong>
+                Subtotal before Transport: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(activeTimberSubtotal + planingCharges + carpentryCharges)}</strong>
               </span>
               <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
                 Transport: ₹{formatIndianCurrency(transportationCharges)}
@@ -2580,9 +2904,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 9: OTHER CHARGES (WITH IMAGE)
+            STEP 10: OTHER CHARGES (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 9 && (
+        {currentStep === 10 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2631,7 +2955,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             {/* Quick Running Total Banner */}
             <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
               <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                Subtotal before Other: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(timberSubtotal + carpentryCharges + transportationCharges + planingCharges)}</strong>
+                Subtotal before Other: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(activeTimberSubtotal + carpentryCharges + transportationCharges + planingCharges)}</strong>
               </span>
               <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
                 Other: ₹{formatIndianCurrency(otherCharges)}
@@ -2641,9 +2965,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 10: GST TAX (WITH IMAGE)
+            STEP 11: GST TAX (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 10 && (
+        {currentStep === 11 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2755,9 +3079,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 11: DISCOUNT (WITH IMAGE)
+            STEP 12: DISCOUNT (WITH IMAGE)
             ========================================================================= */}
-        {currentStep === 11 && (
+        {currentStep === 12 && (
           <div className="card calc-step-card">
             {/* Visual Service Banner */}
             <div className="calc-service-banner">
@@ -2879,27 +3203,133 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 12: ORDER / SORTING OF TIMBER ENTRIES
+            STEP 13: ORDER / SORTING OF TIMBER ENTRIES
             Width (IN) - Ascending, Thickness (IN) - Descending, Length (FT) - Descending
             ========================================================================= */}
-        {currentStep === 12 && (
+        {currentStep === 13 && (
           <div className="card calc-step-card">
             <div className="calc-step-header">
               <h3 className="calc-step-title">
-                <Layers size={17} color="var(--primary-600)" /> Timber Species &amp; Mill Dimension Sorting
+                <Layers size={17} color="var(--primary-600)" /> {logType === 'round' ? 'Round Log Species & Dimension Sorting' : 'Timber Species & Mill Dimension Sorting'}
               </h3>
               <p className="calc-step-desc">
-                Entries grouped by <strong>Wood Species</strong>, then sorted strictly by <strong>Width Ascending</strong> and <strong>Length Descending</strong> for saw mill tally
+                {logType === 'round'
+                  ? <span>Entries grouped by <strong>Wood Species</strong> for round log tally ({roundLogOutputUnit})</span>
+                  : <span>Entries grouped by <strong>Wood Species</strong>, then sorted strictly by <strong>Width Ascending</strong> and <strong>Length Descending</strong> for saw mill tally</span>}
               </p>
             </div>
 
-            {items.length === 0 ? (
+            {logType === 'round' ? (
+              roundLogItems.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '1.5rem 1rem', color: 'var(--text-muted)' }}>
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem' }}>No round log measurements entered yet.</p>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setCurrentStep(6)}
+                    style={{ marginTop: '0.65rem', padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                  >
+                    Go to Round Log Calculator to add entries
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {roundWoodGroups.map((group) => (
+                    <div
+                      key={group.woodType}
+                      style={{
+                        border: '1px solid var(--border-medium)',
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                        backgroundColor: 'var(--bg-card)'
+                      }}
+                    >
+                      {/* Group Header */}
+                      <div
+                        style={{
+                          backgroundColor: 'var(--primary-50, #fcf7ee)',
+                          borderBottom: '1px solid var(--border-medium)',
+                          padding: '0.5rem 0.75rem',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '0.35rem'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                          <span style={{ backgroundColor: 'var(--primary-700)', color: '#fff', fontSize: '0.8rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '4px', letterSpacing: '0.04em' }}>
+                            {group.woodType}
+                          </span>
+                          <strong style={{ fontSize: '0.82rem', color: 'var(--text-main)' }}>
+                            {group.totalPieces} Pcs &bull; {formatValue(group.totalVolume, 4)} {roundLogOutputUnit}
+                          </strong>
+                        </div>
+                        <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--primary-800)' }}>
+                          ₹ {formatIndianCurrency(group.totalAmount)}
+                        </span>
+                      </div>
+
+                      {/* Table */}
+                      <div style={{ width: '100%', overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                          <thead>
+                            <tr style={{ backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                              <th style={{ padding: '0.35rem 0.5rem', width: '36px' }}>#</th>
+                              <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center' }}>Girth ({getRoundLogUnitConfig(roundLogInputUnit).girthUnit})</th>
+                              <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center' }}>Length ({getRoundLogUnitConfig(roundLogInputUnit).lengthUnit})</th>
+                              <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center' }}>Pieces</th>
+                              <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center' }}>Volume ({roundLogOutputUnit})</th>
+                              <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center' }}>Rate (₹)</th>
+                              <th style={{ padding: '0.35rem 0.5rem', textAlign: 'right' }}>Amount (₹)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.items.map((it, idx) => (
+                              <tr
+                                key={it.id || idx}
+                                style={{
+                                  borderBottom: idx < group.items.length - 1 ? '1px solid var(--border-light)' : 'none',
+                                  backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)'
+                                }}
+                              >
+                                <td style={{ padding: '0.35rem 0.5rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                                  {it.serialNumber || idx + 1}
+                                </td>
+                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'center', fontWeight: 700 }}>
+                                  {it.girth}
+                                </td>
+                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'center', fontWeight: 700 }}>
+                                  {it.length}
+                                </td>
+                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'center', fontWeight: 700 }}>
+                                  {it.pieces}
+                                </td>
+                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'center', fontWeight: 800, color: 'var(--primary-700)' }}>
+                                  {formatValue(it.volume, 4)} {roundLogOutputUnit}
+                                </td>
+                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'center', fontWeight: 700 }}>
+                                  ₹ {it.rate}
+                                </td>
+                                <td style={{ padding: '0.35rem 0.5rem', textAlign: 'right', fontWeight: 800 }}>
+                                  ₹ {formatIndianCurrency(it.amount || 0)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : items.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '1.5rem 1rem', color: 'var(--text-muted)' }}>
                 <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem' }}>No timber measurements entered yet.</p>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() => setCurrentStep(5)}
+                  onClick={() => setCurrentStep(6)}
                   style={{ marginTop: '0.65rem', padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
                 >
                   Go to Timber Calculator to add timber entries
@@ -3271,9 +3701,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 13: PREVIEW BILL TO & SHIP TO DETAILS
+            STEP 14: PREVIEW BILL TO & SHIP TO DETAILS
             ========================================================================= */}
-        {currentStep === 13 && (
+        {currentStep === 14 && (
           <div className="card calc-step-card">
             <div className="calc-step-header" style={{ marginBottom: '0.85rem' }}>
               <h3 className="calc-step-title" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
@@ -3475,9 +3905,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 14: FINAL REVIEW, WHATSAPP SHARE, PDF DOWNLOAD & PRINT
+            STEP 15: FINAL REVIEW, WHATSAPP SHARE, PDF DOWNLOAD & PRINT
             ========================================================================= */}
-        {currentStep === 14 && (
+        {currentStep === 15 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
 
             {/* 3 High-Impact Primary Mobile Action Buttons (WhatsApp, PDF, Print) */}
@@ -3623,16 +4053,16 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <div className="summary-preview-item">
                   <span className="preview-label">Total Volume:</span>
                   <span className="preview-val font-bold" style={{ color: 'var(--primary-700)' }}>
-                    {formatValue(totals.totalCft, 3)} CFT
+                    {formatValue(activeTotalVolume, 3)} {activeVolumeUnit}
                   </span>
                 </div>
                 <div className="summary-preview-item">
                   <span className="preview-label">Total Pieces:</span>
-                  <span className="preview-val font-bold">{totals.totalPieces} Pcs</span>
+                  <span className="preview-val font-bold">{activeTotalPieces} Pcs</span>
                 </div>
                 <div className="summary-preview-item">
                   <span className="preview-label">Timber Amount (Wood):</span>
-                  <span className="preview-val font-bold">₹ {formatIndianCurrency(timberSubtotal)}</span>
+                  <span className="preview-val font-bold">₹ {formatIndianCurrency(activeTimberSubtotal)}</span>
                 </div>
                 {planingCharges > 0 && (
                   <div className="summary-preview-item">
@@ -3786,14 +4216,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               <button
                 type="button"
                 className="btn btn-secondary calc-dock-btn calc-dock-prev"
-                onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14)}
+                onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15)}
                 style={{ flex: '0 0 auto', padding: '0.45rem 0.85rem' }}
               >
                 <ArrowLeft size={15} /> Back
               </button>
             )}
 
-            {currentStep < 14 ? (
+            {currentStep < 15 ? (
               <button
                 type="button"
                 className="btn btn-primary calc-dock-btn calc-dock-next"
@@ -3810,23 +4240,24 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setConsigneeState(destination || customerState || 'Karnataka');
                     }
                   }
-                  setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14);
+                  setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15);
                 }}
               >
                 <span>
                   {currentStep === 1 && 'Next: Customer Type (B2B / B2C) →'}
                   {currentStep === 2 && 'Next: Bill To Details →'}
                   {currentStep === 3 && 'Next: Ship To Details →'}
-                  {currentStep === 4 && 'Next: Timber Calculator →'}
-                  {currentStep === 5 && 'Next: Planing →'}
-                  {currentStep === 6 && 'Next: Carpentry →'}
-                  {currentStep === 7 && 'Next: Transport →'}
-                  {currentStep === 8 && 'Next: Other Charges →'}
-                  {currentStep === 9 && 'Next: GST Tax →'}
-                  {currentStep === 10 && 'Next: Discount →'}
-                  {currentStep === 11 && 'Next: Order Sorting →'}
-                  {currentStep === 12 && 'Next: Preview Bill To & Ship To →'}
-                  {currentStep === 13 && 'Next: Invoice & Share →'}
+                  {currentStep === 4 && 'Next: Select Log Type (Cut / Round) →'}
+                  {currentStep === 5 && (logType === 'round' ? 'Next: Round Log Calculator →' : 'Next: Timber Calculator →')}
+                  {currentStep === 6 && 'Next: Planing →'}
+                  {currentStep === 7 && 'Next: Carpentry →'}
+                  {currentStep === 8 && 'Next: Transport →'}
+                  {currentStep === 9 && 'Next: Other Charges →'}
+                  {currentStep === 10 && 'Next: GST Tax →'}
+                  {currentStep === 11 && 'Next: Discount →'}
+                  {currentStep === 12 && 'Next: Order Sorting →'}
+                  {currentStep === 13 && 'Next: Preview Bill To & Ship To →'}
+                  {currentStep === 14 && 'Next: Invoice & Share →'}
                 </span>
               </button>
             ) : (
