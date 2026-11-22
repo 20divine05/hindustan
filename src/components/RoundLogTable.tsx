@@ -192,8 +192,8 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
   // Sequential field navigation
   const isNavigatingRef = useRef<boolean>(false);
 
-  const advanceFrom = (source: 'girth' | 'girthInPart' | 'length') => {
-    if (source === 'length') {
+  const advanceFrom = (source: 'length' | 'girth' | 'girthInPart') => {
+    if (source === 'girthInPart' || (source === 'girth' && !isFtIn)) {
       // Last field reached: immediately add row on enter!
       handleQuickAdd();
       return;
@@ -205,20 +205,18 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
       isNavigatingRef.current = false;
     }, 280);
 
-    if (source === 'girth') {
+    if (source === 'length') {
+      girthInputRef.current?.focus();
+    } else if (source === 'girth') {
       if (isFtIn) {
         girthInPartInputRef.current?.focus();
-      } else {
-        lengthInputRef.current?.focus();
       }
-    } else if (source === 'girthInPart') {
-      lengthInputRef.current?.focus();
     }
   };
 
   const handleKeyNav = (
     e: React.KeyboardEvent,
-    source: 'girth' | 'girthInPart' | 'length'
+    source: 'length' | 'girth' | 'girthInPart'
   ) => {
     if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
       e.preventDefault();
@@ -232,15 +230,19 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     if (isNavigatingRef.current) return;
 
     const active = document.activeElement;
+    if (active === lengthInputRef.current) {
+      advanceFrom('length');
+      return;
+    }
     if (active === girthInputRef.current) {
-      advanceFrom('girth');
+      if (isFtIn) {
+        advanceFrom('girth');
+      } else {
+        handleQuickAdd();
+      }
       return;
     }
     if (active === girthInPartInputRef.current) {
-      advanceFrom('girthInPart');
-      return;
-    }
-    if (active === lengthInputRef.current) {
       handleQuickAdd();
     }
   };
@@ -250,19 +252,19 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     if (e) e.preventDefault();
     setQuickError(null);
 
+    const l = parseFloat(quickLength);
     const gFt = parseFloat(quickGirth);
     const gInPart = isFtIn ? (parseFloat(quickGirthInPart) || 0) : 0;
-    const l = parseFloat(quickLength);
     const p = 1; // Every round log entry represents 1 log
 
-    if (isNaN(gFt) || (gFt <= 0 && gInPart <= 0)) {
-      setQuickError(`Girth must be greater than 0 ${girthUnit}`);
-      girthInputRef.current?.focus();
-      return;
-    }
     if (isNaN(l) || l <= 0) {
       setQuickError(`Length must be greater than 0 ${lengthUnit}`);
       lengthInputRef.current?.focus();
+      return;
+    }
+    if (isNaN(gFt) || (gFt <= 0 && gInPart <= 0)) {
+      setQuickError(`Girth must be greater than 0 ${girthUnit}`);
+      girthInputRef.current?.focus();
       return;
     }
 
@@ -307,19 +309,19 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     onChange(reindexed);
 
     // Reset inputs
+    setQuickLength('');
     setQuickGirth('');
     setQuickGirthInPart('');
-    setQuickLength('');
 
     // Scroll to view
     setTimeout(() => {
       listBottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 60);
 
-    // Keep focus on first input
-    girthInputRef.current?.focus();
+    // Keep focus on first input (Length)
+    lengthInputRef.current?.focus();
     setTimeout(() => {
-      girthInputRef.current?.focus();
+      lengthInputRef.current?.focus();
     }, 60);
   };
 
@@ -436,6 +438,29 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
               gap: '0.45rem'
             }}
           >
+            {/* Length Input (First) */}
+            <div className="quick-dim-col">
+              <label className="quick-dim-label">
+                <span className="dim-label-desktop">Length ({lengthUnit})</span>
+                <span className="dim-label-mobile">L ({lengthUnit})</span>
+              </label>
+              <input
+                ref={lengthInputRef}
+                type="number"
+                inputMode="decimal"
+                step="any"
+                min="0"
+                placeholder=""
+                className="calc-input"
+                value={quickLength}
+                onChange={(e) => setQuickLength(e.target.value)}
+                onKeyDown={(e) => handleKeyNav(e, 'length')}
+                enterKeyHint="next"
+                tabIndex={1}
+                autoFocus
+              />
+            </div>
+
             {/* Girth Input (Feet or standard unit) */}
             <div className="quick-dim-col">
               <label className="quick-dim-label">
@@ -453,8 +478,8 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                 value={quickGirth}
                 onChange={(e) => setQuickGirth(e.target.value)}
                 onKeyDown={(e) => handleKeyNav(e, 'girth')}
-                enterKeyHint="next"
-                tabIndex={1}
+                enterKeyHint={isFtIn ? 'next' : 'go'}
+                tabIndex={2}
               />
             </div>
 
@@ -477,33 +502,11 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                   value={quickGirthInPart}
                   onChange={(e) => setQuickGirthInPart(e.target.value)}
                   onKeyDown={(e) => handleKeyNav(e, 'girthInPart')}
-                  enterKeyHint="next"
-                  tabIndex={2}
+                  enterKeyHint="go"
+                  tabIndex={3}
                 />
               </div>
             )}
-
-            {/* Length Input */}
-            <div className="quick-dim-col">
-              <label className="quick-dim-label">
-                <span className="dim-label-desktop">Length ({lengthUnit})</span>
-                <span className="dim-label-mobile">L ({lengthUnit})</span>
-              </label>
-              <input
-                ref={lengthInputRef}
-                type="number"
-                inputMode="decimal"
-                step="any"
-                min="0"
-                placeholder=""
-                className="calc-input"
-                value={quickLength}
-                onChange={(e) => setQuickLength(e.target.value)}
-                onKeyDown={(e) => handleKeyNav(e, 'length')}
-                enterKeyHint="go"
-                tabIndex={isFtIn ? 3 : 2}
-              />
-            </div>
           </div>
 
           {/* Quick-Add Controls (Wood Selector & Add Button) */}
@@ -603,7 +606,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                         No round log measurements entered yet
                       </p>
                       <p style={{ fontSize: '0.78rem', margin: 0, maxWidth: '380px' }}>
-                        Enter Girth &amp; Length above &amp; click <strong>+ Add Row</strong>.
+                        Enter Length &amp; Girth above &amp; click <strong>+ Add Row</strong>.
                       </p>
                     </div>
                   </td>
@@ -775,7 +778,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
               No round log entries yet
             </p>
             <p style={{ fontSize: '0.76rem', margin: '0.2rem 0 0' }}>
-              Enter Girth &amp; Length below &amp; click <strong>+ Add Row</strong>.
+              Enter Length &amp; Girth below &amp; click <strong>+ Add Row</strong>.
             </p>
           </div>
         ) : (
@@ -795,7 +798,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
             }}>
               <div style={{ width: '56px', textAlign: 'left' }}>LOG / TREE</div>
               <div style={{ display: 'flex', gap: '0.2rem', alignItems: 'center', flex: 1, justifyContent: 'center' }}>
-                <span>GIRTH × LENGTH</span>
+                <span>LENGTH × GIRTH</span>
               </div>
               <div style={{ width: '54px', textAlign: 'right', paddingRight: '0.15rem' }}>{outputUnit}</div>
               <div style={{ width: '28px', textAlign: 'center' }}>DEL</div>
@@ -843,8 +846,26 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                     </span>
                   </div>
 
-                  {/* Measurements: Girth inputs (ft & in or single unit) × Length input */}
+                  {/* Measurements: Length input × Girth inputs (ft & in or single unit) */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.12rem', flex: 1, justifyContent: 'center' }}>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      className="calc-input tally-cell-input"
+                      value={item.length}
+                      onChange={(e) => handleUpdateItem(index, 'length', e.target.value)}
+                      style={{
+                        width: '36px',
+                        height: '24px',
+                        padding: '0.1rem 0.04rem',
+                        textAlign: 'center',
+                        fontWeight: 800,
+                        fontSize: '0.76rem'
+                      }}
+                    />
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{lengthUnit}</span>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', margin: '0 0.08rem' }}>×</span>
                     {isFtIn ? (
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1px' }}>
                         <input
@@ -904,24 +925,6 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                         <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{girthUnit}</span>
                       </div>
                     )}
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', margin: '0 0.08rem' }}>×</span>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      className="calc-input tally-cell-input"
-                      value={item.length}
-                      onChange={(e) => handleUpdateItem(index, 'length', e.target.value)}
-                      style={{
-                        width: '36px',
-                        height: '24px',
-                        padding: '0.1rem 0.04rem',
-                        textAlign: 'center',
-                        fontWeight: 800,
-                        fontSize: '0.76rem'
-                      }}
-                    />
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{lengthUnit}</span>
                   </div>
 
                   {/* Volume */}
