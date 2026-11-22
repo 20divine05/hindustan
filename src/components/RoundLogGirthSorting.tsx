@@ -161,7 +161,7 @@ export const RoundLogGirthSorting: React.FC<RoundLogGirthSortingProps> = ({
               <table className="calc-table" style={{ width: '100%', minWidth: '780px', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f8fafc', fontSize: '0.74rem', borderBottom: '1px solid var(--border-medium)' }}>
-                    <th style={{ width: '32px', textAlign: 'center', padding: '0.4rem 0.2rem' }}>#</th>
+                    <th style={{ width: '55px', textAlign: 'center', padding: '0.4rem 0.2rem' }}>Log No.</th>
                     <th style={{ textAlign: 'center', width: '60px', padding: '0.4rem 0.2rem' }}>Length</th>
                     <th style={{ textAlign: 'center', width: '75px', padding: '0.4rem 0.2rem' }}>Girth (ft | in)</th>
                     <th style={{ textAlign: 'center', width: '70px', padding: '0.4rem 0.2rem' }}>Girth (in)</th>
@@ -188,7 +188,6 @@ export const RoundLogGirthSorting: React.FC<RoundLogGirthSortingProps> = ({
                 <tbody>
                   {sp.items.map((it) => {
                     const l = typeof it.length === 'number' ? it.length : 0;
-                    const p = typeof it.pieces === 'number' && it.pieces > 0 ? it.pieces : 1;
                     const cftVal = typeof it.cft === 'number' ? it.cft : (outputUnit === 'CFT' ? it.volume : it.volume * 35.3147);
                     const cbmVal = typeof it.cbm === 'number' ? it.cbm : (outputUnit === 'CBM' ? it.volume : it.volume / 35.3147);
                     const activeVol = outputUnit === 'CFT' ? cftVal : cbmVal;
@@ -196,7 +195,7 @@ export const RoundLogGirthSorting: React.FC<RoundLogGirthSortingProps> = ({
                     return (
                       <tr key={it.id} style={{ borderBottom: '1px solid var(--border-light)', fontSize: '0.8rem' }}>
                         <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--primary-700)', padding: '0.3rem 0.2rem' }}>
-                          #{it.serialNumber}
+                          Log {it.serialNumber}
                         </td>
                         <td style={{ textAlign: 'center', fontWeight: 700, padding: '0.3rem 0.2rem' }}>
                           {l} {unitConfig.lengthUnit}
@@ -208,7 +207,7 @@ export const RoundLogGirthSorting: React.FC<RoundLogGirthSortingProps> = ({
                           {it.girthInches !== undefined ? `${formatValue(it.girthInches, 1)}"` : `${it.girth}"`}
                         </td>
                         <td style={{ textAlign: 'center', fontWeight: 800, padding: '0.3rem 0.2rem' }}>
-                          {p}
+                          1
                         </td>
                         <td className="col-numeric" style={{ textAlign: 'right', padding: '0.3rem 0.3rem', fontWeight: outputUnit === 'CFT' ? 800 : 500 }}>
                           {formatValue(cftVal, 4)}

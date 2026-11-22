@@ -1201,13 +1201,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
     const roundInvoiceItems = (roundLogItems || []).map((it, idx) => ({
       slNo: idx + 1,
-      description: `${(it.woodType || 'ROUND LOG').toUpperCase()} ${it.girthFtInStr ? `G: ${it.girthFtInStr}` : `G: ${it.girth}"`} L: ${it.length}'${it.slabLabel ? ` (${it.slabLabel})` : ''}`,
+      woodType: (it.woodType || 'ROUND LOG').trim().toUpperCase(),
+      description: `Log ${idx + 1}: ${it.girthFtInStr ? `G: ${it.girthFtInStr}` : `G: ${it.girth}"`} × L: ${it.length}'${it.slabLabel ? ` [${it.slabLabel}]` : ''}`,
       hsn: '4403',
       cft: roundLogOutputUnit === 'CFT' ? it.volume : (it.cft || 0),
       sqft: 0,
       widthInches: typeof it.girthInches === 'number' ? it.girthInches : (typeof it.girth === 'number' ? it.girth : 0),
       rateUnit: (roundLogOutputUnit === 'CBM' ? 'CBM' : 'CFT') as any,
-      pieces: typeof it.pieces === 'number' ? it.pieces : 0,
+      pieces: 1,
       rate: typeof it.rate === 'number' ? it.rate : 0,
       per: roundLogOutputUnit,
       discPercent: '',
@@ -1219,6 +1220,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const exportData: ProformaInvoiceExportData = {
       voucherType,
       customerName: customerName || undefined,
+      logType,
       invoiceNo,
       eWayBillNo,
       invoiceDate,

@@ -37,11 +37,10 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
   const { girthUnit, lengthUnit } = unitConfig;
   const isFtIn = inputUnit === 'girth_ft_length_ft';
 
-  // Quick Add Input State
+  // Quick Add Input State - ONLY measurements (PCS removed as each log is 1 piece)
   const [quickGirth, setQuickGirth] = useState<string>(''); // G (FT) or G (IN/M/CM)
   const [quickGirthInPart, setQuickGirthInPart] = useState<string>(''); // G (IN) when ft+in
   const [quickLength, setQuickLength] = useState<string>('');
-  const [quickPieces, setQuickPieces] = useState<string>('');
 
   // Unit switcher modal
   const [isUnitModalOpen, setIsUnitModalOpen] = useState<boolean>(false);
@@ -64,7 +63,6 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
   const girthInputRef = useRef<HTMLInputElement>(null);
   const girthInPartInputRef = useRef<HTMLInputElement>(null);
   const lengthInputRef = useRef<HTMLInputElement>(null);
-  const piecesInputRef = useRef<HTMLInputElement>(null);
   const listBottomRef = useRef<HTMLDivElement>(null);
 
   // Mobile virtual keyboard & calcy elevation tracking
@@ -113,16 +111,15 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     }, 180);
   };
 
-  // Live calculation for quick entry preview
+  // Live calculation for quick entry preview (Always 1 log / PCS = 1)
   const gVal = parseFloat(quickGirth) || 0;
   const gInPVal = isFtIn ? parseFloat(quickGirthInPart) || 0 : 0;
   const lVal = parseFloat(quickLength) || 0;
-  const pVal = parseFloat(quickPieces) > 0 ? parseFloat(quickPieces) : 1;
   const liveCalc = computeRoundLogDimensions({
     girth: gVal,
     girthInPart: gInPVal,
     length: lVal,
-    pieces: pVal,
+    pieces: 1, // Every single log entry is 1 piece
     inputUnit,
     outputUnit
   });
@@ -149,7 +146,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
       const g = typeof target.girth === 'number' ? target.girth : 0;
       const gInP = typeof target.girthInPart === 'number' ? target.girthInPart : 0;
       const l = typeof target.length === 'number' ? target.length : 0;
-      const p = typeof target.pieces === 'number' && target.pieces > 0 ? target.pieces : 1;
+      const p = 1; // Always 1 log per row
 
       const comp = computeRoundLogDimensions({
         girth: g,
@@ -167,6 +164,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
       target.girthFtInStr = comp.girthFtInStr;
       target.slabId = comp.slab.id;
       target.slabLabel = comp.slab.label;
+      target.pieces = 1;
 
       const rowRate = typeof target.rate === 'number' && target.rate > 0 ? target.rate : 0;
       target.amount = rowRate > 0 ? Math.round(comp.volume * rowRate * 100) / 100 : 0;
@@ -176,16 +174,17 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     onChange(updated);
   };
 
-  // Duplicate an existing row
+  // Duplicate an existing row - ALWAYS appends as separate independent log with sequential serial number
   const handleDuplicateRow = (index: number) => {
     const source = items[index];
     const duplicate: RoundLogItem = {
       ...source,
       id: generateId(),
-      serialNumber: items.length + 1
+      serialNumber: items.length + 1,
+      pieces: 1
     };
 
-    const updated = [...items.slice(0, index + 1), duplicate, ...items.slice(index + 1)];
+    const updated = [...items, duplicate];
     const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
     onChange(reindexed);
   };
@@ -200,8 +199,9 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
   // Sequential field navigation
   const isNavigatingRef = useRef<boolean>(false);
 
-  const advanceFrom = (source: 'girth' | 'girthInPart' | 'length' | 'pieces') => {
-    if (source === 'pieces') {
+  const advanceFrom = (source: 'girth' | 'girthInPart' | 'length') => {
+    if (source === 'length') {
+      // Last field reached: immediately add row on enter!
       handleQuickAdd();
       return;
     }
@@ -220,14 +220,12 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
       }
     } else if (source === 'girthInPart') {
       lengthInputRef.current?.focus();
-    } else if (source === 'length') {
-      piecesInputRef.current?.focus();
     }
   };
 
   const handleKeyNav = (
     e: React.KeyboardEvent,
-    source: 'girth' | 'girthInPart' | 'length' | 'pieces'
+    source: 'girth' | 'girthInPart' | 'length'
   ) => {
     if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
       e.preventDefault();
@@ -250,15 +248,11 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
       return;
     }
     if (active === lengthInputRef.current) {
-      advanceFrom('length');
-      return;
-    }
-    if (active === piecesInputRef.current) {
       handleQuickAdd();
     }
   };
 
-  // Add row via Quick-Add Bar
+  // Add row via Quick-Add Bar (Always 1 log, NEVER merge duplicate measurements)
   const handleQuickAdd = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setQuickError(null);
@@ -266,8 +260,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     const gFt = parseFloat(quickGirth);
     const gInPart = isFtIn ? (parseFloat(quickGirthInPart) || 0) : 0;
     const l = parseFloat(quickLength);
-    const pRaw = parseFloat(quickPieces);
-    const p = !isNaN(pRaw) && pRaw > 0 ? pRaw : 1;
+    const p = 1; // Every round log entry represents 1 log
 
     if (isNaN(gFt) || (gFt <= 0 && gInPart <= 0)) {
       setQuickError(`Girth must be greater than 0 ${girthUnit}`);
@@ -303,7 +296,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
       girthInches: comp.girthInches,
       girthFtInStr: comp.girthFtInStr,
       length: l,
-      pieces: p,
+      pieces: 1, // Treat every added log as exactly 1 log
       volume: comp.volume,
       cft: comp.cft,
       cbm: comp.cbm,
@@ -315,6 +308,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
       amount: 0
     };
 
+    // NEVER MERGE DUPLICATES: Always append every submission as a separate, independent log row
     const updated = [...items, newItem];
     const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
     onChange(reindexed);
@@ -323,7 +317,6 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     setQuickGirth('');
     setQuickGirthInPart('');
     setQuickLength('');
-    setQuickPieces('');
 
     // Scroll to view
     setTimeout(() => {
@@ -354,7 +347,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
           <div className="calc-step2-actions-block" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%', justifyContent: 'space-between' }}>
             <span className="badge calc-step2-total-badge" style={{ backgroundColor: 'var(--primary-100)', color: 'var(--primary-800)', border: '1px solid var(--primary-200)', fontSize: '0.74rem', padding: '0.22rem 0.5rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
               <span className="mobile-hide">{customerName ? `${customerName} • ` : ''}</span>
-              TOTAL: {formatValue(totals.totalVolume, 4)} {outputUnit} &bull; {totals.totalPieces} PCS
+              TOTAL: {formatValue(totals.totalVolume, 4)} {outputUnit} &bull; {totals.totalPieces} Logs
             </span>
 
             {onNewSheet && (
@@ -406,7 +399,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
         )}
       </div>
 
-      {/* 1. Quick Dimension Entry Form / Calcy (NO RATE BOX HERE) */}
+      {/* 1. Quick Dimension Entry Form / Calcy (ONLY MEASUREMENTS, NO PCS FIELD) */}
       <div
         className={`quick-add-bar-wrapper ${isCalcyFocused ? 'calcy-is-elevated' : ''}`}
         style={{ minHeight: isCalcyFocused ? '105px' : 'auto' }}
@@ -446,8 +439,8 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
             className="quick-add-dims"
             style={{
               display: 'grid',
-              gridTemplateColumns: isFtIn ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
-              gap: '0.35rem'
+              gridTemplateColumns: isFtIn ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+              gap: '0.45rem'
             }}
           >
             {/* Girth Input (Feet or standard unit) */}
@@ -514,30 +507,8 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                 value={quickLength}
                 onChange={(e) => setQuickLength(e.target.value)}
                 onKeyDown={(e) => handleKeyNav(e, 'length')}
-                enterKeyHint="next"
-                tabIndex={isFtIn ? 3 : 2}
-              />
-            </div>
-
-            {/* Pieces Input */}
-            <div className="quick-dim-col">
-              <label className="quick-dim-label">
-                <span className="dim-label-desktop">Pieces</span>
-                <span className="dim-label-mobile">PCS</span>
-              </label>
-              <input
-                ref={piecesInputRef}
-                type="number"
-                inputMode="numeric"
-                step="1"
-                min="1"
-                placeholder=""
-                className="calc-input"
-                value={quickPieces}
-                onChange={(e) => setQuickPieces(e.target.value)}
-                onKeyDown={(e) => handleKeyNav(e, 'pieces')}
                 enterKeyHint="go"
-                tabIndex={isFtIn ? 4 : 3}
+                tabIndex={isFtIn ? 3 : 2}
               />
             </div>
           </div>
@@ -582,12 +553,12 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
             </button>
           </div>
 
-          {/* Live Preview Chip (Volume & Pieces only, no price) */}
+          {/* Live Preview Chip (Shows volume for 1 log, no price) */}
           {liveCalc.volume > 0 && (
             <div className="quick-live-preview-chip" style={{ marginTop: '0.3rem' }}>
               <span>{formatValue(liveCalc.volume, 4)} {outputUnit}</span>
               <span className="sep">&bull;</span>
-              <span>{liveCalc.pieces} PCS</span>
+              <span>1 Log</span>
               {liveCalc.slab && (
                 <>
                   <span className="sep">&bull;</span>
@@ -611,30 +582,30 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
           <table className="calc-table">
             <thead>
               <tr>
-                <th style={{ width: '28px', textAlign: 'center', padding: '0.35rem 0.05rem' }}>#</th>
+                <th style={{ width: '45px', textAlign: 'center', padding: '0.35rem 0.15rem' }}>Log No.</th>
                 <th style={{ minWidth: '110px' }}>Wood Species</th>
-                <th style={{ textAlign: 'center', width: '65px', padding: '0.35rem 0.05rem' }}>
+                <th style={{ textAlign: 'center', width: '75px', padding: '0.35rem 0.05rem' }}>
                   Length ({lengthUnit})
                 </th>
-                <th style={{ textAlign: 'center', width: '70px', padding: '0.35rem 0.05rem' }}>
+                <th style={{ textAlign: 'center', width: '80px', padding: '0.35rem 0.05rem' }}>
                   Girth (ft | in)
                 </th>
-                <th style={{ textAlign: 'center', width: '65px', padding: '0.35rem 0.05rem' }}>
+                <th style={{ textAlign: 'center', width: '70px', padding: '0.35rem 0.05rem' }}>
                   Girth (inch)
                 </th>
-                <th style={{ textAlign: 'center', width: '45px', padding: '0.35rem 0.05rem' }}>
+                <th style={{ textAlign: 'center', width: '40px', padding: '0.35rem 0.05rem' }}>
                   PCS
                 </th>
-                <th style={{ textAlign: 'right', padding: '0.35rem 0.25rem', width: '75px' }}>
+                <th style={{ textAlign: 'right', padding: '0.35rem 0.25rem', width: '80px' }}>
                   CFT
                 </th>
-                <th style={{ textAlign: 'right', padding: '0.35rem 0.25rem', width: '75px' }}>
+                <th style={{ textAlign: 'right', padding: '0.35rem 0.25rem', width: '80px' }}>
                   CBM
                 </th>
-                <th style={{ textAlign: 'center', width: '75px', padding: '0.35rem 0.05rem' }}>
+                <th style={{ textAlign: 'center', width: '80px', padding: '0.35rem 0.05rem' }}>
                   Slab
                 </th>
-                <th style={{ width: '32px', textAlign: 'center', padding: '0.35rem 0.05rem' }}>
+                <th style={{ width: '45px', textAlign: 'center', padding: '0.35rem 0.05rem' }}>
                   Action
                 </th>
               </tr>
@@ -657,13 +628,12 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                 items.map((item, index) => {
                   const g = typeof item.girth === 'number' ? item.girth : 0;
                   const l = typeof item.length === 'number' ? item.length : 0;
-                  const p = typeof item.pieces === 'number' ? item.pieces : 0;
-                  const isRowValid = g > 0 && l > 0 && p > 0;
+                  const isRowValid = g > 0 && l > 0;
 
                   return (
                     <tr key={item.id} style={{ opacity: isRowValid ? 1 : 0.85 }}>
-                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--primary-700)', padding: '0.25rem 0.1rem' }}>
-                        #{item.serialNumber}
+                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--primary-700)', padding: '0.25rem 0.1rem' }}>
+                        Log {item.serialNumber}
                       </td>
 
                       <td>
@@ -710,16 +680,8 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                         {item.girthInches !== undefined ? `${formatValue(item.girthInches, 1)}"` : `${g}"`}
                       </td>
 
-                      <td style={{ textAlign: 'center', padding: '0.2rem 0.05rem' }}>
-                        <input
-                          type="number"
-                          step="1"
-                          min="1"
-                          className="calc-input tally-cell-input"
-                          value={item.pieces}
-                          onChange={(e) => handleUpdateItem(index, 'pieces', e.target.value)}
-                          style={{ width: '38px', textAlign: 'center', fontWeight: 800 }}
-                        />
+                      <td style={{ textAlign: 'center', fontWeight: 800, color: 'var(--text-main)', padding: '0.2rem 0.05rem' }}>
+                        1
                       </td>
 
                       <td className="col-numeric" style={{ textAlign: 'right', padding: '0.25rem 0.25rem', whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.84rem' }}>
@@ -736,12 +698,12 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                         </span>
                       </td>
 
-                      <td style={{ textAlign: 'center', padding: '0.2rem 0.05rem', width: '32px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.15rem' }}>
+                      <td style={{ textAlign: 'center', padding: '0.2rem 0.05rem', width: '45px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
                           <button
                             type="button"
                             className="btn btn-ghost btn-sm"
-                            title="Duplicate row"
+                            title="Duplicate as new separate log row"
                             onClick={() => handleDuplicateRow(index)}
                             style={{ padding: '3px' }}
                           >
@@ -750,7 +712,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                           <button
                             type="button"
                             className="btn btn-ghost btn-sm"
-                            title="Delete row"
+                            title="Delete log"
                             onClick={() => handleDeleteRow(index)}
                             style={{
                               padding: 0,
@@ -780,7 +742,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                     Total Round Logs:
                   </td>
                   <td style={{ textAlign: 'center', padding: '0.35rem 0.05rem', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '0.84rem' }}>
-                    {totals.totalPieces} pcs
+                    {totals.totalPieces} Logs
                   </td>
                   <td className="col-numeric" style={{ textAlign: 'right', padding: '0.35rem 0.25rem', whiteSpace: 'nowrap', fontWeight: 800, fontSize: '0.86rem' }}>
                     {formatValue(totals.totalCft || 0, 4)} CFT
@@ -796,7 +758,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
         </div>
       </div>
 
-      {/* 2. Mobile View: Compact list */}
+      {/* 2. Mobile View: Compact list (Each row is 1 separate log) */}
       <div
         className="mobile-show measurement-mobile-list"
         style={{
@@ -830,23 +792,18 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
               color: 'var(--text-main)',
               textTransform: 'uppercase'
             }}>
-              <div style={{ width: '50px', textAlign: 'left' }}>Tree</div>
-              <div style={{ display: 'flex', gap: '0.15rem', alignItems: 'center', flex: 1, justifyContent: 'center' }}>
-                <span style={{ width: '42px', textAlign: 'center' }}>Girth</span>
-                <span style={{ width: '4px' }}></span>
-                <span style={{ width: '42px', textAlign: 'center' }}>Length</span>
-                <span style={{ width: '4px' }}></span>
-                <span style={{ width: '32px', textAlign: 'center' }}>PCS</span>
+              <div style={{ width: '65px', textAlign: 'left' }}>Log / Tree</div>
+              <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+                <span>Girth × Length</span>
               </div>
               <div style={{ width: '65px', textAlign: 'right', paddingRight: '0.2rem' }}>{outputUnit}</div>
-              <div style={{ width: '22px', textAlign: 'center' }}>Del</div>
+              <div style={{ width: '42px', textAlign: 'center' }}>Act</div>
             </div>
 
             {items.map((item, index) => {
               const g = typeof item.girth === 'number' ? item.girth : 0;
               const l = typeof item.length === 'number' ? item.length : 0;
-              const p = typeof item.pieces === 'number' ? item.pieces : 0;
-              const isRowValid = g > 0 && l > 0 && p > 0;
+              const isRowValid = g > 0 && l > 0;
 
               return (
                 <div
@@ -864,14 +821,17 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                     opacity: isRowValid ? 1 : 0.85
                   }}
                 >
-                  {/* Tree Name & Slab */}
-                  <div style={{ width: '52px', minWidth: '52px', overflow: 'hidden' }}>
+                  {/* Log No, Tree Name & Slab */}
+                  <div style={{ width: '65px', minWidth: '65px', overflow: 'hidden' }}>
+                    <span style={{ fontSize: '0.66rem', fontWeight: 900, color: 'var(--primary-700)', display: 'block' }}>
+                      Log {item.serialNumber}
+                    </span>
                     <span
                       title={item.woodType || 'Wood'}
                       style={{
                         fontSize: '0.68rem',
                         fontWeight: 800,
-                        color: 'var(--primary-800)',
+                        color: 'var(--text-main)',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -880,17 +840,17 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                     >
                       {item.woodType || 'Wood'}
                     </span>
-                    <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', display: 'block' }}>
+                    <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', display: 'block' }}>
                       {item.slabLabel || 'Slab'}
                     </span>
                   </div>
 
-                  {/* Measurements: Girth (ft|in) × Length × Pcs */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', flex: 1, justifyContent: 'center' }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-main)', width: '42px', textAlign: 'center' }}>
+                  {/* Measurements: Girth (ft|in) × Length */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', flex: 1, justifyContent: 'center' }}>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-main)', textAlign: 'center' }}>
                       {item.girthFtInStr || `${item.girth}"`}
                     </span>
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>×</span>
                     <input
                       type="number"
                       step="any"
@@ -898,23 +858,14 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                       className="calc-input tally-cell-input"
                       value={item.length}
                       onChange={(e) => handleUpdateItem(index, 'length', e.target.value)}
-                      style={{ width: '42px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
+                      style={{ width: '48px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
                     />
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
-                    <input
-                      type="number"
-                      step="1"
-                      min="1"
-                      className="calc-input tally-cell-input"
-                      value={item.pieces}
-                      onChange={(e) => handleUpdateItem(index, 'pieces', e.target.value)}
-                      style={{ width: '32px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
-                    />
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{lengthUnit}</span>
                   </div>
 
                   {/* Volume */}
                   <div style={{ width: '65px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.15 }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)' }}>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)' }}>
                       {formatValue(item.volume, 4)} {outputUnit}
                     </span>
                     <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>
@@ -922,25 +873,34 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                     </span>
                   </div>
 
-                  {/* Delete button */}
-                  <div style={{ width: '22px', textAlign: 'center' }}>
+                  {/* Duplicate & Delete buttons */}
+                  <div style={{ width: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
-                      title="Delete row"
+                      title="Duplicate as new separate log row"
+                      onClick={() => handleDuplicateRow(index)}
+                      style={{ padding: '2px' }}
+                    >
+                      <Copy size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      title="Delete log"
                       onClick={() => handleDeleteRow(index)}
                       style={{
                         padding: 0,
                         color: 'var(--danger-500, #dc2626)',
                         minWidth: 0,
-                        width: '20px',
-                        height: '20px',
+                        width: '18px',
+                        height: '18px',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center'
                       }}
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={12} />
                     </button>
                   </div>
                 </div>
@@ -963,7 +923,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
               }}
             >
               <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                Total: {totals.totalPieces} Pcs
+                Total: {totals.totalPieces} Logs
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>

@@ -40,14 +40,17 @@ export interface ProformaInvoiceExportData {
   buyerState?: string;
   buyerStateCode?: string;
 
+  logType?: 'cut' | 'round';
+
   items?: Array<{
     slNo: number;
     description: string;
+    woodType?: string;
     hsn: string;
     cft: number;
     sqft?: number;
     widthInches?: number | '';
-    rateUnit?: 'CFT' | 'SQFT';
+    rateUnit?: 'CFT' | 'SQFT' | 'CBM';
     pieces: number;
     rate: number;
     per: string;
@@ -127,6 +130,7 @@ export function createProformaInvoiceDoc(
   const buyerStateCode = invoiceData?.buyerStateCode ?? sheet.customerStateCode ?? consigneeStateCode ?? '29';
 
   const defaultRate = settings?.ratePerCft || 1200;
+  const isRoundLog = invoiceData?.logType === 'round' || sheet.logType === 'round';
 
   // Build items list
   let items = invoiceData?.items;
@@ -459,9 +463,13 @@ export function createProformaInvoiceDoc(
 
   for (const it of items) {
     let wood = 'MAHAGONY';
-    const parts = (it.description || '').trim().split(/\s+/);
-    if (parts.length > 1) {
-      wood = parts.slice(1).join(' ').toUpperCase();
+    if (it.woodType) {
+      wood = it.woodType.toUpperCase();
+    } else {
+      const parts = (it.description || '').trim().split(/\s+/);
+      if (parts.length > 1) {
+        wood = parts.slice(1).join(' ').toUpperCase();
+      }
     }
     if (!woodMap.has(wood)) {
       const arr: typeof items = [];
@@ -475,31 +483,36 @@ export function createProformaInvoiceDoc(
   let slCounter = 1;
 
   for (const group of woodGroups) {
-    // Sort items within this wood group strictly by sawmill specification: Width Asc -> Thickness Desc -> Length Desc
-    group.items.sort((a, b) => {
-      const parseDims = (item: any) => {
-        let w = typeof item.widthInches === 'number' ? item.widthInches : 0;
-        let l = 0;
-        let t = 0;
-        if (item.description) {
-          const match = item.description.match(/^([\d.]+)[X|x]([\d.]+)[X|x]([\d.]+)/);
-          if (match) {
-            l = parseFloat(match[1]) || 0;
-            if (!w) w = parseFloat(match[2]) || 0;
-            t = parseFloat(match[3]) || 0;
+    if (!isRoundLog) {
+      // Sort items strictly by sawmill specification for cut logs: Width Asc -> Thickness Desc -> Length Desc
+      group.items.sort((a, b) => {
+        const parseDims = (item: any) => {
+          let w = typeof item.widthInches === 'number' ? item.widthInches : 0;
+          let l = 0;
+          let t = 0;
+          if (item.description) {
+            const match = item.description.match(/^([\d.]+)[X|x]([\d.]+)[X|x]([\d.]+)/);
+            if (match) {
+              l = parseFloat(match[1]) || 0;
+              if (!w) w = parseFloat(match[2]) || 0;
+              t = parseFloat(match[3]) || 0;
+            }
           }
-        }
-        return { w, l, t };
-      };
-      const dA = parseDims(a);
-      const dB = parseDims(b);
-      if (dA.w !== dB.w) return dA.w - dB.w;
-      if (dA.t !== dB.t) return dB.t - dA.t;
-      if (dA.l !== dB.l) return dB.l - dA.l;
-      const pA = typeof a.pieces === 'number' ? a.pieces : 0;
-      const pB = typeof b.pieces === 'number' ? b.pieces : 0;
-      return pB - pA;
-    });
+          return { w, l, t };
+        };
+        const dA = parseDims(a);
+        const dB = parseDims(b);
+        if (dA.w !== dB.w) return dA.w - dB.w;
+        if (dA.t !== dB.t) return dB.t - dA.t;
+        if (dA.l !== dB.l) return dB.l - dA.l;
+        const pA = typeof a.pieces === 'number' ? a.pieces : 0;
+        const pB = typeof b.pieces === 'number' ? b.pieces : 0;
+        return pB - pA;
+      });
+    } else {
+      // For round logs: maintain sequential log order (Log 1, Log 2, Log 3...)
+      group.items.sort((a, b) => (a.slNo || 0) - (b.slNo || 0));
+    }
 
     // 1. Wood Species Heading Row (Line above wood name, no line below, continuous vertical lines across all columns, left-aligned)
     const headingBorder = { top: 0.2, bottom: 0, left: 0.2, right: 0.2 };
@@ -538,7 +551,7 @@ export function createProformaInvoiceDoc(
 
     for (const it of group.items) {
       const rawDim = (it.description || '').split(/\s+/)[0] || it.description;
-      const dimOnly = rawDim.split(/([xX×])/).map(p => p.trim().replace(/^0+(\d)/, '$1')).join('');
+      const dimOnly = isRoundLog ? it.description : rawDim.split(/([xX×])/).map(p => p.trim().replace(/^0+(\d)/, '$1')).join('');
       const isSqftBilled = it.rateUnit === 'SQFT' || it.per === 'SQFT';
       const zebraBg = (itemIdx++ % 2 === 0) ? [243, 244, 246] : [255, 255, 255];
 
