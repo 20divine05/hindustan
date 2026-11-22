@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Trash2, Copy, AlertCircle, CornerDownLeft, Sliders, Pencil, Check, X } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, CornerDownLeft, Sliders } from 'lucide-react';
 import type { RoundLogItem, RoundLogOutputUnit, RoundLogInputUnitType } from '../types';
 import {
   calculateRoundLogTotals,
@@ -42,18 +42,11 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
   const [quickGirthInPart, setQuickGirthInPart] = useState<string>(''); // G (IN) when ft+in
   const [quickLength, setQuickLength] = useState<string>('');
 
-  // Edit Modal State
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editGirth, setEditGirth] = useState<string>('');
-  const [editGirthInPart, setEditGirthInPart] = useState<string>('');
-  const [editLength, setEditLength] = useState<string>('');
-  const [editWoodType, setEditWoodType] = useState<string>('Mahagony');
-
   // Unit switcher modal
   const [isUnitModalOpen, setIsUnitModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    if (isUnitModalOpen || editingIndex !== null) {
+    if (isUnitModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -61,7 +54,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isUnitModalOpen, editingIndex]);
+  }, [isUnitModalOpen]);
 
   const [selectedWoodOption, setSelectedWoodOption] = useState<string>('Mahagony');
   const [customWoodType, setCustomWoodType] = useState<string>('');
@@ -131,26 +124,13 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     outputUnit
   });
 
-  // Live calculation for Edit Modal
-  const editGVal = parseFloat(editGirth) || 0;
-  const editGInPVal = isFtIn ? parseFloat(editGirthInPart) || 0 : 0;
-  const editLVal = parseFloat(editLength) || 0;
-  const editLiveCalc = computeRoundLogDimensions({
-    girth: editGVal,
-    girthInPart: editGInPVal,
-    length: editLVal,
-    pieces: 1,
-    inputUnit,
-    outputUnit
-  });
-
   // Real-time table totals
   const totals = calculateRoundLogTotals(items, outputUnit);
 
-  // In-place row field updates
+  // In-place row field updates (Girth, Length, Wood Type)
   const handleUpdateItem = (
     index: number,
-    field: keyof RoundLogItem,
+    field: keyof RoundLogItem | 'girthFt' | 'girthInPart',
     rawValue: string
   ) => {
     const updated = [...items];
@@ -160,10 +140,18 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
       target[field] = rawValue;
     } else {
       const parsed = rawValue === '' ? '' : parseFloat(rawValue);
-      (target as any)[field] = isNaN(parsed as number) ? '' : parsed;
+      const numVal = isNaN(parsed as number) ? '' : parsed;
+      (target as any)[field] = numVal;
+
+      if (field === 'girthFt') {
+        target.girth = typeof numVal === 'number' ? numVal : 0;
+        target.girthFt = typeof numVal === 'number' ? numVal : undefined;
+      } else if (field === 'girthInPart') {
+        target.girthInPart = typeof numVal === 'number' ? numVal : undefined;
+      }
 
       // Recalculate dimensions & slab
-      const g = typeof target.girth === 'number' ? target.girth : 0;
+      const g = typeof target.girthFt === 'number' ? target.girthFt : (typeof target.girth === 'number' ? target.girth : 0);
       const gInP = typeof target.girthInPart === 'number' ? target.girthInPart : 0;
       const l = typeof target.length === 'number' ? target.length : 0;
       const p = 1; // Always 1 log per row
@@ -192,78 +180,6 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
 
     updated[index] = target;
     onChange(updated);
-  };
-
-  // Open Edit Modal for a row
-  const handleOpenEditModal = (index: number) => {
-    const item = items[index];
-    if (!item) return;
-    setEditingIndex(index);
-    setEditGirth(String(item.girthFt !== undefined ? item.girthFt : (item.girth || '')));
-    setEditGirthInPart(String(item.girthInPart !== undefined ? item.girthInPart : ''));
-    setEditLength(String(item.length || ''));
-    setEditWoodType(item.woodType || selectedWoodOption || 'Mahagony');
-  };
-
-  // Save changes from Edit Modal
-  const handleSaveEditModal = () => {
-    if (editingIndex === null) return;
-    const gFt = parseFloat(editGirth);
-    const gInP = isFtIn ? (parseFloat(editGirthInPart) || 0) : 0;
-    const l = parseFloat(editLength);
-
-    if (isNaN(gFt) || (gFt <= 0 && gInP <= 0) || isNaN(l) || l <= 0) {
-      alert(`Please enter valid girth and length values greater than 0`);
-      return;
-    }
-
-    const currentItem = items[editingIndex];
-    const comp = computeRoundLogDimensions({
-      girth: gFt,
-      girthInPart: gInP,
-      length: l,
-      pieces: 1,
-      inputUnit: currentItem.inputUnit || inputUnit,
-      outputUnit: currentItem.outputUnit || outputUnit
-    });
-
-    const updated = [...items];
-    const target = { ...updated[editingIndex] };
-    target.woodType = editWoodType;
-    target.girth = gFt;
-    target.girthFt = isFtIn ? gFt : undefined;
-    target.girthInPart = isFtIn ? gInP : undefined;
-    target.girthInches = comp.girthInches;
-    target.girthFtInStr = comp.girthFtInStr;
-    target.length = l;
-    target.pieces = 1;
-    target.volume = comp.volume;
-    target.cft = comp.cft;
-    target.cbm = comp.cbm;
-    target.slabId = comp.slab.id;
-    target.slabLabel = comp.slab.label;
-
-    const rowRate = typeof target.rate === 'number' && target.rate > 0 ? target.rate : 0;
-    target.amount = rowRate > 0 ? Math.round(comp.volume * rowRate * 100) / 100 : 0;
-
-    updated[editingIndex] = target;
-    onChange(updated);
-    setEditingIndex(null);
-  };
-
-  // Duplicate an existing row - ALWAYS appends as separate independent log with sequential serial number
-  const handleDuplicateRow = (index: number) => {
-    const source = items[index];
-    const duplicate: RoundLogItem = {
-      ...source,
-      id: generateId(),
-      serialNumber: items.length + 1,
-      pieces: 1
-    };
-
-    const updated = [...items, duplicate];
-    const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
-    onChange(reindexed);
   };
 
   // Delete a row
@@ -740,8 +656,42 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                         />
                       </td>
 
-                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--text-main)', fontSize: '0.82rem' }}>
-                        {item.girthFtInStr || (item.girthFt !== undefined ? `${item.girthFt}' ${item.girthInPart || 0}"` : `${g}"`)}
+                      <td style={{ textAlign: 'center', padding: '0.2rem 0.05rem' }}>
+                        {isFtIn ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              className="calc-input tally-cell-input"
+                              value={item.girthFt !== undefined ? item.girthFt : item.girth}
+                              onChange={(e) => handleUpdateItem(index, 'girthFt', e.target.value)}
+                              style={{ width: '42px', textAlign: 'center', fontWeight: 800 }}
+                            />
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>'</span>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              max="11.99"
+                              className="calc-input tally-cell-input"
+                              value={item.girthInPart !== undefined ? item.girthInPart : ''}
+                              onChange={(e) => handleUpdateItem(index, 'girthInPart', e.target.value)}
+                              style={{ width: '42px', textAlign: 'center', fontWeight: 800 }}
+                            />
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>"</span>
+                          </div>
+                        ) : (
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            className="calc-input tally-cell-input"
+                            value={item.girth}
+                            onChange={(e) => handleUpdateItem(index, 'girth', e.target.value)}
+                            style={{ width: '60px', textAlign: 'center', fontWeight: 800 }}
+                          />
+                        )}
                       </td>
 
                       <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.82rem' }}>
@@ -760,45 +710,25 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                         {formatValue(item.cbm !== undefined ? item.cbm : (outputUnit === 'CBM' ? item.volume : item.volume / 35.3147), 4)}
                       </td>
 
-                      <td style={{ textAlign: 'center', padding: '0.2rem 0.05rem', width: '65px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            title="Edit log measurements"
-                            onClick={() => handleOpenEditModal(index)}
-                            style={{ padding: '3px', color: 'var(--primary-700)' }}
-                          >
-                            <Pencil size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            title="Duplicate as new separate log row"
-                            onClick={() => handleDuplicateRow(index)}
-                            style={{ padding: '3px' }}
-                          >
-                            <Copy size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            title="Delete log"
-                            onClick={() => handleDeleteRow(index)}
-                            style={{
-                              padding: 0,
-                              color: 'var(--danger-500, #dc2626)',
-                              minWidth: 0,
-                              width: '20px',
-                              height: '20px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
+                      <td style={{ textAlign: 'center', padding: '0.2rem 0.05rem', width: '38px' }}>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          title="Delete log"
+                          onClick={() => handleDeleteRow(index)}
+                          style={{
+                            padding: 0,
+                            color: 'var(--danger-500, #dc2626)',
+                            minWidth: 0,
+                            width: '24px',
+                            height: '24px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -863,12 +793,12 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
               color: 'var(--text-main)',
               textTransform: 'uppercase'
             }}>
-              <div style={{ width: '60px', textAlign: 'left' }}>LOG / TREE</div>
+              <div style={{ width: '56px', textAlign: 'left' }}>LOG / TREE</div>
               <div style={{ display: 'flex', gap: '0.2rem', alignItems: 'center', flex: 1, justifyContent: 'center' }}>
                 <span>GIRTH × LENGTH</span>
               </div>
-              <div style={{ width: '60px', textAlign: 'right', paddingRight: '0.15rem' }}>{outputUnit}</div>
-              <div style={{ width: '58px', textAlign: 'center' }}>ACT</div>
+              <div style={{ width: '54px', textAlign: 'right', paddingRight: '0.15rem' }}>{outputUnit}</div>
+              <div style={{ width: '28px', textAlign: 'center' }}>DEL</div>
             </div>
 
             {items.map((item, index) => {
@@ -892,15 +822,15 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                     opacity: isRowValid ? 1 : 0.85
                   }}
                 >
-                  {/* Log No & Tree Name ONLY (Above 60 / slab removed completely as requested) */}
-                  <div style={{ width: '60px', minWidth: '60px', overflow: 'hidden', lineHeight: 1.15 }}>
+                  {/* Log No & Tree Name ONLY */}
+                  <div style={{ width: '56px', minWidth: '56px', overflow: 'hidden', lineHeight: 1.15 }}>
                     <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--primary-700)', display: 'block' }}>
                       Log {item.serialNumber}
                     </span>
                     <span
                       title={item.woodType || 'Wood'}
                       style={{
-                        fontSize: '0.7rem',
+                        fontSize: '0.68rem',
                         fontWeight: 800,
                         color: 'var(--text-main)',
                         whiteSpace: 'nowrap',
@@ -913,25 +843,68 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                     </span>
                   </div>
 
-                  {/* Measurements: Girth (clickable to edit) × Length input */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.18rem', flex: 1, justifyContent: 'center' }}>
-                    <span
-                      onClick={() => handleOpenEditModal(index)}
-                      title="Tap to edit girth"
-                      style={{
-                        fontSize: '0.74rem',
-                        fontWeight: 800,
-                        color: 'var(--text-main)',
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        padding: '0.1rem 0.2rem',
-                        borderRadius: '4px',
-                        backgroundColor: 'rgba(241, 245, 249, 0.6)'
-                      }}
-                    >
-                      {item.girthFtInStr || `${item.girth}"`}
-                    </span>
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
+                  {/* Measurements: Girth inputs (ft & in or single unit) × Length input */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.12rem', flex: 1, justifyContent: 'center' }}>
+                    {isFtIn ? (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1px' }}>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          className="calc-input tally-cell-input"
+                          value={item.girthFt !== undefined ? item.girthFt : item.girth}
+                          onChange={(e) => handleUpdateItem(index, 'girthFt', e.target.value)}
+                          style={{
+                            width: '32px',
+                            height: '24px',
+                            padding: '0.1rem 0.02rem',
+                            textAlign: 'center',
+                            fontWeight: 800,
+                            fontSize: '0.76rem'
+                          }}
+                        />
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>'</span>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          max="11.99"
+                          className="calc-input tally-cell-input"
+                          value={item.girthInPart !== undefined ? item.girthInPart : ''}
+                          onChange={(e) => handleUpdateItem(index, 'girthInPart', e.target.value)}
+                          style={{
+                            width: '32px',
+                            height: '24px',
+                            padding: '0.1rem 0.02rem',
+                            textAlign: 'center',
+                            fontWeight: 800,
+                            fontSize: '0.76rem'
+                          }}
+                        />
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>"</span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1px' }}>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          className="calc-input tally-cell-input"
+                          value={item.girth}
+                          onChange={(e) => handleUpdateItem(index, 'girth', e.target.value)}
+                          style={{
+                            width: '38px',
+                            height: '24px',
+                            padding: '0.1rem 0.04rem',
+                            textAlign: 'center',
+                            fontWeight: 800,
+                            fontSize: '0.76rem'
+                          }}
+                        />
+                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{girthUnit}</span>
+                      </div>
+                    )}
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', margin: '0 0.08rem' }}>×</span>
                     <input
                       type="number"
                       step="any"
@@ -940,19 +913,19 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                       value={item.length}
                       onChange={(e) => handleUpdateItem(index, 'length', e.target.value)}
                       style={{
-                        width: '42px',
+                        width: '36px',
                         height: '24px',
                         padding: '0.1rem 0.04rem',
                         textAlign: 'center',
                         fontWeight: 800,
-                        fontSize: '0.78rem'
+                        fontSize: '0.76rem'
                       }}
                     />
                     <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{lengthUnit}</span>
                   </div>
 
                   {/* Volume */}
-                  <div style={{ width: '60px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.15 }}>
+                  <div style={{ width: '54px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.15 }}>
                     <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)' }}>
                       {formatValue(item.volume, 4)}
                     </span>
@@ -961,44 +934,8 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                     </span>
                   </div>
 
-                  {/* ACT buttons: Edit (Pencil), Duplicate, Delete */}
-                  <div style={{ width: '58px', minWidth: '58px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1px' }}>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      title="Edit log"
-                      onClick={() => handleOpenEditModal(index)}
-                      style={{
-                        padding: 0,
-                        minWidth: 0,
-                        width: '18px',
-                        height: '18px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--primary-700)'
-                      }}
-                    >
-                      <Pencil size={11} />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      title="Duplicate as new separate log row"
-                      onClick={() => handleDuplicateRow(index)}
-                      style={{
-                        padding: 0,
-                        minWidth: 0,
-                        width: '18px',
-                        height: '18px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--text-muted)'
-                      }}
-                    >
-                      <Copy size={11} />
-                    </button>
+                  {/* ACT button: ONLY Delete button */}
+                  <div style={{ width: '28px', minWidth: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
@@ -1008,14 +945,14 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                         padding: 0,
                         color: 'var(--danger-500, #dc2626)',
                         minWidth: 0,
-                        width: '18px',
-                        height: '18px',
+                        width: '24px',
+                        height: '24px',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center'
                       }}
                     >
-                      <Trash2 size={11} />
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
@@ -1051,164 +988,6 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
       </div>
 
       <div ref={listBottomRef} />
-
-      {/* Edit Log Modal */}
-      {editingIndex !== null && typeof document !== 'undefined' && createPortal(
-        <div
-          className="modal-overlay"
-          onClick={() => setEditingIndex(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.65)',
-            zIndex: 99999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem',
-            backdropFilter: 'blur(3px)'
-          }}
-        >
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: 'var(--bg-card, #ffffff)',
-              borderRadius: '12px',
-              padding: '1.25rem',
-              maxWidth: '360px',
-              width: '100%',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
-              border: '1px solid var(--border-medium)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-              <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                Edit Log {items[editingIndex]?.serialNumber}
-              </h4>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setEditingIndex(null)}
-                style={{ padding: '2px' }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Wood Species Dropdown */}
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                Wood Species:
-              </label>
-              <select
-                value={editWoodType}
-                onChange={(e) => setEditWoodType(e.target.value)}
-                className="calc-select"
-                style={{ width: '100%', fontWeight: 700 }}
-              >
-                {WOOD_SPECIES_OPTIONS.map((sp) => (
-                  <option key={sp} value={sp}>
-                    🪵 {sp}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Dimension Inputs */}
-            <div style={{ display: 'grid', gridTemplateColumns: isFtIn ? '1fr 1fr 1fr' : '1fr 1fr', gap: '0.45rem', marginBottom: '0.85rem' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>
-                  {isFtIn ? 'Girth (FT)' : `Girth (${girthUnit})`}
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  min="0"
-                  className="calc-input"
-                  value={editGirth}
-                  onChange={(e) => setEditGirth(e.target.value)}
-                  style={{ width: '100%', fontWeight: 800, textAlign: 'center' }}
-                  autoFocus
-                />
-              </div>
-
-              {isFtIn && (
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>
-                    Girth (IN)
-                  </label>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="any"
-                    min="0"
-                    max="11.99"
-                    className="calc-input"
-                    value={editGirthInPart}
-                    onChange={(e) => setEditGirthInPart(e.target.value)}
-                    style={{ width: '100%', fontWeight: 800, textAlign: 'center' }}
-                  />
-                </div>
-              )}
-
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>
-                  Length ({lengthUnit})
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  min="0"
-                  className="calc-input"
-                  value={editLength}
-                  onChange={(e) => setEditLength(e.target.value)}
-                  style={{ width: '100%', fontWeight: 800, textAlign: 'center' }}
-                />
-              </div>
-            </div>
-
-            {/* Live Volume Preview */}
-            <div style={{
-              backgroundColor: 'var(--bg-subtle, #f1f5f9)',
-              padding: '0.45rem 0.65rem',
-              borderRadius: '6px',
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              color: 'var(--primary-800)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '1rem'
-            }}>
-              <span>Calculated Volume:</span>
-              <span>{formatValue(editLiveCalc.volume, 4)} {outputUnit}</span>
-            </div>
-
-            {/* Modal Actions */}
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setEditingIndex(null)}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleSaveEditModal}
-                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
-              >
-                <Check size={14} /> Save
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
 
       {/* Unit Change Modal */}
       {isUnitModalOpen && typeof document !== 'undefined' && createPortal(
