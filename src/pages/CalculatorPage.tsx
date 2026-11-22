@@ -1313,6 +1313,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       voucherType,
       customerName: customerName || undefined,
       logType,
+      roundLogOutputUnit,
+      roundLogInputUnit,
+      roundLogItems,
+      roundLogSlabRates,
       invoiceNo,
       eWayBillNo,
       invoiceDate,
@@ -5211,6 +5215,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           buyerGstin={customerGstin || consigneeGstin || ''}
           buyerState={customerState || destination || consigneeState || 'Karnataka'}
           buyerStateCode={customerStateCode || consigneeStateCode || '29'}
+          logType={logType}
+          roundLogOutputUnit={roundLogOutputUnit}
+          roundLogInputUnit={roundLogInputUnit}
+          roundLogItems={roundLogItems}
+          roundLogSlabRates={roundLogSlabRates}
           items={sortedItems}
           ratePerCft={ratePerCft}
           additionalCharges={{

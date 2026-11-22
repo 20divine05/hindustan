@@ -526,6 +526,27 @@
   border-top: 1.5px solid #222222 !important;
 }
 
+/* Dashed Divider between ft and in cells for Round Log */
+.p-dashed-divider {
+  border-right: 1px dashed #666666 !important;
+}
+
+/* Compact layout for 15-column Round Log Table */
+.p-round-table {
+  font-size: 8.5px !important;
+}
+
+.p-round-table th {
+  font-size: 8px !important;
+  padding: 1.5px 1px !important;
+  line-height: 1.15 !important;
+}
+
+.p-round-table td {
+  font-size: 8px !important;
+  padding: 0.8px 1.5px !important;
+}
+
 /* Total Row */
 .p-total-row td {
   border-top: 1.5px solid #222222 !important;

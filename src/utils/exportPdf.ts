@@ -1,10 +1,17 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { BusinessSettings, MeasurementSheet } from '../types';
+import type {
+  BusinessSettings,
+  MeasurementSheet,
+  RoundLogOutputUnit,
+  RoundLogInputUnitType,
+  RoundLogItem
+} from '../types';
 import { LOGO_ICON_BASE64 } from './logoBase64';
 import { PAYMENT_QR_BASE64 } from './paymentQrBase64';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from './indianNumberWords';
-import { sortTimberEntries } from './calculator';
+import { sortTimberEntries, formatValue } from './calculator';
+import { groupRoundLogsBySpeciesAndSlab, getRoundLogUnitConfig } from './roundLogCalculator';
 
 export interface ProformaInvoiceExportData {
   voucherType?: 'sales' | 'purchase';
@@ -41,6 +48,10 @@ export interface ProformaInvoiceExportData {
   buyerStateCode?: string;
 
   logType?: 'cut' | 'round';
+  roundLogOutputUnit?: RoundLogOutputUnit;
+  roundLogInputUnit?: RoundLogInputUnitType;
+  roundLogItems?: RoundLogItem[];
+  roundLogSlabRates?: Record<string, number>;
 
   items?: Array<{
     slNo: number;
@@ -131,6 +142,19 @@ export function createProformaInvoiceDoc(
 
   const defaultRate = settings?.ratePerCft || 1200;
   const isRoundLog = invoiceData?.logType === 'round' || sheet.logType === 'round';
+  const roundLogItems = invoiceData?.roundLogItems || sheet.roundLogItems || [];
+  const roundLogOutputUnit = invoiceData?.roundLogOutputUnit || sheet.roundLogOutputUnit || 'CFT';
+  const roundLogInputUnit = invoiceData?.roundLogInputUnit || sheet.roundLogInputUnit || 'girth_ft_length_ft';
+  const roundLogSlabRates = invoiceData?.roundLogSlabRates || sheet.roundLogSlabRates || {};
+
+  const roundSpeciesData = groupRoundLogsBySpeciesAndSlab(
+    roundLogItems,
+    roundLogOutputUnit,
+    roundLogInputUnit,
+    roundLogSlabRates
+  );
+  const roundUnitConfig = getRoundLogUnitConfig(roundLogInputUnit);
+  const dynamicLengthHeader = `Length\n(${roundUnitConfig.lengthUnit})`;
 
   // Build items list
   let items = invoiceData?.items;
@@ -176,21 +200,29 @@ export function createProformaInvoiceDoc(
   let totalAmount = 0;
   let totalSqftBilled = 0;
   let totalCftBilled = 0;
+  let totalCbm = 0;
 
-  for (const it of items) {
-    totalCft += (typeof it.cft === 'number' ? it.cft : 0);
-    totalPieces += (typeof it.pieces === 'number' ? it.pieces : 0);
-    const isSqftBilled = it.rateUnit === 'SQFT' || it.per === 'SQFT';
-    const defaultRowRate = isSqftBilled ? 120 : defaultRate;
-    const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
-    const mult = isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : it.cft * 12) : it.cft;
-    const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * r * 100) / 100;
-    totalAmount += amt;
+  if (isRoundLog) {
+    totalPieces = roundSpeciesData.overallTotals.totalPieces;
+    totalCft = roundSpeciesData.overallTotals.totalCft;
+    totalCbm = roundSpeciesData.overallTotals.totalCbm;
+    totalAmount = roundSpeciesData.overallTotals.totalAmount;
+  } else {
+    for (const it of items) {
+      totalCft += (typeof it.cft === 'number' ? it.cft : 0);
+      totalPieces += (typeof it.pieces === 'number' ? it.pieces : 0);
+      const isSqftBilled = it.rateUnit === 'SQFT' || it.per === 'SQFT';
+      const defaultRowRate = isSqftBilled ? 120 : defaultRate;
+      const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
+      const mult = isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : it.cft * 12) : it.cft;
+      const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * r * 100) / 100;
+      totalAmount += amt;
 
-    if (isSqftBilled) {
-      totalSqftBilled += (typeof it.sqft === 'number' ? it.sqft : it.cft * 12);
-    } else {
-      totalCftBilled += it.cft;
+      if (isSqftBilled) {
+        totalSqftBilled += (typeof it.sqft === 'number' ? it.sqft : it.cft * 12);
+      } else {
+        totalCftBilled += it.cft;
+      }
     }
   }
 
@@ -457,34 +489,148 @@ export function createProformaInvoiceDoc(
   // -------------------------------------------------------------
   // 3. Products Table (AutoTable)
   // -------------------------------------------------------------
-  // Group timber items by wood type while preserving order
-  const woodGroups: Array<{ wood: string; items: typeof items }> = [];
-  const woodMap = new Map<string, typeof items>();
-
-  for (const it of items) {
-    let wood = 'MAHAGONY';
-    if (it.woodType) {
-      wood = it.woodType.toUpperCase();
-    } else {
-      const parts = (it.description || '').trim().split(/\s+/);
-      if (parts.length > 1) {
-        wood = parts.slice(1).join(' ').toUpperCase();
-      }
-    }
-    if (!woodMap.has(wood)) {
-      const arr: typeof items = [];
-      woodMap.set(wood, arr);
-      woodGroups.push({ wood, items: arr });
-    }
-    woodMap.get(wood)!.push(it);
-  }
-
   const tableBody: any[] = [];
   let slCounter = 1;
 
-  for (const group of woodGroups) {
-    if (!isRoundLog) {
-      // Sort items strictly by sawmill specification for cut logs: Width Asc -> Thickness Desc -> Length Desc
+  if (isRoundLog) {
+    for (const group of roundSpeciesData.speciesGroups) {
+      // 1. Wood Species Heading Row
+      const headingBorder = { top: 0.2, bottom: 0, left: 0.2, right: 0.2 };
+      tableBody.push([
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+        {
+          content: group.woodType.toUpperCase(),
+          colSpan: 14,
+          styles: {
+            fontStyle: 'bold',
+            textColor: [0, 0, 0],
+            fontSize: 8.5,
+            cellPadding: { left: 2.2, top: 0.5, bottom: 0.5 },
+            halign: 'left',
+            lineWidth: headingBorder
+          }
+        }
+      ]);
+
+      // 2. Individual Log Rows
+      const itemBorder = { top: 0, bottom: 0, left: 0.2, right: 0.2 };
+      let itemIdx = 0;
+
+      for (const it of group.items) {
+        const l = typeof it.length === 'number' ? it.length : 0;
+        const gInches = typeof it.girthInches === 'number' ? it.girthInches : (typeof it.girth === 'number' ? it.girth : 0);
+        const gFt = typeof it.girthFt === 'number' ? it.girthFt : Math.floor(gInches / 12);
+        const gIn = typeof it.girthInPart === 'number' ? it.girthInPart : Math.round((gInches % 12) * 10) / 10;
+        const cftVal = typeof it.cft === 'number' && it.cft > 0 ? it.cft : (roundLogOutputUnit === 'CFT' ? it.volume : it.volume * 35.3147);
+        const cbmVal = typeof it.cbm === 'number' && it.cbm > 0 ? it.cbm : (roundLogOutputUnit === 'CBM' ? it.volume : it.volume / 35.3147);
+        const activeVol = roundLogOutputUnit === 'CFT' ? cftVal : cbmVal;
+
+        const itRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
+        const itAmount = typeof it.amount === 'number' && it.amount > 0 ? it.amount : (itRate > 0 ? Math.round(activeVol * itRate * 100) / 100 : 0);
+
+        const zebraBg = (itemIdx++ % 2 === 0) ? [243, 244, 246] : [255, 255, 255];
+        const currentSl = slCounter++;
+
+        tableBody.push([
+          { content: `${it.serialNumber || currentSl}`, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: `${l}`, styles: { lineWidth: itemBorder, halign: 'center', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: `${gFt}`, styles: { lineWidth: { top: 0, bottom: 0, left: 0.2, right: 0 }, halign: 'center', fillColor: zebraBg, fontStyle: 'bold', cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: `${gIn}`, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, fontStyle: 'bold', cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: `${formatValue(gInches, 1)}"`, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: formatValue(cftVal, 4), styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: formatValue(cbmVal, 4), styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: it.slabId === 'upto_23' ? formatValue(activeVol, 4) : '-', styles: { lineWidth: itemBorder, halign: 'right', fillColor: it.slabId === 'upto_23' ? [254, 243, 199] : zebraBg, fontStyle: it.slabId === 'upto_23' ? 'bold' : 'normal', cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: it.slabId === 'above_24' ? formatValue(activeVol, 4) : '-', styles: { lineWidth: itemBorder, halign: 'right', fillColor: it.slabId === 'above_24' ? [254, 243, 199] : zebraBg, fontStyle: it.slabId === 'above_24' ? 'bold' : 'normal', cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: it.slabId === 'above_36' ? formatValue(activeVol, 4) : '-', styles: { lineWidth: itemBorder, halign: 'right', fillColor: it.slabId === 'above_36' ? [254, 243, 199] : zebraBg, fontStyle: it.slabId === 'above_36' ? 'bold' : 'normal', cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: it.slabId === 'above_48' ? formatValue(activeVol, 4) : '-', styles: { lineWidth: itemBorder, halign: 'right', fillColor: it.slabId === 'above_48' ? [254, 243, 199] : zebraBg, fontStyle: it.slabId === 'above_48' ? 'bold' : 'normal', cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: it.slabId === 'above_60' ? formatValue(activeVol, 4) : '-', styles: { lineWidth: itemBorder, halign: 'right', fillColor: it.slabId === 'above_60' ? [254, 243, 199] : zebraBg, fontStyle: it.slabId === 'above_60' ? 'bold' : 'normal', cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: itRate > 0 ? formatValue(itRate, 2) : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: roundLogOutputUnit, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: formatIndianCurrency(itAmount), styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'normal', textColor: [75, 85, 99], fillColor: zebraBg, cellPadding: { left: 2.2, top: 0.45, bottom: 0.45 } } }
+        ]);
+      }
+
+      // 3. Species Total Row
+      const subtotalBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+      const subtotalBg: [number, number, number] = [243, 244, 246];
+      tableBody.push([
+        { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: 'Total', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: subtotalBg, lineWidth: subtotalBorder } },
+        { content: `${group.totalPieces}`, styles: { fontStyle: 'bold', halign: 'center', fillColor: subtotalBg, lineWidth: { top: 0.2, bottom: 0.2, left: 0.2, right: 0 }, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: 'LOGS', styles: { fontStyle: 'bold', halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: formatValue(group.totalCft, 4), styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: formatValue(group.totalCbm, 4), styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: group.slabs.upto_23.volume > 0 ? formatValue(group.slabs.upto_23.volume, 4) : '-', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: group.slabs.above_24.volume > 0 ? formatValue(group.slabs.above_24.volume, 4) : '-', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: group.slabs.above_36.volume > 0 ? formatValue(group.slabs.above_36.volume, 4) : '-', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: group.slabs.above_48.volume > 0 ? formatValue(group.slabs.above_48.volume, 4) : '-', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: group.slabs.above_60.volume > 0 ? formatValue(group.slabs.above_60.volume, 4) : '-', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: '', styles: { halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: `Rs. ${formatIndianCurrency(group.totalAmount)}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 } } }
+      ]);
+    }
+
+    // Girth-Slab Summary row right above TOTAL WOOD AMOUNT
+    if (totalPieces > 0) {
+      const summaryBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+      const summaryBg: [number, number, number] = [254, 243, 199];
+      tableBody.push([
+        { content: '', styles: { halign: 'center', fillColor: summaryBg, lineWidth: summaryBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: `GIRTH-SLAB SUMMARY (${roundLogOutputUnit}):`, colSpan: 4, styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: summaryBg, lineWidth: summaryBorder } },
+        { content: formatValue(totalCft, 4), styles: { fontStyle: 'bold', halign: 'right', fillColor: summaryBg, lineWidth: summaryBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: formatValue(totalCbm, 4), styles: { fontStyle: 'bold', halign: 'right', fillColor: summaryBg, lineWidth: summaryBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: roundSpeciesData.overallTotals.slabs.upto_23.volume > 0 ? formatValue(roundSpeciesData.overallTotals.slabs.upto_23.volume, 4) : '-', styles: { fontStyle: 'bold', halign: 'right', fillColor: summaryBg, lineWidth: summaryBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: roundSpeciesData.overallTotals.slabs.above_24.volume > 0 ? formatValue(roundSpeciesData.overallTotals.slabs.above_24.volume, 4) : '-', styles: { fontStyle: 'bold', halign: 'right', fillColor: summaryBg, lineWidth: summaryBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: roundSpeciesData.overallTotals.slabs.above_36.volume > 0 ? formatValue(roundSpeciesData.overallTotals.slabs.above_36.volume, 4) : '-', styles: { fontStyle: 'bold', halign: 'right', fillColor: summaryBg, lineWidth: summaryBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: roundSpeciesData.overallTotals.slabs.above_48.volume > 0 ? formatValue(roundSpeciesData.overallTotals.slabs.above_48.volume, 4) : '-', styles: { fontStyle: 'bold', halign: 'right', fillColor: summaryBg, lineWidth: summaryBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: roundSpeciesData.overallTotals.slabs.above_60.volume > 0 ? formatValue(roundSpeciesData.overallTotals.slabs.above_60.volume, 4) : '-', styles: { fontStyle: 'bold', halign: 'right', fillColor: summaryBg, lineWidth: summaryBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: '', styles: { halign: 'right', fillColor: summaryBg, lineWidth: summaryBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: '', styles: { halign: 'center', fillColor: summaryBg, lineWidth: summaryBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: `${totalPieces} LOGS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: summaryBg, lineWidth: summaryBorder, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 } } }
+      ]);
+    }
+
+    // TOTAL WOOD AMOUNT row
+    if (totalPieces > 0) {
+      const totalWoodBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+      const woodBg: [number, number, number] = [226, 232, 240];
+      tableBody.push([
+        { content: '', styles: { halign: 'center', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: 'TOTAL WOOD AMOUNT', colSpan: 4, styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: woodBg, lineWidth: totalWoodBorder } },
+        { content: `${formatValue(totalCft, 4)} CFT`, styles: { fontStyle: 'bold', halign: 'right', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: `${formatValue(totalCbm, 4)} CBM`, styles: { fontStyle: 'bold', halign: 'right', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: `${totalPieces} LOGS CLASSIFIED`, colSpan: 5, styles: { fontStyle: 'bold', halign: 'center', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: '', styles: { halign: 'right', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: '', styles: { halign: 'center', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: `Rs. ${formatIndianCurrency(totalAmount)}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 } } }
+      ]);
+    }
+  } else {
+    // Cut logs items grouped by wood
+    const woodGroups: Array<{ wood: string; items: typeof items }> = [];
+    const woodMap = new Map<string, typeof items>();
+
+    for (const it of items) {
+      let wood = 'MAHAGONY';
+      if (it.woodType) {
+        wood = it.woodType.toUpperCase();
+      } else {
+        const parts = (it.description || '').trim().split(/\s+/);
+        if (parts.length > 1) {
+          wood = parts.slice(1).join(' ').toUpperCase();
+        }
+      }
+      if (!woodMap.has(wood)) {
+        const arr: typeof items = [];
+        woodMap.set(wood, arr);
+        woodGroups.push({ wood, items: arr });
+      }
+      woodMap.get(wood)!.push(it);
+    }
+
+    for (const group of woodGroups) {
       group.items.sort((a, b) => {
         const parseDims = (item: any) => {
           let w = typeof item.widthInches === 'number' ? item.widthInches : 0;
@@ -509,165 +655,101 @@ export function createProformaInvoiceDoc(
         const pB = typeof b.pieces === 'number' ? b.pieces : 0;
         return pB - pA;
       });
-    } else {
-      // For round logs: maintain sequential log order (Log 1, Log 2, Log 3...)
-      group.items.sort((a, b) => (a.slNo || 0) - (b.slNo || 0));
-    }
 
-    // 1. Wood Species Heading Row (Line above wood name, no line below, continuous vertical lines across all columns, left-aligned)
-    const headingBorder = { top: 0.2, bottom: 0, left: 0.2, right: 0.2 };
-    tableBody.push([
-      {
-        content: '',
-        styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } }
-      },
-      {
-        content: group.wood.toUpperCase(),
-        styles: {
-          fontStyle: 'bold',
-          textColor: [0, 0, 0],
-          fontSize: 8.5,
-          cellPadding: { left: 2.2, top: 0.5, bottom: 0.5 },
-          halign: 'left',
-          lineWidth: headingBorder
+      const headingBorder = { top: 0.2, bottom: 0, left: 0.2, right: 0.2 };
+      tableBody.push([
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+        {
+          content: group.wood.toUpperCase(),
+          styles: { fontStyle: 'bold', textColor: [0, 0, 0], fontSize: 8.5, cellPadding: { left: 2.2, top: 0.5, bottom: 0.5 }, halign: 'left', lineWidth: headingBorder }
+        },
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } }
+      ]);
+
+      let groupPieces = 0;
+      let groupCft = 0;
+      let groupSqftBilled = 0;
+      let groupAmount = 0;
+
+      const itemBorder = { top: 0, bottom: 0, left: 0.2, right: 0.2 };
+      let itemIdx = 0;
+
+      for (const it of group.items) {
+        const rawDim = (it.description || '').split(/\s+/)[0] || it.description;
+        const dimOnly = rawDim.split(/([xX×])/).map(p => p.trim().replace(/^0+(\d)/, '$1')).join('');
+        const isSqftBilled = it.rateUnit === 'SQFT' || it.per === 'SQFT';
+        const zebraBg = (itemIdx++ % 2 === 0) ? [243, 244, 246] : [255, 255, 255];
+
+        groupPieces += (typeof it.pieces === 'number' ? it.pieces : 0);
+        groupCft += (typeof it.cft === 'number' ? it.cft : 0);
+        groupAmount += (typeof it.amount === 'number' ? it.amount : 0);
+
+        if (isSqftBilled) {
+          groupSqftBilled += (typeof it.sqft === 'number' ? it.sqft : it.cft * 12);
         }
-      },
-      { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
-      { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
-      { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
-      { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
-      { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
-      { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } }
-    ]);
 
-    // 2. Measurements of that wood (with vertical lines, zebra striping, without horizontal lines between items 1, 2, 3)
-    let groupPieces = 0;
-    let groupCft = 0;
-    let groupSqftBilled = 0;
-    let groupAmount = 0;
+        const cftText = it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : '';
+        const sqftText = isSqftBilled
+          ? (it.sqft && it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : `${(it.cft * 12).toFixed(2)} SQFT`)
+          : '';
 
-    const itemBorder = { top: 0, bottom: 0, left: 0.2, right: 0.2 };
-    let itemIdx = 0;
+        const slStr = `${slCounter}`;
+        slCounter++;
 
-    for (const it of group.items) {
-      const rawDim = (it.description || '').split(/\s+/)[0] || it.description;
-      const dimOnly = isRoundLog ? it.description : rawDim.split(/([xX×])/).map(p => p.trim().replace(/^0+(\d)/, '$1')).join('');
-      const isSqftBilled = it.rateUnit === 'SQFT' || it.per === 'SQFT';
-      const zebraBg = (itemIdx++ % 2 === 0) ? [243, 244, 246] : [255, 255, 255];
-
-      groupPieces += (typeof it.pieces === 'number' ? it.pieces : 0);
-      groupCft += (typeof it.cft === 'number' ? it.cft : 0);
-      groupAmount += (typeof it.amount === 'number' ? it.amount : 0);
-
-      if (isSqftBilled) {
-        groupSqftBilled += (typeof it.sqft === 'number' ? it.sqft : it.cft * 12);
+        tableBody.push([
+          { content: slStr, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: `   ${dimOnly}`, styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: it.pieces > 0 ? `${it.pieces} PCS` : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: cftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: sqftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: it.rate !== 0 ? formatIndianCurrency(it.rate) : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: isSqftBilled ? 'SQFT' : 'CFT', styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: formatIndianCurrency(it.amount), styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'normal', textColor: [75, 85, 99], fillColor: zebraBg, cellPadding: { left: 2.2, top: 0.45, bottom: 0.45 } } }
+        ]);
       }
 
-      const cftText = it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : '';
-      const sqftText = isSqftBilled
-        ? (it.sqft && it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : `${(it.cft * 12).toFixed(2)} SQFT`)
-        : '';
-
-      const slStr = `${slCounter}`;
-      slCounter++;
+      const subtotalBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+      const subtotalTextColor: [number, number, number] = [0, 0, 0];
+      const subtotalLineColor: [number, number, number] = [0, 0, 0];
+      const subtotalBg: [number, number, number] = [243, 244, 246];
 
       tableBody.push([
-        { content: slStr, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-        { content: `   ${dimOnly}`, styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-        { content: it.pieces > 0 ? `${it.pieces} PCS` : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-        { content: cftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-        { content: sqftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-        { content: it.rate !== 0 ? formatIndianCurrency(it.rate) : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-        { content: isSqftBilled ? 'SQFT' : 'CFT', styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-        { content: formatIndianCurrency(it.amount), styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'normal', textColor: [75, 85, 99], fillColor: zebraBg, cellPadding: { left: 2.2, top: 0.45, bottom: 0.45 } } }
+        { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: 'Total', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, textColor: subtotalTextColor } },
+        { content: `${groupPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
+        { content: groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
+        { content: groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
+        { content: '', styles: { halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: `Rs. ${formatIndianCurrency(groupAmount)}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } }
       ]);
     }
 
-    // 3. Wood Subtotal Row (Total with top and bottom divider lines, and vertical lines)
-    const subtotalBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
-    const subtotalTextColor: [number, number, number] = [0, 0, 0]; // Bold black for wood subtotal
-    const subtotalLineColor: [number, number, number] = [0, 0, 0];
-    const subtotalBg: [number, number, number] = [243, 244, 246];
-
-    tableBody.push([
-      {
-        content: '',
-        styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } }
-      },
-      {
-        content: 'Total',
-        styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, textColor: subtotalTextColor }
-      },
-      {
-        content: `${groupPieces} PCS`,
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor }
-      },
-      {
-        content: groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '',
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor }
-      },
-      {
-        content: groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '',
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor }
-      },
-      {
-        content: '',
-        styles: { halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } }
-      },
-      {
-        content: '',
-        styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } }
-      },
-      {
-        content: `Rs. ${formatIndianCurrency(groupAmount)}`,
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor }
-      }
-    ]);
-  }
-
-  // Combined Total Wood Amount row at the end
-  if (totalPieces > 0) {
-    const totalWoodBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
-    tableBody.push([
-      {
-        content: '',
-        styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
-      },
-      {
-        content: 'TOTAL WOOD AMOUNT',
-        styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: [238, 240, 243], lineWidth: totalWoodBorder }
-      },
-      {
-        content: `${totalPieces} PCS`,
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
-      },
-      {
-        content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '',
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
-      },
-      {
-        content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '',
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
-      },
-      {
-        content: '',
-        styles: { halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
-      },
-      {
-        content: '',
-        styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
-      },
-      {
-        content: `Rs. ${formatIndianCurrency(totalAmount)}`,
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 } }
-      }
-    ]);
+    if (totalPieces > 0) {
+      const totalWoodBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+      tableBody.push([
+        { content: '', styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: 'TOTAL WOOD AMOUNT', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: [238, 240, 243], lineWidth: totalWoodBorder } },
+        { content: `${totalPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: '', styles: { halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: '', styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: `Rs. ${formatIndianCurrency(totalAmount)}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 } } }
+      ]);
+    }
   }
 
   const ac = invoiceData?.additionalCharges;
 
   let isFirstChargeRow = true;
   let chargeRowIdx = 0;
+  const chargeColSpan = isRoundLog ? 13 : 6;
   const chargeRow = (name: string, amountStr: string, isDiscount: boolean = false) => {
     const topWidth = isFirstChargeRow ? 0.2 : 0;
     isFirstChargeRow = false;
@@ -676,7 +758,7 @@ export function createProformaInvoiceDoc(
       { content: '', styles: { lineWidth: { top: topWidth, bottom: 0, left: 0.2, right: 0.2 }, fillColor: bg, cellPadding: { top: 0.55, bottom: 0.55 } } },
       {
         content: name,
-        colSpan: 6,
+        colSpan: chargeColSpan,
         styles: {
           fontStyle: 'bold',
           halign: 'right',
@@ -743,16 +825,36 @@ export function createProformaInvoiceDoc(
     const topWidth = isFirstChargeRow ? 0.2 : 0;
     isFirstChargeRow = false;
     const emptyBorder = { top: topWidth, bottom: 0, left: 0.2, right: 0.2 };
-    tableBody.push([
-      { content: '', styles: { lineWidth: emptyBorder } },
-      { content: '', styles: { lineWidth: emptyBorder } },
-      { content: '', styles: { lineWidth: emptyBorder } },
-      { content: '', styles: { lineWidth: emptyBorder } },
-      { content: '', styles: { lineWidth: emptyBorder } },
-      { content: '', styles: { lineWidth: emptyBorder } },
-      { content: '', styles: { lineWidth: emptyBorder } },
-      { content: '', styles: { lineWidth: emptyBorder } }
-    ]);
+    if (isRoundLog) {
+      tableBody.push([
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } }
+      ]);
+    } else {
+      tableBody.push([
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } },
+        { content: '', styles: { lineWidth: emptyBorder } }
+      ]);
+    }
   }
 
   function splitDecimalNumber(s: string) {
@@ -784,38 +886,111 @@ export function createProformaInvoiceDoc(
     return null;
   }
 
+  const roundHead = [
+    [
+      { content: 'Log\nNo.', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+      { content: dynamicLengthHeader, rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+      { content: 'Girth in feet', colSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+      { content: 'Girth\n(in)', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+      { content: 'Cubic\nfeet', rowSpan: 2, styles: { halign: 'right', valign: 'middle' } },
+      { content: 'Cubic\nmeter', rowSpan: 2, styles: { halign: 'right', valign: 'middle' } },
+      { content: 'Upto\n23"', rowSpan: 2, styles: { halign: 'right', valign: 'middle' } },
+      { content: 'Above\n24"', rowSpan: 2, styles: { halign: 'right', valign: 'middle' } },
+      { content: 'Above\n36"', rowSpan: 2, styles: { halign: 'right', valign: 'middle' } },
+      { content: 'Above\n48"', rowSpan: 2, styles: { halign: 'right', valign: 'middle' } },
+      { content: 'Above\n60"', rowSpan: 2, styles: { halign: 'right', valign: 'middle' } },
+      { content: 'Rate', rowSpan: 2, styles: { halign: 'right', valign: 'middle' } },
+      { content: 'per', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+      { content: 'Amount', rowSpan: 2, styles: { halign: 'right', valign: 'middle' } }
+    ],
+    [
+      { content: 'ft', styles: { halign: 'center' } },
+      { content: 'in', styles: { halign: 'center' } }
+    ]
+  ];
+
+  const cutHead = [[
+    'Sl\nNo.',
+    'Description of Goods',
+    'Quantity',
+    'Alt. Quantity',
+    'SQFT',
+    'Rate',
+    'per',
+    'Amount'
+  ]];
+
+  const roundFoot = [[
+    '',
+    'GRAND TOTAL',
+    `${totalPieces}`,
+    'LOGS',
+    '',
+    `${totalCft.toFixed(4)} CFT`,
+    `${totalCbm.toFixed(4)} CBM`,
+    {
+      content: `Rs. ${formatIndianCurrency(effectiveTotal)}`,
+      colSpan: 8,
+      styles: { halign: 'right', cellPadding: { right: 1.8 } }
+    }
+  ]];
+
+  const cutFoot = [[
+    '',
+    'Total',
+    `${totalPieces} PCS`,
+    `${totalCft.toFixed(4)} CFT`,
+    totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '',
+    {
+      content: `Rs. ${formatIndianCurrency(effectiveTotal)}`,
+      colSpan: 3,
+      styles: { halign: 'right', cellPadding: { right: 1.8 } }
+    }
+  ]];
+
+  const roundColumnStyles = {
+    0: { halign: 'center', cellWidth: 7 },
+    1: { halign: 'center', cellWidth: 12 },
+    2: { halign: 'center', cellWidth: 8 },
+    3: { halign: 'center', cellWidth: 8 },
+    4: { halign: 'center', cellWidth: 11 },
+    5: { halign: 'right', cellWidth: 15 },
+    6: { halign: 'right', cellWidth: 15 },
+    7: { halign: 'right', cellWidth: 12.5 },
+    8: { halign: 'right', cellWidth: 12.5 },
+    9: { halign: 'right', cellWidth: 12.5 },
+    10: { halign: 'right', cellWidth: 12.5 },
+    11: { halign: 'right', cellWidth: 12.5 },
+    12: { halign: 'right', cellWidth: 13.5 },
+    13: { halign: 'center', cellWidth: 8 },
+    14: { halign: 'left', cellWidth: 26, fontStyle: 'bold', cellPadding: { left: 1.8 } }
+  };
+
+  const cutColumnStyles = {
+    0: { halign: 'center', cellWidth: 7 },
+    1: { halign: 'left', cellWidth: 31, fontStyle: 'bold' },
+    2: { halign: 'right', cellWidth: 15 },
+    3: { halign: 'right', cellWidth: 32 },
+    4: { halign: 'right', cellWidth: 32 },
+    5: { halign: 'right', cellWidth: 15 },
+    6: { halign: 'center', cellWidth: 9, cellPadding: { left: 0.5, right: 0.5 } },
+    7: { halign: 'left', cellWidth: 49, fontStyle: 'bold', cellPadding: { left: 2.2 } }
+  };
+
+  const lastColIndex = isRoundLog ? 14 : 7;
+
   autoTable(doc, {
     startY: 87,
     margin: { left: 10, right: 10 },
-    head: [[
-      'Sl\nNo.',
-      'Description of Goods',
-      'Quantity',
-      'Alt. Quantity',
-      'SQFT',
-      'Rate',
-      'per',
-      'Amount'
-    ]],
+    head: isRoundLog ? (roundHead as any) : cutHead,
     body: tableBody,
-    foot: [[
-      '',
-      'Total',
-      `${totalPieces} PCS`,
-      `${totalCft.toFixed(4)} CFT`,
-      totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '',
-      {
-        content: `Rs. ${formatIndianCurrency(effectiveTotal)}`,
-        colSpan: 3,
-        styles: { halign: 'right', cellPadding: { right: 1.8 } }
-      }
-    ]],
+    foot: isRoundLog ? (roundFoot as any) : cutFoot,
     showFoot: 'lastPage',
     theme: 'grid',
     styles: {
       font: 'helvetica',
-      fontSize: 8.0,
-      cellPadding: { top: 0.5, bottom: 0.5, left: 1.0, right: 1.0 },
+      fontSize: isRoundLog ? 7.2 : 8.0,
+      cellPadding: isRoundLog ? { top: 0.45, bottom: 0.45, left: 0.6, right: 0.6 } : { top: 0.5, bottom: 0.5, left: 1.0, right: 1.0 },
       textColor: [0, 0, 0],
       lineColor: [0, 0, 0],
       lineWidth: 0.2,
@@ -827,8 +1002,8 @@ export function createProformaInvoiceDoc(
       fontStyle: 'bold',
       halign: 'center',
       valign: 'middle',
-      fontSize: 8.0,
-      cellPadding: { top: 0.8, bottom: 0.8, left: 1.0, right: 1.0 },
+      fontSize: isRoundLog ? 7.2 : 8.0,
+      cellPadding: { top: 0.8, bottom: 0.8, left: 0.6, right: 0.6 },
       lineColor: [0, 0, 0],
       lineWidth: 0.2
     },
@@ -837,21 +1012,12 @@ export function createProformaInvoiceDoc(
       textColor: [0, 0, 0],
       fontStyle: 'bold',
       valign: 'middle',
-      fontSize: 8.5,
+      fontSize: isRoundLog ? 7.8 : 8.5,
       cellPadding: { top: 0.8, bottom: 0.8, left: 1.0, right: 1.0 },
       lineColor: [0, 0, 0],
       lineWidth: 0.2
     },
-    columnStyles: {
-      0: { halign: 'center', cellWidth: 7 },
-      1: { halign: 'left', cellWidth: 31, fontStyle: 'bold' },
-      2: { halign: 'right', cellWidth: 15 },
-      3: { halign: 'right', cellWidth: 32 },
-      4: { halign: 'right', cellWidth: 32 },
-      5: { halign: 'right', cellWidth: 15 },
-      6: { halign: 'center', cellWidth: 9, cellPadding: { left: 0.5, right: 0.5 } },
-      7: { halign: 'left', cellWidth: 49, fontStyle: 'bold', cellPadding: { left: 2.2 } }
-    },
+    columnStyles: isRoundLog ? (roundColumnStyles as any) : cutColumnStyles,
     didDrawPage: (data) => {
       // Draw closing bottom line on table on every page (especially when table breaks to next page)
       if (data.cursor && typeof data.cursor.y === 'number') {
@@ -879,10 +1045,16 @@ export function createProformaInvoiceDoc(
           doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
           doc.line(data.cell.x + data.cell.width, data.cell.y, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
         }
+        // Dashed divider between ft (Col 2) and in (Col 3) for Round Log
+        if (isRoundLog && data.column.index === 2) {
+          doc.setLineDashPattern([0.6, 0.6], 0);
+          doc.line(data.cell.x + data.cell.width, data.cell.y, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
+          doc.setLineDashPattern([], 0);
+        }
         if (data.column.index === 1) {
           doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
         }
-        if (data.column.index === 7) {
+        if (data.column.index === lastColIndex) {
           doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
           doc.line(data.cell.x + data.cell.width, data.cell.y, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
         }
@@ -891,7 +1063,7 @@ export function createProformaInvoiceDoc(
       // Draw guaranteed horizontal line under TOTAL WOOD AMOUNT row
       if (data.section === 'body' && data.row.raw && Array.isArray(data.row.raw)) {
         const c1 = (data.row.raw[1] as any)?.content;
-        if (c1 === 'TOTAL WOOD AMOUNT' && data.column.index === 7) {
+        if (c1 === 'TOTAL WOOD AMOUNT' && data.column.index === lastColIndex) {
           doc.setDrawColor(0, 0, 0);
           doc.setLineWidth(0.2);
           doc.line(10, data.cell.y + data.cell.height, 200, data.cell.y + data.cell.height);
@@ -905,7 +1077,7 @@ export function createProformaInvoiceDoc(
         const w = data.cell.width;
         const h = data.cell.height;
 
-        const isFootTotal = data.section === 'foot' && data.column.index >= 5;
+        const isFootTotal = data.section === 'foot' && data.column.index >= (isRoundLog ? 7 : 5);
         const baseline = isFootTotal ? (y + h / 2 + 1.3) : (y + h / 2 + 1.0);
 
         const dimParts = splitDimension(raw);
@@ -933,7 +1105,7 @@ export function createProformaInvoiceDoc(
             }
           }
         } else if (decParts) {
-          const isItemAmount = data.section === 'body' && data.column.index === 7 && data.cell.styles.halign === 'left';
+          const isItemAmount = data.section === 'body' && data.column.index === lastColIndex && data.cell.styles.halign === 'left';
           const padRight = 1.8;
           const padLeft = 2.2;
           const isBold = isFootTotal || data.cell.styles.fontStyle === 'bold';
