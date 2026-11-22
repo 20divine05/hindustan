@@ -22,14 +22,29 @@ export type RoundLogInputUnitType =
   | 'girth_m_length_m'
   | 'girth_cm_length_cm';
 
+export type GirthSlabType =
+  | 'upto_23'
+  | 'above_24'
+  | 'above_36'
+  | 'above_48'
+  | 'above_60';
+
 export interface RoundLogItem {
   id: string;
   serialNumber: number;
   woodType?: string;
   girth: number | '';
+  girthFt?: number | '';
+  girthInPart?: number | '';
+  girthInches?: number;
+  girthFtInStr?: string;
   length: number | '';
   pieces: number | '';
-  volume: number;
+  volume: number; // in outputUnit (CFT or CBM)
+  cft?: number;
+  cbm?: number;
+  slabId?: GirthSlabType;
+  slabLabel?: string;
   outputUnit: RoundLogOutputUnit;
   inputUnit: RoundLogInputUnitType;
   rate?: number | '';
@@ -41,6 +56,8 @@ export interface RoundLogTotals {
   totalEntries: number;
   totalPieces: number;
   totalVolume: number;
+  totalCft?: number;
+  totalCbm?: number;
   outputUnit: RoundLogOutputUnit;
   totalAmount: number;
 }
@@ -102,6 +119,7 @@ export interface MeasurementSheet {
   roundLogOutputUnit?: RoundLogOutputUnit;
   roundLogInputUnit?: RoundLogInputUnitType;
   roundLogItems?: RoundLogItem[];
+  roundLogSlabRates?: Record<string, number>;
   items: MeasurementItem[];
   additionalCharges?: AdditionalCharges;
   discount?: SheetDiscount;

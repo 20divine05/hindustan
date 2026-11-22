@@ -44,6 +44,8 @@ import type {
 } from '../types';
 import { MeasurementTable } from '../components/MeasurementTable';
 import { RoundLogTable } from '../components/RoundLogTable';
+import { RoundLogGirthSorting } from '../components/RoundLogGirthSorting';
+import { RoundLogSlabPricing } from '../components/RoundLogSlabPricing';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ProformaInvoiceModal } from '../components/ProformaInvoiceModal';
 import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice';
@@ -254,6 +256,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const [roundLogOutputUnit, setRoundLogOutputUnit] = useState<RoundLogOutputUnit>(sheetToEdit?.roundLogOutputUnit || 'CFT');
   const [roundLogInputUnit, setRoundLogInputUnit] = useState<RoundLogInputUnitType>(sheetToEdit?.roundLogInputUnit || 'girth_in_length_ft');
   const [roundLogItems, setRoundLogItems] = useState<RoundLogItem[]>(sheetToEdit?.roundLogItems || []);
+  const [roundLogStage, setRoundLogStage] = useState<'entry' | 'sorting' | 'pricing'>('entry');
+  const [roundLogSlabRates, setRoundLogSlabRates] = useState<Record<string, number>>(sheetToEdit?.roundLogSlabRates || {});
 
   // Step 3: Additional Charges State
   const [carpentryCharges, setCarpentryCharges] = useState<number>(
@@ -376,6 +380,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       setRoundLogOutputUnit(sheetToEdit.roundLogOutputUnit || 'CFT');
       setRoundLogInputUnit(sheetToEdit.roundLogInputUnit || 'girth_in_length_ft');
       setRoundLogItems(sheetToEdit.roundLogItems || []);
+      setRoundLogSlabRates(sheetToEdit.roundLogSlabRates || {});
       setSaveStatus('saved');
     }
   }, [sheetToEdit]);
@@ -667,8 +672,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
   // Real-time totals calculation for round logs
   const roundLogTotals = useMemo(() => {
-    return calculateRoundLogTotals(roundLogItems);
-  }, [roundLogItems]);
+    return calculateRoundLogTotals(roundLogItems, roundLogOutputUnit);
+  }, [roundLogItems, roundLogOutputUnit]);
 
   // Financial calculations with additional charges, discounts, and GST
   // Ensures timberSubtotal is never zero when timber items exist (supports both CFT and SQFT rates)
@@ -890,6 +895,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       roundLogOutputUnit,
       roundLogInputUnit,
       roundLogItems,
+      roundLogSlabRates,
       additionalCharges: {
         carpentry: carpentryCharges,
         transportation: transportationCharges,
@@ -972,6 +978,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       roundLogOutputUnit,
       roundLogInputUnit,
       roundLogItems,
+      roundLogSlabRates,
       additionalCharges: {
         carpentry: carpentryCharges,
         transportation: transportationCharges,
@@ -1137,6 +1144,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setRoundLogOutputUnit('CFT');
     setRoundLogInputUnit('girth_in_length_ft');
     setRoundLogItems([]);
+    setRoundLogStage('entry');
+    setRoundLogSlabRates({});
     setCarpentryCharges(0);
     setTransportationCharges(0);
     setPlaningCharges(0);
@@ -1192,11 +1201,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
     const roundInvoiceItems = (roundLogItems || []).map((it, idx) => ({
       slNo: idx + 1,
-      description: `G:${it.girth} L:${it.length} ${(it.woodType || 'ROUND LOG').toUpperCase()}`,
+      description: `${(it.woodType || 'ROUND LOG').toUpperCase()} ${it.girthFtInStr ? `G: ${it.girthFtInStr}` : `G: ${it.girth}"`} L: ${it.length}'${it.slabLabel ? ` (${it.slabLabel})` : ''}`,
       hsn: '4403',
-      cft: roundLogOutputUnit === 'CFT' ? it.volume : 0,
+      cft: roundLogOutputUnit === 'CFT' ? it.volume : (it.cft || 0),
       sqft: 0,
-      widthInches: typeof it.girth === 'number' ? it.girth : 0,
+      widthInches: typeof it.girthInches === 'number' ? it.girthInches : (typeof it.girth === 'number' ? it.girth : 0),
       rateUnit: (roundLogOutputUnit === 'CBM' ? 'CBM' : 'CFT') as any,
       pieces: typeof it.pieces === 'number' ? it.pieces : 0,
       rate: typeof it.rate === 'number' ? it.rate : 0,
@@ -2650,20 +2659,71 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             ========================================================================= */}
         {currentStep === 6 && (
           logType === 'round' ? (
-            <RoundLogTable
-              items={roundLogItems}
-              outputUnit={roundLogOutputUnit}
-              inputUnit={roundLogInputUnit}
-              defaultRate={ratePerCft}
-              onChange={(newItems) => setRoundLogItems(newItems)}
-              onOutputUnitChange={(outU) => setRoundLogOutputUnit(outU)}
-              onInputUnitChange={(inU) => setRoundLogInputUnit(inU)}
-              customerName={customerName}
-              onNewSheet={() => {
-                if (roundLogItems.length > 0 && !window.confirm('Start a new clean sheet?')) return;
-                handleNewCleanSheet();
-              }}
-            />
+            roundLogStage === 'entry' ? (
+              <RoundLogTable
+                items={roundLogItems}
+                outputUnit={roundLogOutputUnit}
+                inputUnit={roundLogInputUnit}
+                onChange={(newItems) => {
+                  const withRates = newItems.map(item => {
+                    const w = item.woodType || 'Mahagony';
+                    const s = item.slabId || 'upto_23';
+                    const key = `${w}__${s}`;
+                    const r = roundLogSlabRates[key] ?? (typeof item.rate === 'number' ? item.rate : 0);
+                    const activeVol = roundLogOutputUnit === 'CFT' ? (item.cft || item.volume) : (item.cbm || item.volume);
+                    const amt = r > 0 ? Math.round(activeVol * r * 100) / 100 : 0;
+                    return { ...item, rate: r, amount: amt };
+                  });
+                  setRoundLogItems(withRates);
+                }}
+                onOutputUnitChange={(outU) => setRoundLogOutputUnit(outU)}
+                onInputUnitChange={(inU) => setRoundLogInputUnit(inU)}
+                customerName={customerName}
+                onNewSheet={() => {
+                  if (roundLogItems.length > 0 && !window.confirm('Start a new clean sheet?')) return;
+                  handleNewCleanSheet();
+                }}
+              />
+            ) : roundLogStage === 'sorting' ? (
+              <RoundLogGirthSorting
+                items={roundLogItems}
+                outputUnit={roundLogOutputUnit}
+                inputUnit={roundLogInputUnit}
+                customerName={customerName}
+                onNewSheet={() => {
+                  if (roundLogItems.length > 0 && !window.confirm('Start a new clean sheet?')) return;
+                  handleNewCleanSheet();
+                }}
+              />
+            ) : (
+              <RoundLogSlabPricing
+                items={roundLogItems}
+                outputUnit={roundLogOutputUnit}
+                inputUnit={roundLogInputUnit}
+                slabRates={roundLogSlabRates}
+                onSlabRateChange={(woodType, slabId, rate) => {
+                  const key = `${woodType}__${slabId}`;
+                  const nextRates = { ...roundLogSlabRates, [key]: rate };
+                  setRoundLogSlabRates(nextRates);
+
+                  const updated = roundLogItems.map(item => {
+                    const w = item.woodType || 'Mahagony';
+                    if (w === woodType && item.slabId === slabId) {
+                      const activeVol = roundLogOutputUnit === 'CFT' ? (item.cft || item.volume) : (item.cbm || item.volume);
+                      const amt = rate > 0 ? Math.round(activeVol * rate * 100) / 100 : 0;
+                      return { ...item, rate, amount: amt };
+                    }
+                    return item;
+                  });
+                  setRoundLogItems(updated);
+                }}
+                customerName={customerName}
+                onNewSheet={() => {
+                  if (roundLogItems.length > 0 && !window.confirm('Start a new clean sheet?')) return;
+                  handleNewCleanSheet();
+                }}
+              />
+            )
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="card calc-table-card" style={{ padding: '0.85rem' }}>
@@ -4216,7 +4276,31 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               <button
                 type="button"
                 className="btn btn-secondary calc-dock-btn calc-dock-prev"
-                onClick={() => setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15)}
+                onClick={() => {
+                  if (currentStep === 6 && logType === 'round') {
+                    if (roundLogStage === 'pricing') {
+                      setRoundLogStage('sorting');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      return;
+                    }
+                    if (roundLogStage === 'sorting') {
+                      setRoundLogStage('entry');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      return;
+                    }
+                    setCurrentStep(5);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    return;
+                  }
+                  if (currentStep === 7 && logType === 'round') {
+                    setCurrentStep(6);
+                    setRoundLogStage('pricing');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    return;
+                  }
+                  setCurrentStep(prev => (prev - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
                 style={{ flex: '0 0 auto', padding: '0.45rem 0.85rem' }}
               >
                 <ArrowLeft size={15} /> Back
@@ -4240,7 +4324,31 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setConsigneeState(destination || customerState || 'Karnataka');
                     }
                   }
+
+                  if (currentStep === 6 && logType === 'round') {
+                    if (roundLogStage === 'entry') {
+                      if (roundLogItems.length === 0) {
+                        alert('Please add at least one round log before proceeding to Girth Sorting.');
+                        return;
+                      }
+                      setRoundLogStage('sorting');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      return;
+                    }
+                    if (roundLogStage === 'sorting') {
+                      setRoundLogStage('pricing');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      return;
+                    }
+                    if (roundLogStage === 'pricing') {
+                      setCurrentStep(7);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      return;
+                    }
+                  }
+
                   setCurrentStep(prev => (prev + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
               >
                 <span>
@@ -4249,7 +4357,13 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   {currentStep === 3 && 'Next: Ship To Details →'}
                   {currentStep === 4 && 'Next: Select Log Type (Cut / Round) →'}
                   {currentStep === 5 && (logType === 'round' ? 'Next: Round Log Calculator →' : 'Next: Timber Calculator →')}
-                  {currentStep === 6 && 'Next: Planing →'}
+                  {currentStep === 6 && (
+                    logType === 'round' ? (
+                      roundLogStage === 'entry' ? 'Next: Girth Sorting →' :
+                      roundLogStage === 'sorting' ? 'Next: Slab Pricing →' :
+                      'Next: Planing →'
+                    ) : 'Next: Planing →'
+                  )}
                   {currentStep === 7 && 'Next: Carpentry →'}
                   {currentStep === 8 && 'Next: Transport →'}
                   {currentStep === 9 && 'Next: Other Charges →'}
