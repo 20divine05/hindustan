@@ -504,8 +504,8 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       <React.Fragment key={`sp-slab-${spIdx}-${sIdx}`}>
                         {/* 2. Sub-section Banner: Girth Slab */}
                         <tr className="p-wood-heading-row" style={{ backgroundColor: '#f1f5f9' }}>
-                          <td colSpan={7} className="p-wood-heading-desc" style={{ paddingLeft: '16px', fontWeight: 800, fontSize: '8.4px', color: '#334155' }}>
-                            {slabGroup.slabTitle} &nbsp;({slabGroup.slabRangeLabel})
+                          <td colSpan={7} className="p-wood-heading-desc" style={{ paddingLeft: '16px', fontWeight: 800, fontSize: '8.4px', color: '#334155', textAlign: 'left' }}>
+                            {slabGroup.slabTitle}
                           </td>
                         </tr>
 
@@ -535,10 +535,10 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                           );
                         })}
 
-                        {/* 4. Sub Total (SlabTitle) Row */}
+                        {/* 4. Sub Total Row */}
                         <tr className="p-item-row p-wood-subtotal-row" style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', fontWeight: 800 }}>
                           <td colSpan={2} className="text-left font-bold" style={{ paddingLeft: '16px' }}>
-                            Sub Total ({slabGroup.slabTitle}):
+                            Sub Total:
                           </td>
                           <td className="text-center font-bold p-mono">{slabGroup.totalPieces} LOGS</td>
                           <td className="text-right p-mono font-bold">{renderWithSmallDecimalHtml(formatValue(slabGroup.totalVolume, 4))}</td>

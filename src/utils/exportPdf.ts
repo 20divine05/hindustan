@@ -523,7 +523,7 @@ export function createProformaInvoiceDoc(
         const slabBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
         tableBody.push([
           {
-            content: `${slabGroup.slabTitle}  (${slabGroup.slabRangeLabel})`,
+            content: slabGroup.slabTitle,
             colSpan: 7,
             styles: {
               fontStyle: 'bold',
@@ -564,7 +564,7 @@ export function createProformaInvoiceDoc(
         const subtotalBg: [number, number, number] = [243, 244, 246];
         tableBody.push([
           {
-            content: `Sub Total (${slabGroup.slabTitle}):`,
+            content: 'Sub Total:',
             colSpan: 2,
             styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 5.0, top: 0.55, bottom: 0.55 }, fillColor: subtotalBg, lineWidth: subtotalBorder }
           },
@@ -893,17 +893,14 @@ export function createProformaInvoiceDoc(
 
   function splitDecimalNumber(s: string) {
     if (!s || typeof s !== 'string') return null;
-    const dotIdx = s.lastIndexOf('.');
-    if (dotIdx === -1) return null;
-    const before = s.slice(0, dotIdx);
-    if (!/\d/.test(before)) return null;
-    const after = s.slice(dotIdx + 1);
-    const match = after.match(/^(\d+)(.*)$/);
+    const trimmed = s.trim();
+    // Only numbers like 10.6337, 2,020.01, - 500.00, Rs. 1,234.56, 10.6337 CFT
+    const match = trimmed.match(/^((?:Rs\.?\s*|-|\+)?[\d,]+)\.(\d+)(.*)$/);
     if (!match) return null;
     return {
-      intStr: s.slice(0, dotIdx + 1),
-      decStr: match[1],
-      suffix: match[2]
+      intStr: match[1] + '.',
+      decStr: match[2],
+      suffix: match[3]
     };
   }
 
@@ -1051,6 +1048,9 @@ export function createProformaInvoiceDoc(
     },
     willDrawCell: (data) => {
       if (data.section === 'body' || data.section === 'foot') {
+        const rawRow = Array.isArray(data.row.raw) ? data.row.raw : [];
+        const isSectionBanner = (rawRow[0] as any)?.colSpan >= 7 || (rawRow[1] as any)?.colSpan >= 7;
+        if (isSectionBanner) return;
         const raw = (data.cell.text || []).join(' ').trim();
         if (splitDimension(raw) || splitDecimalNumber(raw)) {
           (data.cell as any).customDrawText = raw;
