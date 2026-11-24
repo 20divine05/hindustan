@@ -198,7 +198,6 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
   finalGrandTotal
 }) => {
   const isRound = logType === 'round';
-  const roundUnitConfig = getRoundLogUnitConfig(roundLogInputUnit);
   const roundSpeciesData = groupRoundLogsBySpeciesFirst(
     roundLogItems,
     roundLogOutputUnit,
@@ -481,94 +480,99 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
             <table className="p-items-table p-round-table">
               <thead>
                 <tr>
-                  <th style={{ width: '6.0%', textAlign: 'center' }}>Log<br />No.</th>
-                  <th style={{ width: '13.0%', textAlign: 'center' }}>Length<br />({roundUnitConfig.lengthUnit})</th>
-                  <th style={{ width: '15.0%', textAlign: 'center' }}>Girth</th>
-                  <th style={{ width: '18.0%', textAlign: 'right' }}>{roundLogOutputUnit}</th>
-                  <th style={{ width: '13.0%', textAlign: 'right' }}>Rate</th>
-                  <th style={{ width: '9.0%', textAlign: 'center' }}>per</th>
-                  <th style={{ width: '26.0%', textAlign: 'right', paddingRight: '8px' }}>Amount</th>
+                  <th style={{ width: '7.0%', textAlign: 'center' }}>Sl<br />No.</th>
+                  <th style={{ width: '9.0%', textAlign: 'center' }}>Log<br />No.</th>
+                  <th style={{ width: '25.0%', textAlign: 'center' }}>Length</th>
+                  <th style={{ width: '27.0%', textAlign: 'center' }}>Girth</th>
+                  <th style={{ width: '32.0%', textAlign: 'right', paddingRight: '8px' }}>Volume ({roundLogOutputUnit})</th>
                 </tr>
               </thead>
               <tbody>
-                {roundSpeciesData.speciesSections.map((spSec, spIdx) => (
-                  <React.Fragment key={`sp-sec-${spIdx}`}>
-                    {/* 1. Parent Header: Wood Species */}
-                    <tr className="p-item-row" style={{ backgroundColor: '#e2e8f0', borderTop: '1px solid #111', borderBottom: '1px solid #111', fontWeight: 900 }}>
-                      <td colSpan={7} style={{ paddingLeft: '8px', fontSize: '9.2px', textTransform: 'uppercase', letterSpacing: '0.02em', color: '#0f172a' }}>
-                        {spSec.woodType.toUpperCase()}
-                      </td>
-                    </tr>
+                {(() => {
+                  let globalSlNo = 1;
+                  return roundSpeciesData.speciesSections.map((spSec, spIdx) => (
+                    <React.Fragment key={`sp-sec-${spIdx}`}>
+                      {/* 1. Parent Header: Wood Species */}
+                      <tr className="p-item-row" style={{ backgroundColor: '#e2e8f0', borderTop: '1px solid #111', borderBottom: '1px solid #111', fontWeight: 900 }}>
+                        <td colSpan={5} style={{ paddingLeft: '8px', fontSize: '9.2px', textTransform: 'uppercase', letterSpacing: '0.02em', color: '#0f172a' }}>
+                          {spSec.woodType.toUpperCase()}
+                        </td>
+                      </tr>
 
-                    {spSec.slabGroups.map((slabGroup, sIdx) => (
-                      <React.Fragment key={`sp-slab-${spIdx}-${sIdx}`}>
-                        {/* 2. Sub-section Banner: Girth Slab */}
-                        <tr className="p-wood-heading-row" style={{ backgroundColor: '#f1f5f9' }}>
-                          <td colSpan={7} className="p-wood-heading-desc" style={{ paddingLeft: '16px', fontWeight: 800, fontSize: '8.4px', color: '#334155', textAlign: 'left' }}>
-                            {slabGroup.slabTitle}
-                          </td>
-                        </tr>
+                      {spSec.slabGroups.map((slabGroup, sIdx) => {
+                        const slabBannerTitle = slabGroup.slabTitle.endsWith('Logs')
+                          ? slabGroup.slabTitle
+                          : `${slabGroup.slabTitle} Logs`;
 
-                        {/* 3. Individual Log Rows */}
-                        {slabGroup.items.map((it, itemIdx) => {
-                          const rowCfg = getRoundLogUnitConfig(it.inputUnit || roundLogInputUnit);
-                          const lStr = `${it.length} ${rowCfg.lengthUnit}`;
-                          const gStr = it.girthFtInStr || (it.girthInches !== undefined ? `${formatValue(it.girthInches, 1)}"` : `${it.girth}`);
-                          const activeVol = roundLogOutputUnit === 'CFT' ? (it.cft || it.volume) : (it.cbm || it.volume);
-                          const itRate = it.rate && it.rate > 0 ? it.rate : slabGroup.rate;
-                          const itAmount = it.amount && it.amount > 0 ? it.amount : (itRate > 0 ? Math.round(activeVol * itRate * 100) / 100 : 0);
-
-                          return (
-                            <tr key={`r-item-${spIdx}-${sIdx}-${itemIdx}`} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                              <td className="text-center font-bold" style={{ color: 'var(--primary-700, #4b3621)' }}>
-                                {it.serialNumber || (itemIdx + 1)}
-                              </td>
-                              <td className="text-center font-bold">{lStr}</td>
-                              <td className="text-center font-bold">{gStr}</td>
-                              <td className="text-right p-mono">{renderWithSmallDecimalHtml(formatValue(activeVol, 4))}</td>
-                              <td className="text-right p-mono">{itRate > 0 ? renderWithSmallDecimalHtml(formatValue(itRate, 2)) : ''}</td>
-                              <td className="text-center">{roundLogOutputUnit}</td>
-                              <td className="text-right p-mono p-item-amount" style={{ paddingRight: '8px', fontWeight: 600, color: '#111827' }}>
-                                {renderWithSmallDecimalHtml(formatIndianCurrency(itAmount))}
+                        return (
+                          <React.Fragment key={`sp-slab-${spIdx}-${sIdx}`}>
+                            {/* 2. Sub-section Banner: Girth Slab */}
+                            <tr className="p-wood-heading-row" style={{ backgroundColor: '#f1f5f9' }}>
+                              <td colSpan={5} className="p-wood-heading-desc" style={{ paddingLeft: '16px', fontWeight: 800, fontSize: '8.4px', color: '#334155', textAlign: 'left' }}>
+                                {slabBannerTitle}
                               </td>
                             </tr>
-                          );
-                        })}
 
-                        {/* 4. Sub Total Row */}
-                        <tr className="p-item-row p-wood-subtotal-row" style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', fontWeight: 800 }}>
-                          <td colSpan={2} className="text-left font-bold" style={{ paddingLeft: '16px' }}>
-                            Sub Total:
-                          </td>
-                          <td className="text-center font-bold p-mono">{slabGroup.totalPieces} LOGS</td>
-                          <td className="text-right p-mono font-bold">{renderWithSmallDecimalHtml(formatValue(slabGroup.totalVolume, 4))}</td>
-                          <td className="text-right p-mono">{slabGroup.rate > 0 ? renderWithSmallDecimalHtml(formatValue(slabGroup.rate, 2)) : ''}</td>
-                          <td className="text-center">{roundLogOutputUnit}</td>
-                          <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#000000' }}>
-                            {renderWithSmallDecimalHtml(formatIndianCurrency(slabGroup.subtotal), 'Rs. ')}
-                          </td>
-                        </tr>
-                      </React.Fragment>
-                    ))}
+                            {/* 3. Individual Log Rows (5 columns: Sl No, Log No, Length, Girth, Volume) */}
+                            {slabGroup.items.map((it, itemIdx) => {
+                              const slNo = globalSlNo++;
+                              const rowCfg = getRoundLogUnitConfig(it.inputUnit || roundLogInputUnit);
+                              const lStr = `${it.length} ${rowCfg.lengthUnit}`;
+                              const gStr = it.girthFtInStr || (it.girthInches !== undefined ? `${formatValue(it.girthInches, 1)}"` : `${it.girth}`);
+                              const activeVol = roundLogOutputUnit === 'CFT' ? (it.cft || it.volume) : (it.cbm || it.volume);
 
-                    {/* 5. Species Total Row: Bold Total - [WOOD SPECIES] */}
-                    <tr className="p-item-row p-wood-subtotal-row" style={{ backgroundColor: '#eef2f6', borderTop: '1.5px solid #000000', borderBottom: '1.5px solid #000000', fontWeight: 900 }}>
-                      <td colSpan={2} className="text-left font-bold" style={{ paddingLeft: '8px', textTransform: 'uppercase' }}>
-                        Total - {spSec.woodType.toUpperCase()}
-                      </td>
-                      <td className="text-center font-bold p-mono">{spSec.totalPieces} LOGS</td>
-                      <td className="text-right p-mono font-bold">
-                        {renderWithSmallDecimalHtml(formatValue(roundLogOutputUnit === 'CFT' ? spSec.totalCft : spSec.totalCbm, 4))}
-                      </td>
-                      <td colSpan={2}></td>
-                      <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#000000' }}>
-                        {renderWithSmallDecimalHtml(formatIndianCurrency(spSec.totalAmount), 'Rs. ')}
-                      </td>
-                    </tr>
-                  </React.Fragment>
-                ))}
+                              return (
+                                <tr key={`r-item-${spIdx}-${sIdx}-${itemIdx}`} className={`p-item-row ${slNo % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                                  <td className="text-center font-bold" style={{ color: '#64748b' }}>
+                                    {slNo}
+                                  </td>
+                                  <td className="text-center font-bold" style={{ color: 'var(--primary-700, #4b3621)' }}>
+                                    {it.serialNumber || (itemIdx + 1)}
+                                  </td>
+                                  <td className="text-center font-bold">{lStr}</td>
+                                  <td className="text-center font-bold">{gStr}</td>
+                                  <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#0f172a' }}>
+                                    {renderWithSmallDecimalHtml(formatValue(activeVol, 4))}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </React.Fragment>
+                        );
+                      })}
 
-                {/* 5. TOTAL WOOD AMOUNT row */}
+                      {/* 4. Dedicated Pricing Summary Box for this Wood Species */}
+                      {spSec.slabGroups.map((slabGroup, sIdx) => {
+                        const slabLabel = (slabGroup.slabId === 'upto_23' || slabGroup.slabTitle.toLowerCase().includes('upto'))
+                          ? 'Below 23"'
+                          : slabGroup.slabTitle;
+
+                        return (
+                          <tr key={`sp-pricing-${spIdx}-${sIdx}`} className="p-item-row p-slab-pricing-row" style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', fontWeight: 800 }}>
+                            <td colSpan={4} className="text-left font-bold" style={{ paddingLeft: '16px', fontSize: '8.5px', color: '#1e293b' }}>
+                              {slabLabel} &nbsp;:&nbsp; {slabGroup.totalPieces} logs &nbsp;&nbsp; {formatValue(slabGroup.totalVolume, 4)} {roundLogOutputUnit} &nbsp;&nbsp; @ &nbsp;&nbsp; ₹ {formatValue(slabGroup.rate, 2)} &nbsp;=
+                            </td>
+                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#0f172a' }}>
+                              {renderWithSmallDecimalHtml(formatIndianCurrency(slabGroup.subtotal), '₹ ')}
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {/* 5. Species Total Row: Bold Total [WOOD SPECIES] */}
+                      <tr className="p-item-row p-wood-subtotal-row" style={{ backgroundColor: '#eef2f6', borderTop: '1.5px solid #000000', borderBottom: '1.5px solid #000000', fontWeight: 900 }}>
+                        <td colSpan={4} className="text-left font-bold" style={{ paddingLeft: '8px', textTransform: 'uppercase', fontSize: '8.8px', color: '#000000' }}>
+                          Total {spSec.woodType.toUpperCase()} &nbsp;:&nbsp; {spSec.totalPieces} logs &nbsp;|&nbsp; {formatValue(roundLogOutputUnit === 'CFT' ? spSec.totalCft : spSec.totalCbm, 4)} {roundLogOutputUnit} &nbsp;=
+                        </td>
+                        <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#000000' }}>
+                          {renderWithSmallDecimalHtml(formatIndianCurrency(spSec.totalAmount), '₹ ')}
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  ));
+                })()}
+
+                {/* 6. TOTAL WOOD AMOUNT row */}
                 {totalPieces > 0 && (
                   <tr className="p-total-wood-row" style={{ backgroundColor: '#e2e8f0', borderTop: '1px solid #111', borderBottom: '1px solid #111', fontWeight: 900 }}>
                     <td colSpan={2} className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
@@ -580,7 +584,6 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                     <td className="text-right p-mono font-bold">
                       {renderWithSmallDecimalHtml(`${formatValue(roundLogOutputUnit === 'CFT' ? totalCft : totalCbm, 4)} ${roundLogOutputUnit}`)}
                     </td>
-                    <td colSpan={2}></td>
                     <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
                       {renderWithSmallDecimalHtml(formatIndianCurrency(timberTotalAmount), 'Rs. ')}
                     </td>
@@ -595,7 +598,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       {totalPlaning > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td></td>
-                          <td colSpan={5} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={3} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             {planingLabel}
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -607,7 +610,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       {totalCarpentryWorks > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td></td>
-                          <td colSpan={5} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={3} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             CARPENTRY WORKS
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -619,7 +622,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       {totalTransportation > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td></td>
-                          <td colSpan={5} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={3} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             TRANSPORTATION &amp; DELIVERY CHARGES
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -631,7 +634,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       {totalOther > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td></td>
-                          <td colSpan={5} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={3} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             {(additionalCharges?.otherLabel || 'OTHER CHARGES').toUpperCase()}
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -643,7 +646,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       {gstAmount > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td></td>
-                          <td colSpan={5} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={3} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             GST
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -655,7 +658,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       {discountAmount > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td></td>
-                          <td colSpan={5} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
+                          <td colSpan={3} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
                             LESS: DISCOUNT {discountDesc ? `(${discountDesc})` : ''}
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
@@ -669,7 +672,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
 
                 {roundLogItems.length < 6 && (
                   <tr style={{ height: `${Math.max(25, (6 - roundLogItems.length) * 18)}px` }}>
-                    <td colSpan={7} style={{ borderBottom: 'none' }}></td>
+                    <td colSpan={5} style={{ borderBottom: 'none' }}></td>
                   </tr>
                 )}
               </tbody>
@@ -686,7 +689,6 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                   <td className="text-right p-mono font-bold">
                     {renderWithSmallDecimalHtml(`${formatValue(roundLogOutputUnit === 'CFT' ? totalCft : totalCbm, 4)} ${roundLogOutputUnit}`)}
                   </td>
-                  <td colSpan={2}></td>
                   <td className="text-right p-mono font-bold p-final-total-highlight" style={{ paddingRight: '8px' }}>
                     {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), 'Rs. ')}
                   </td>

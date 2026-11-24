@@ -156,8 +156,6 @@ export function createProformaInvoiceDoc(
     roundLogInputUnit,
     roundLogSlabRates
   );
-  const roundUnitConfig = getRoundLogUnitConfig(roundLogInputUnit);
-  const dynamicLengthHeader = `Length\n(${roundUnitConfig.lengthUnit})`;
 
   // Build items list
   let items = invoiceData?.items;
@@ -498,6 +496,7 @@ export function createProformaInvoiceDoc(
   let slCounter = 1;
 
   if (isRoundLog) {
+    let globalSlNo = 1;
     let itemIdx = 0;
     for (const spSec of speciesSections) {
       // 1. Parent Header: Wood Species Banner
@@ -505,7 +504,7 @@ export function createProformaInvoiceDoc(
       tableBody.push([
         {
           content: spSec.woodType.toUpperCase(),
-          colSpan: 7,
+          colSpan: 5,
           styles: {
             fontStyle: 'bold',
             textColor: [0, 0, 0],
@@ -521,10 +520,14 @@ export function createProformaInvoiceDoc(
       for (const slabGroup of spSec.slabGroups) {
         // 2. Girth Slab Sub-section Header inside this wood
         const slabBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+        const slabBannerTitle = slabGroup.slabTitle.endsWith('Logs')
+          ? slabGroup.slabTitle
+          : `${slabGroup.slabTitle} Logs`;
+
         tableBody.push([
           {
-            content: slabGroup.slabTitle,
-            colSpan: 7,
+            content: slabBannerTitle,
+            colSpan: 5,
             styles: {
               fontStyle: 'bold',
               textColor: [30, 41, 59],
@@ -537,115 +540,132 @@ export function createProformaInvoiceDoc(
           }
         ]);
 
-        // 3. Individual Log Rows
+        // 3. Individual Log Rows (5 columns: Sl No, Log No, Length, Girth, Volume)
         const itemBorder = { top: 0, bottom: 0.2, left: 0.2, right: 0.2 };
         for (const it of slabGroup.items) {
           const rowCfg = getRoundLogUnitConfig(it.inputUnit || roundLogInputUnit);
           const lStr = `${it.length} ${rowCfg.lengthUnit}`;
           const gStr = it.girthFtInStr || (it.girthInches !== undefined ? `${formatValue(it.girthInches, 1)}"` : `${it.girth}`);
           const activeVol = roundLogOutputUnit === 'CFT' ? (it.cft || it.volume) : (it.cbm || it.volume);
-          const itRate = it.rate && it.rate > 0 ? it.rate : slabGroup.rate;
-          const itAmount = it.amount && it.amount > 0 ? it.amount : (itRate > 0 ? Math.round(activeVol * itRate * 100) / 100 : 0);
           const zebraBg = (itemIdx++ % 2 === 0) ? [255, 255, 255] : [248, 249, 250];
 
           tableBody.push([
+            { content: `${globalSlNo++}`, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
             { content: `${it.serialNumber || 1}`, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
             { content: lStr, styles: { lineWidth: itemBorder, halign: 'center', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
             { content: gStr, styles: { lineWidth: itemBorder, halign: 'center', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-            { content: formatValue(activeVol, 4), styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-            { content: itRate > 0 ? formatValue(itRate, 2) : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-            { content: roundLogOutputUnit, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-            { content: formatIndianCurrency(itAmount), styles: { lineWidth: itemBorder, halign: 'right', fontStyle: 'normal', textColor: [75, 85, 99], fillColor: zebraBg, cellPadding: { right: 1.8, top: 0.45, bottom: 0.45 } } }
+            { content: formatValue(activeVol, 4), styles: { lineWidth: itemBorder, halign: 'right', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { right: 2.5, top: 0.45, bottom: 0.45 } } }
           ]);
         }
+      }
 
-        // 4. Sub Total (SlabTitle) Row
-        const subtotalBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
-        const subtotalBg: [number, number, number] = [243, 244, 246];
+      // 4. Dedicated Pricing Summary Box for this Wood Species
+      const pricingBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+      const pricingBg: [number, number, number] = [248, 250, 252];
+
+      for (const slabGroup of spSec.slabGroups) {
+        const slabLabel = (slabGroup.slabId === 'upto_23' || slabGroup.slabTitle.toLowerCase().includes('upto'))
+          ? 'Below 23"'
+          : slabGroup.slabTitle;
+
         tableBody.push([
           {
-            content: 'Sub Total:',
-            colSpan: 2,
-            styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 5.0, top: 0.55, bottom: 0.55 }, fillColor: subtotalBg, lineWidth: subtotalBorder }
-          },
-          {
-            content: `${slabGroup.totalPieces} LOGS`,
-            styles: { fontStyle: 'bold', halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
-          },
-          {
-            content: formatValue(slabGroup.totalVolume, 4),
-            styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
-          },
-          {
-            content: slabGroup.rate > 0 ? formatValue(slabGroup.rate, 2) : '',
-            styles: { halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
-          },
-          {
-            content: roundLogOutputUnit,
-            styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
+            content: `${slabLabel}  :  ${slabGroup.totalPieces} logs   ${formatValue(slabGroup.totalVolume, 4)} ${roundLogOutputUnit}  @  Rs. ${formatValue(slabGroup.rate, 2)}  =`,
+            colSpan: 4,
+            styles: {
+              fontStyle: 'bold',
+              halign: 'left',
+              cellPadding: { left: 5.0, top: 0.5, bottom: 0.5 },
+              fillColor: pricingBg,
+              lineWidth: pricingBorder
+            }
           },
           {
             content: `Rs. ${formatIndianCurrency(slabGroup.subtotal)}`,
-            styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 } }
+            styles: {
+              fontStyle: 'bold',
+              halign: 'right',
+              cellPadding: { right: 2.5, top: 0.5, bottom: 0.5 },
+              fillColor: pricingBg,
+              lineWidth: pricingBorder
+            }
           }
         ]);
       }
 
-      // 5. Bold Total - [WOOD SPECIES] row at the bottom of that wood section
-      const speciesTotalBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+      // 5. Species Total Row
+      const speciesTotalBorder = { top: 0.3, bottom: 0.3, left: 0.2, right: 0.2 };
       const speciesTotalBg: [number, number, number] = [238, 242, 246];
       tableBody.push([
         {
-          content: `Total - ${spSec.woodType.toUpperCase()}`,
-          colSpan: 2,
-          styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.6, bottom: 0.6 }, fillColor: speciesTotalBg, lineWidth: speciesTotalBorder }
-        },
-        {
-          content: `${spSec.totalPieces} LOGS`,
-          styles: { fontStyle: 'bold', halign: 'center', fillColor: speciesTotalBg, lineWidth: speciesTotalBorder, cellPadding: { top: 0.6, bottom: 0.6 } }
-        },
-        {
-          content: `${formatValue(roundLogOutputUnit === 'CFT' ? spSec.totalCft : spSec.totalCbm, 4)}`,
-          styles: { fontStyle: 'bold', halign: 'right', fillColor: speciesTotalBg, lineWidth: speciesTotalBorder, cellPadding: { top: 0.6, bottom: 0.6 } }
-        },
-        {
-          content: '',
-          colSpan: 2,
-          styles: { fillColor: speciesTotalBg, lineWidth: speciesTotalBorder, cellPadding: { top: 0.6, bottom: 0.6 } }
+          content: `Total ${spSec.woodType.toUpperCase()}  :  ${spSec.totalPieces} logs  |  ${formatValue(roundLogOutputUnit === 'CFT' ? spSec.totalCft : spSec.totalCbm, 4)} ${roundLogOutputUnit}  =`,
+          colSpan: 4,
+          styles: {
+            fontStyle: 'bold',
+            halign: 'left',
+            cellPadding: { left: 3.5, top: 0.6, bottom: 0.6 },
+            fillColor: speciesTotalBg,
+            lineWidth: speciesTotalBorder
+          }
         },
         {
           content: `Rs. ${formatIndianCurrency(spSec.totalAmount)}`,
-          styles: { fontStyle: 'bold', halign: 'right', fillColor: speciesTotalBg, lineWidth: speciesTotalBorder, cellPadding: { right: 1.8, top: 0.6, bottom: 0.6 } }
+          styles: {
+            fontStyle: 'bold',
+            halign: 'right',
+            cellPadding: { right: 2.5, top: 0.6, bottom: 0.6 },
+            fillColor: speciesTotalBg,
+            lineWidth: speciesTotalBorder
+          }
         }
       ]);
     }
 
     // 6. TOTAL WOOD AMOUNT row
     if (totalPieces > 0) {
-      const totalWoodBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+      const totalWoodBorder = { top: 0.3, bottom: 0.3, left: 0.2, right: 0.2 };
       const woodBg: [number, number, number] = [226, 232, 240];
       tableBody.push([
         {
           content: 'TOTAL WOOD AMOUNT',
           colSpan: 2,
-          styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.6, bottom: 0.6 }, fillColor: woodBg, lineWidth: totalWoodBorder }
+          styles: {
+            fontStyle: 'bold',
+            halign: 'left',
+            cellPadding: { left: 2.2, top: 0.6, bottom: 0.6 },
+            fillColor: woodBg,
+            lineWidth: totalWoodBorder
+          }
         },
         {
           content: `${totalPieces} LOGS CLASSIFIED`,
-          styles: { fontStyle: 'bold', halign: 'center', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.6, bottom: 0.6 } }
+          styles: {
+            fontStyle: 'bold',
+            halign: 'center',
+            fillColor: woodBg,
+            lineWidth: totalWoodBorder,
+            cellPadding: { top: 0.6, bottom: 0.6 }
+          }
         },
         {
           content: `${formatValue(roundLogOutputUnit === 'CFT' ? totalCft : totalCbm, 4)} ${roundLogOutputUnit}`,
-          styles: { fontStyle: 'bold', halign: 'right', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.6, bottom: 0.6 } }
-        },
-        {
-          content: '',
-          colSpan: 2,
-          styles: { fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.6, bottom: 0.6 } }
+          styles: {
+            fontStyle: 'bold',
+            halign: 'right',
+            fillColor: woodBg,
+            lineWidth: totalWoodBorder,
+            cellPadding: { right: 2.5, top: 0.6, bottom: 0.6 }
+          }
         },
         {
           content: `Rs. ${formatIndianCurrency(totalAmount)}`,
-          styles: { fontStyle: 'bold', halign: 'right', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { right: 1.8, top: 0.6, bottom: 0.6 } }
+          styles: {
+            fontStyle: 'bold',
+            halign: 'right',
+            fillColor: woodBg,
+            lineWidth: totalWoodBorder,
+            cellPadding: { right: 2.5, top: 0.6, bottom: 0.6 }
+          }
         }
       ]);
     }
@@ -791,7 +811,7 @@ export function createProformaInvoiceDoc(
 
   let isFirstChargeRow = true;
   let chargeRowIdx = 0;
-  const chargeColSpan = isRoundLog ? 5 : 6;
+  const chargeColSpan = isRoundLog ? 3 : 6;
   const chargeRow = (name: string, amountStr: string, isDiscount: boolean = false) => {
     const topWidth = isFirstChargeRow ? 0.2 : 0;
     isFirstChargeRow = false;
@@ -873,8 +893,6 @@ export function createProformaInvoiceDoc(
         { content: '', styles: { lineWidth: emptyBorder } },
         { content: '', styles: { lineWidth: emptyBorder } },
         { content: '', styles: { lineWidth: emptyBorder } },
-        { content: '', styles: { lineWidth: emptyBorder } },
-        { content: '', styles: { lineWidth: emptyBorder } },
         { content: '', styles: { lineWidth: emptyBorder } }
       ]);
     } else {
@@ -918,13 +936,11 @@ export function createProformaInvoiceDoc(
   }
 
   const roundHead = [[
+    { content: 'Sl\nNo.', styles: { halign: 'center', valign: 'middle' } },
     { content: 'Log\nNo.', styles: { halign: 'center', valign: 'middle' } },
-    { content: dynamicLengthHeader, styles: { halign: 'center', valign: 'middle' } },
+    { content: 'Length', styles: { halign: 'center', valign: 'middle' } },
     { content: 'Girth', styles: { halign: 'center', valign: 'middle' } },
-    { content: roundLogOutputUnit, styles: { halign: 'right', valign: 'middle' } },
-    { content: 'Rate', styles: { halign: 'right', valign: 'middle' } },
-    { content: 'per', styles: { halign: 'center', valign: 'middle' } },
-    { content: 'Amount', styles: { halign: 'right', valign: 'middle' } }
+    { content: `Volume\n(${roundLogOutputUnit})`, styles: { halign: 'right', valign: 'middle' } }
   ]];
 
   const cutHead = [[
@@ -953,11 +969,6 @@ export function createProformaInvoiceDoc(
       styles: { halign: 'right', fontStyle: 'bold' }
     },
     {
-      content: '',
-      colSpan: 2,
-      styles: { halign: 'center' }
-    },
-    {
       content: `Rs. ${formatIndianCurrency(effectiveTotal)}`,
       styles: { halign: 'right', fontStyle: 'bold', cellPadding: { right: 1.8 }, fontSize: 9.0 }
     }
@@ -978,12 +989,10 @@ export function createProformaInvoiceDoc(
 
   const roundColumnStyles = {
     0: { halign: 'center', cellWidth: 14 },
-    1: { halign: 'center', cellWidth: 22 },
-    2: { halign: 'center', cellWidth: 26 },
-    3: { halign: 'right', cellWidth: 32 },
-    4: { halign: 'right', cellWidth: 24 },
-    5: { halign: 'center', cellWidth: 18 },
-    6: { halign: 'right', cellWidth: 54, fontStyle: 'bold', cellPadding: { right: 1.8 } }
+    1: { halign: 'center', cellWidth: 18 },
+    2: { halign: 'center', cellWidth: 46 },
+    3: { halign: 'center', cellWidth: 50 },
+    4: { halign: 'right', cellWidth: 62, fontStyle: 'bold', cellPadding: { right: 2.5 } }
   };
 
   const cutColumnStyles = {
@@ -997,7 +1006,7 @@ export function createProformaInvoiceDoc(
     7: { halign: 'left', cellWidth: 49, fontStyle: 'bold', cellPadding: { left: 2.2 } }
   };
 
-  const lastColIndex = isRoundLog ? 6 : 7;
+  const lastColIndex = isRoundLog ? 4 : 7;
 
   autoTable(doc, {
     startY: 87,
@@ -1049,7 +1058,7 @@ export function createProformaInvoiceDoc(
     willDrawCell: (data) => {
       if (data.section === 'body' || data.section === 'foot') {
         const rawRow = Array.isArray(data.row.raw) ? data.row.raw : [];
-        const isSectionBanner = (rawRow[0] as any)?.colSpan >= 7 || (rawRow[1] as any)?.colSpan >= 7;
+        const isSectionBanner = (rawRow[0] as any)?.colSpan >= (isRoundLog ? 4 : 7) || (rawRow[1] as any)?.colSpan >= (isRoundLog ? 4 : 7);
         if (isSectionBanner) return;
         const raw = (data.cell.text || []).join(' ').trim();
         if (splitDimension(raw) || splitDecimalNumber(raw)) {
@@ -1082,10 +1091,10 @@ export function createProformaInvoiceDoc(
         const c0 = (rawRow[0] as any)?.content ?? (typeof rawRow[0] === 'string' ? rawRow[0] : '');
         const c1 = (rawRow[1] as any)?.content ?? (typeof rawRow[1] === 'string' ? rawRow[1] : '');
 
-        const isSectionBanner = (rawRow[0] as any)?.colSpan >= 7 || (rawRow[1] as any)?.colSpan >= 7;
-        const isSubtotalRow = (typeof c0 === 'string' && (c0.startsWith('Sub Total') || c0.startsWith('Total -') || c0 === 'TOTAL WOOD AMOUNT')) || c1 === 'Total' || c1 === 'TOTAL WOOD AMOUNT';
+        const isSectionBanner = (rawRow[0] as any)?.colSpan >= (isRoundLog ? 5 : 7) || (rawRow[1] as any)?.colSpan >= (isRoundLog ? 5 : 7);
+        const isSubtotalRow = (typeof c0 === 'string' && (c0.startsWith('Sub Total') || c0.startsWith('Total ') || c0.startsWith('Total -') || c0 === 'TOTAL WOOD AMOUNT' || (c0.includes('logs') && c0.includes('@')))) || c1 === 'Total' || c1 === 'TOTAL WOOD AMOUNT';
         const isFootRow = data.section === 'foot';
-        const isChargeRow = (rawRow[1] as any)?.colSpan === (isRoundLog ? 5 : 6);
+        const isChargeRow = (rawRow[1] as any)?.colSpan === (isRoundLog ? 3 : 6);
         const isEmptyPaddingRow = c0 === '' && c1 === '' && !isSectionBanner && !isSubtotalRow;
 
         if (isSectionBanner) {
@@ -1106,7 +1115,7 @@ export function createProformaInvoiceDoc(
         const w = data.cell.width;
         const h = data.cell.height;
 
-        const isFootTotal = data.section === 'foot' && data.column.index >= (isRoundLog ? 5 : 5);
+        const isFootTotal = data.section === 'foot' && data.column.index === (isRoundLog ? 4 : 5);
         const baseline = isFootTotal ? (y + h / 2 + 1.3) : (y + h / 2 + 1.0);
 
         const dimParts = splitDimension(raw);
