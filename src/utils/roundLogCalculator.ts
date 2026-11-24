@@ -58,6 +58,7 @@ export function getGirthSlab(girthInches: number): GirthSlabInfo {
 export const ROUND_LOG_INPUT_UNIT_OPTIONS: {
   id: RoundLogInputUnitType;
   label: string;
+  pillLabel: string;
   girthUnit: string;
   lengthUnit: string;
   shortLabel: string;
@@ -67,6 +68,7 @@ export const ROUND_LOG_INPUT_UNIT_OPTIONS: {
   {
     id: 'girth_in_length_ft',
     label: 'Girth in inch × Length in ft',
+    pillLabel: 'in × ft',
     girthUnit: 'in',
     lengthUnit: 'ft',
     shortLabel: 'G (in) × L (ft)',
@@ -76,6 +78,7 @@ export const ROUND_LOG_INPUT_UNIT_OPTIONS: {
   {
     id: 'girth_ft_length_ft',
     label: 'Girth in ft × Length in ft',
+    pillLabel: 'ft × ft',
     girthUnit: 'ft',
     lengthUnit: 'ft',
     shortLabel: 'G (ft, in) × L (ft)',
@@ -85,6 +88,7 @@ export const ROUND_LOG_INPUT_UNIT_OPTIONS: {
   {
     id: 'girth_m_length_m',
     label: 'Girth in meter × Length in meter',
+    pillLabel: 'm × m',
     girthUnit: 'm',
     lengthUnit: 'm',
     shortLabel: 'G (m) × L (m)',
@@ -94,6 +98,7 @@ export const ROUND_LOG_INPUT_UNIT_OPTIONS: {
   {
     id: 'girth_cm_length_cm',
     label: 'Girth in centimeter × Length in centimeter',
+    pillLabel: 'cm × cm',
     girthUnit: 'cm',
     lengthUnit: 'cm',
     shortLabel: 'G (cm) × L (cm)',
@@ -486,4 +491,213 @@ export function groupRoundLogsBySpeciesAndSlab(
   });
 
   return { speciesGroups, overallTotals };
+}
+
+export interface RoundLogSlabSpeciesGroup {
+  woodType: string;
+  items: RoundLogItem[];
+  totalPieces: number;
+  totalVolume: number;
+  totalCft: number;
+  totalCbm: number;
+  rate: number;
+  subtotal: number;
+}
+
+export interface RoundLogSlabSection {
+  slabId: GirthSlabType;
+  slabTitle: string; // 'UPTO 23"', 'ABOVE 24"', 'ABOVE 36"', 'ABOVE 48"', 'ABOVE 60"'
+  slabRangeLabel: string;
+  speciesGroups: RoundLogSlabSpeciesGroup[];
+  totalPieces: number;
+  totalVolume: number;
+  totalCft: number;
+  totalCbm: number;
+  totalAmount: number;
+}
+
+/**
+ * Groups round logs vertically by Girth Slab first (in ascending order of girth:
+ * Upto 23", Above 24", Above 36", Above 48", Above 60"), and by Wood Species inside each Girth Slab section.
+ * Only includes sections that have at least 1 log.
+ */
+export function groupRoundLogsBySlabFirst(
+  items: RoundLogItem[],
+  outputUnit: RoundLogOutputUnit = 'CFT',
+  inputUnit: RoundLogInputUnitType = 'girth_in_length_ft',
+  slabRates: Record<string, number> = {}
+): {
+  slabSections: RoundLogSlabSection[];
+  overallTotals: {
+    totalPieces: number;
+    totalVolume: number;
+    totalCft: number;
+    totalCbm: number;
+    totalAmount: number;
+  };
+} {
+  const SLAB_DEFS: Array<{ id: GirthSlabType; title: string; rangeLabel: string }> = [
+    { id: 'upto_23', title: 'UPTO 23"', rangeLabel: 'G_in ≤ 23"' },
+    { id: 'above_24', title: 'ABOVE 24"', rangeLabel: '23" < G_in < 36"' },
+    { id: 'above_36', title: 'ABOVE 36"', rangeLabel: '36" ≤ G_in < 48"' },
+    { id: 'above_48', title: 'ABOVE 48"', rangeLabel: '48" ≤ G_in < 60"' },
+    { id: 'above_60', title: 'ABOVE 60"', rangeLabel: 'G_in ≥ 60"' },
+  ];
+
+  // Ensure all items have normalized slabId, volume, cft, cbm
+  const normalizedItems = (items || []).map((it) => {
+    const g = typeof it.girth === 'number' ? it.girth : 0;
+    const gInP = typeof it.girthInPart === 'number' ? it.girthInPart : 0;
+    const l = typeof it.length === 'number' ? it.length : 0;
+    const p = typeof it.pieces === 'number' && it.pieces > 0 ? it.pieces : 1;
+    const itemInputUnit = it.inputUnit || inputUnit;
+
+    let slabId = it.slabId;
+    let cft = typeof it.cft === 'number' && it.cft > 0 ? it.cft : 0;
+    let cbm = typeof it.cbm === 'number' && it.cbm > 0 ? it.cbm : 0;
+    let gInches = it.girthInches;
+    let gFtInStr = it.girthFtInStr;
+
+    if (!slabId || (cft === 0 && cbm === 0)) {
+      const comp = computeRoundLogDimensions({
+        girth: g,
+        girthInPart: gInP,
+        length: l,
+        pieces: p,
+        inputUnit: itemInputUnit,
+        outputUnit
+      });
+      slabId = comp.slab.id;
+      cft = comp.cft;
+      cbm = comp.cbm;
+      gInches = comp.girthInches;
+      gFtInStr = comp.girthFtInStr;
+    }
+
+    return {
+      ...it,
+      slabId,
+      cft,
+      cbm,
+      volume: outputUnit === 'CFT' ? cft : cbm,
+      girthInches: gInches,
+      gFtInStr: gFtInStr
+    };
+  });
+
+  const slabSections: RoundLogSlabSection[] = [];
+  const overallTotals = {
+    totalPieces: 0,
+    totalVolume: 0,
+    totalCft: 0,
+    totalCbm: 0,
+    totalAmount: 0
+  };
+
+  for (const slabDef of SLAB_DEFS) {
+    const slabItems = normalizedItems.filter((it) => it.slabId === slabDef.id);
+    if (slabItems.length === 0) continue; // Only render sections that contain at least 1 log
+
+    const speciesMap = new Map<string, RoundLogItem[]>();
+    for (const it of slabItems) {
+      const wt = (it.woodType || 'ROUND LOG').trim().toUpperCase();
+      if (!speciesMap.has(wt)) {
+        speciesMap.set(wt, []);
+      }
+      speciesMap.get(wt)!.push(it);
+    }
+
+    const speciesGroups: RoundLogSlabSpeciesGroup[] = [];
+    let slabPieces = 0;
+    let slabVolume = 0;
+    let slabCft = 0;
+    let slabCbm = 0;
+    let slabAmount = 0;
+
+    speciesMap.forEach((spItems, woodType) => {
+      // Find matching slab rate: check woodType__slabId with case-insensitivity
+      const exactKey = `${woodType}__${slabDef.id}`;
+      let rate = slabRates[exactKey];
+      if (rate === undefined) {
+        const foundKey = Object.keys(slabRates).find(
+          (k) => k.trim().toUpperCase() === exactKey.trim().toUpperCase()
+        );
+        if (foundKey) {
+          rate = slabRates[foundKey];
+        }
+      }
+      if (rate === undefined && spItems.length > 0 && typeof spItems[0].rate === 'number' && spItems[0].rate > 0) {
+        rate = spItems[0].rate;
+      }
+      const finalRate = rate && rate > 0 ? rate : 0;
+
+      let spPieces = 0;
+      let spCft = 0;
+      let spCbm = 0;
+      let spVolume = 0;
+      let spAmount = 0;
+
+      for (const it of spItems) {
+        const p = typeof it.pieces === 'number' && it.pieces > 0 ? it.pieces : 1;
+        const itCft = typeof it.cft === 'number' ? it.cft : 0;
+        const itCbm = typeof it.cbm === 'number' ? it.cbm : 0;
+        const activeVol = outputUnit === 'CFT' ? itCft : itCbm;
+        const itRate = finalRate > 0 ? finalRate : (typeof it.rate === 'number' ? it.rate : 0);
+        const itAmount = it.amount && it.amount > 0 ? it.amount : (itRate > 0 ? Math.round(activeVol * itRate * 100) / 100 : 0);
+
+        it.rate = itRate;
+        it.amount = itAmount;
+
+        spPieces += p;
+        spCft += itCft;
+        spCbm += itCbm;
+        spVolume += activeVol;
+        spAmount += itAmount;
+      }
+
+      const spSubtotal = finalRate > 0 ? Math.round(spVolume * finalRate * 100) / 100 : Math.round(spAmount * 100) / 100;
+
+      speciesGroups.push({
+        woodType,
+        items: spItems,
+        totalPieces: spPieces,
+        totalVolume: Math.round(spVolume * 10000) / 10000,
+        totalCft: Math.round(spCft * 10000) / 10000,
+        totalCbm: Math.round(spCbm * 10000) / 10000,
+        rate: finalRate,
+        subtotal: spSubtotal
+      });
+
+      slabPieces += spPieces;
+      slabVolume += spVolume;
+      slabCft += spCft;
+      slabCbm += spCbm;
+      slabAmount += spSubtotal;
+    });
+
+    slabSections.push({
+      slabId: slabDef.id,
+      slabTitle: slabDef.title,
+      slabRangeLabel: slabDef.rangeLabel,
+      speciesGroups,
+      totalPieces: slabPieces,
+      totalVolume: Math.round(slabVolume * 10000) / 10000,
+      totalCft: Math.round(slabCft * 10000) / 10000,
+      totalCbm: Math.round(slabCbm * 10000) / 10000,
+      totalAmount: Math.round(slabAmount * 100) / 100
+    });
+
+    overallTotals.totalPieces += slabPieces;
+    overallTotals.totalVolume += slabVolume;
+    overallTotals.totalCft += slabCft;
+    overallTotals.totalCbm += slabCbm;
+    overallTotals.totalAmount += slabAmount;
+  }
+
+  overallTotals.totalVolume = Math.round(overallTotals.totalVolume * 10000) / 10000;
+  overallTotals.totalCft = Math.round(overallTotals.totalCft * 10000) / 10000;
+  overallTotals.totalCbm = Math.round(overallTotals.totalCbm * 10000) / 10000;
+  overallTotals.totalAmount = Math.round(overallTotals.totalAmount * 100) / 100;
+
+  return { slabSections, overallTotals };
 }

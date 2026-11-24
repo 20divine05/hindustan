@@ -33,9 +33,15 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
   customerName,
   onNewSheet
 }) => {
-  const unitConfig = getRoundLogUnitConfig(inputUnit);
+  const [activeInputUnit, setActiveInputUnit] = useState<RoundLogInputUnitType>(inputUnit);
+
+  useEffect(() => {
+    setActiveInputUnit(inputUnit);
+  }, [inputUnit]);
+
+  const unitConfig = getRoundLogUnitConfig(activeInputUnit);
   const { girthUnit, lengthUnit } = unitConfig;
-  const isFtIn = inputUnit === 'girth_ft_length_ft';
+  const isFtIn = activeInputUnit === 'girth_ft_length_ft';
 
   // Quick Add Input State - ONLY measurements (PCS removed as each log is 1 piece)
   const [quickGirth, setQuickGirth] = useState<string>(''); // G (FT) or G (IN/M/CM)
@@ -120,7 +126,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     girthInPart: gInPVal,
     length: lVal,
     pieces: 1, // Every single log entry is 1 piece
-    inputUnit,
+    inputUnit: activeInputUnit,
     outputUnit
   });
 
@@ -273,7 +279,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
       girthInPart: gInPart,
       length: l,
       pieces: p,
-      inputUnit,
+      inputUnit: activeInputUnit,
       outputUnit
     });
 
@@ -298,7 +304,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
       slabId: comp.slab.id,
       slabLabel: comp.slab.label,
       outputUnit,
-      inputUnit,
+      inputUnit: activeInputUnit,
       rate: 0,
       amount: 0
     };
@@ -425,9 +431,59 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
             </div>
           )}
 
-          <div className="quick-add-header-title">
-            <CornerDownLeft size={16} color="var(--primary-600)" />
-            <span>Round Log Quick Entry ({unitConfig.shortLabel} &rarr; {outputUnit}):</span>
+          <div className="quick-add-header-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <CornerDownLeft size={16} color="var(--primary-600)" />
+              <span style={{ fontWeight: 800 }}>Round Log Quick Entry</span>
+            </div>
+            <span className="badge" style={{ fontSize: '0.72rem', backgroundColor: 'var(--primary-100)', color: 'var(--primary-800)', border: '1px solid var(--primary-200)', padding: '0.15rem 0.45rem' }}>
+              Output: {outputUnit}
+            </span>
+          </div>
+
+          {/* Compact Inline Unit Selector Pill/Tab Bar */}
+          <div
+            className="round-quick-unit-selector"
+            style={{
+              display: 'flex',
+              gap: '0.3rem',
+              marginTop: '0.2rem',
+              marginBottom: '0.45rem',
+              width: '100%'
+            }}
+          >
+            {ROUND_LOG_INPUT_UNIT_OPTIONS.map((opt) => {
+              const isSelected = activeInputUnit === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => {
+                    setActiveInputUnit(opt.id);
+                    if (onInputUnitChange) onInputUnitChange(opt.id);
+                    lengthInputRef.current?.focus();
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '0.28rem 0.2rem',
+                    fontSize: '0.78rem',
+                    fontWeight: isSelected ? 800 : 600,
+                    borderRadius: '6px',
+                    border: isSelected ? '1.5px solid var(--primary-700, #4b3621)' : '1px solid var(--border-medium)',
+                    backgroundColor: isSelected ? 'var(--primary-700, #4b3621)' : '#ffffff',
+                    color: isSelected ? '#ffffff' : 'var(--text-main)',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    transition: 'all 0.12s ease'
+                  }}
+                  title={opt.label}
+                >
+                  {opt.pillLabel}
+                </button>
+              );
+            })}
           </div>
 
           <div
@@ -660,41 +716,48 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                       </td>
 
                       <td style={{ textAlign: 'center', padding: '0.2rem 0.05rem' }}>
-                        {isFtIn ? (
-                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                        {(() => {
+                          const rowInputUnit = item.inputUnit || activeInputUnit;
+                          const rowIsFtIn = rowInputUnit === 'girth_ft_length_ft';
+                          if (rowIsFtIn) {
+                            return (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0"
+                                  className="calc-input tally-cell-input"
+                                  value={item.girthFt !== undefined ? item.girthFt : item.girth}
+                                  onChange={(e) => handleUpdateItem(index, 'girthFt', e.target.value)}
+                                  style={{ width: '42px', textAlign: 'center', fontWeight: 800 }}
+                                />
+                                <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>'</span>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0"
+                                  max="11.99"
+                                  className="calc-input tally-cell-input"
+                                  value={item.girthInPart !== undefined ? item.girthInPart : ''}
+                                  onChange={(e) => handleUpdateItem(index, 'girthInPart', e.target.value)}
+                                  style={{ width: '42px', textAlign: 'center', fontWeight: 800 }}
+                                />
+                                <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>"</span>
+                              </div>
+                            );
+                          }
+                          return (
                             <input
                               type="number"
                               step="any"
                               min="0"
                               className="calc-input tally-cell-input"
-                              value={item.girthFt !== undefined ? item.girthFt : item.girth}
-                              onChange={(e) => handleUpdateItem(index, 'girthFt', e.target.value)}
-                              style={{ width: '42px', textAlign: 'center', fontWeight: 800 }}
+                              value={item.girth}
+                              onChange={(e) => handleUpdateItem(index, 'girth', e.target.value)}
+                              style={{ width: '60px', textAlign: 'center', fontWeight: 800 }}
                             />
-                            <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>'</span>
-                            <input
-                              type="number"
-                              step="any"
-                              min="0"
-                              max="11.99"
-                              className="calc-input tally-cell-input"
-                              value={item.girthInPart !== undefined ? item.girthInPart : ''}
-                              onChange={(e) => handleUpdateItem(index, 'girthInPart', e.target.value)}
-                              style={{ width: '42px', textAlign: 'center', fontWeight: 800 }}
-                            />
-                            <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>"</span>
-                          </div>
-                        ) : (
-                          <input
-                            type="number"
-                            step="any"
-                            min="0"
-                            className="calc-input tally-cell-input"
-                            value={item.girth}
-                            onChange={(e) => handleUpdateItem(index, 'girth', e.target.value)}
-                            style={{ width: '60px', textAlign: 'center', fontWeight: 800 }}
-                          />
-                        )}
+                          );
+                        })()}
                       </td>
 
                       <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.82rem' }}>
@@ -864,67 +927,76 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                         fontSize: '0.76rem'
                       }}
                     />
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{lengthUnit}</span>
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', margin: '0 0.08rem' }}>×</span>
-                    {isFtIn ? (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1px' }}>
-                        <input
-                          type="number"
-                          step="any"
-                          min="0"
-                          className="calc-input tally-cell-input"
-                          value={item.girthFt !== undefined ? item.girthFt : item.girth}
-                          onChange={(e) => handleUpdateItem(index, 'girthFt', e.target.value)}
-                          style={{
-                            width: '32px',
-                            height: '24px',
-                            padding: '0.1rem 0.02rem',
-                            textAlign: 'center',
-                            fontWeight: 800,
-                            fontSize: '0.76rem'
-                          }}
-                        />
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>'</span>
-                        <input
-                          type="number"
-                          step="any"
-                          min="0"
-                          max="11.99"
-                          className="calc-input tally-cell-input"
-                          value={item.girthInPart !== undefined ? item.girthInPart : ''}
-                          onChange={(e) => handleUpdateItem(index, 'girthInPart', e.target.value)}
-                          style={{
-                            width: '32px',
-                            height: '24px',
-                            padding: '0.1rem 0.02rem',
-                            textAlign: 'center',
-                            fontWeight: 800,
-                            fontSize: '0.76rem'
-                          }}
-                        />
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>"</span>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1px' }}>
-                        <input
-                          type="number"
-                          step="any"
-                          min="0"
-                          className="calc-input tally-cell-input"
-                          value={item.girth}
-                          onChange={(e) => handleUpdateItem(index, 'girth', e.target.value)}
-                          style={{
-                            width: '38px',
-                            height: '24px',
-                            padding: '0.1rem 0.04rem',
-                            textAlign: 'center',
-                            fontWeight: 800,
-                            fontSize: '0.76rem'
-                          }}
-                        />
-                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{girthUnit}</span>
-                      </div>
-                    )}
+                    {(() => {
+                      const rowInputUnit = item.inputUnit || activeInputUnit;
+                      const rowConfig = getRoundLogUnitConfig(rowInputUnit);
+                      const rowIsFtIn = rowInputUnit === 'girth_ft_length_ft';
+                      return (
+                        <>
+                          <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{rowConfig.lengthUnit}</span>
+                          <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', margin: '0 0.08rem' }}>×</span>
+                          {rowIsFtIn ? (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1px' }}>
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                className="calc-input tally-cell-input"
+                                value={item.girthFt !== undefined ? item.girthFt : item.girth}
+                                onChange={(e) => handleUpdateItem(index, 'girthFt', e.target.value)}
+                                style={{
+                                  width: '32px',
+                                  height: '24px',
+                                  padding: '0.1rem 0.02rem',
+                                  textAlign: 'center',
+                                  fontWeight: 800,
+                                  fontSize: '0.76rem'
+                                }}
+                              />
+                              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>'</span>
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                max="11.99"
+                                className="calc-input tally-cell-input"
+                                value={item.girthInPart !== undefined ? item.girthInPart : ''}
+                                onChange={(e) => handleUpdateItem(index, 'girthInPart', e.target.value)}
+                                style={{
+                                  width: '32px',
+                                  height: '24px',
+                                  padding: '0.1rem 0.02rem',
+                                  textAlign: 'center',
+                                  fontWeight: 800,
+                                  fontSize: '0.76rem'
+                                }}
+                              />
+                              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>"</span>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1px' }}>
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                className="calc-input tally-cell-input"
+                                value={item.girth}
+                                onChange={(e) => handleUpdateItem(index, 'girth', e.target.value)}
+                                style={{
+                                  width: '38px',
+                                  height: '24px',
+                                  padding: '0.1rem 0.04rem',
+                                  textAlign: 'center',
+                                  fontWeight: 800,
+                                  fontSize: '0.76rem'
+                                }}
+                              />
+                              <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{rowConfig.girthUnit}</span>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Volume */}

@@ -53,7 +53,6 @@ import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice
 import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood, calculateRow } from '../utils/calculator';
 import {
   calculateRoundLogTotals,
-  ROUND_LOG_INPUT_UNIT_OPTIONS,
   getRoundLogUnitConfig,
   groupRoundLogsBySpeciesAndSlab,
   computeRoundLogDimensions,
@@ -706,13 +705,33 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     return sum > 0 ? sum : (totals.totalAmount || 0);
   }, [items, ratePerCft, totals.totalAmount]);
 
+
+
+  // Round logs grouped by species and girth slabs for preview & invoice syncing
+  const roundLogSpeciesSlabData = useMemo(() => {
+    if (logType !== 'round') {
+      return {
+        speciesGroups: [],
+        overallTotals: { totalPieces: 0, totalVolume: 0, totalCft: 0, totalCbm: 0, totalAmount: 0, slabs: {} as any }
+      };
+    }
+    return groupRoundLogsBySpeciesAndSlab(
+      roundLogItems,
+      roundLogOutputUnit,
+      roundLogInputUnit,
+      roundLogSlabRates
+    );
+  }, [logType, roundLogItems, roundLogOutputUnit, roundLogInputUnit, roundLogSlabRates]);
+
   // Active timber subtotal, volume, unit, and pieces depending on selected LogType (Cut Logs vs Round Logs)
   const activeTimberSubtotal = useMemo(() => {
     if (logType === 'round') {
-      return roundLogTotals.totalAmount;
+      return roundLogSpeciesSlabData.overallTotals.totalAmount > 0
+        ? roundLogSpeciesSlabData.overallTotals.totalAmount
+        : roundLogTotals.totalAmount;
     }
     return timberSubtotal;
-  }, [logType, roundLogTotals.totalAmount, timberSubtotal]);
+  }, [logType, roundLogSpeciesSlabData.overallTotals.totalAmount, roundLogTotals.totalAmount, timberSubtotal]);
 
   const activeTotalVolume = useMemo(() => {
     if (logType === 'round') {
@@ -776,21 +795,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const sortedItems = useMemo(() => sortTimberEntries(items), [items]);
   const timberWoodGroups = useMemo(() => groupTimberByWood(items, ratePerCft), [items, ratePerCft]);
 
-  // Round logs grouped by species and girth slabs for preview & invoice syncing
-  const roundLogSpeciesSlabData = useMemo(() => {
-    if (logType !== 'round') {
-      return {
-        speciesGroups: [],
-        overallTotals: { totalPieces: 0, totalVolume: 0, totalCft: 0, totalCbm: 0, totalAmount: 0, slabs: {} as any }
-      };
-    }
-    return groupRoundLogsBySpeciesAndSlab(
-      roundLogItems,
-      roundLogOutputUnit,
-      roundLogInputUnit,
-      roundLogSlabRates
-    );
-  }, [logType, roundLogItems, roundLogOutputUnit, roundLogInputUnit, roundLogSlabRates]);
+
 
   // In-place editing in Step 13 Preview: automatically re-classifies slab & jumps log to new slab box
   const handleStep13UpdateRoundLogItem = (
@@ -2604,7 +2609,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
 
-            {/* Round Log Configuration Flow (Steps A and B revealed when Round Logs is selected) */}
+            {/* Round Log Configuration Flow: Select Output Volume Unit and proceed directly */}
             {logType === 'round' && (
               <div
                 style={{
@@ -2615,138 +2620,69 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   marginTop: '0.5rem',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '1.1rem',
+                  gap: '0.85rem',
                   boxShadow: '0 4px 14px rgba(75, 54, 33, 0.06)'
                 }}
               >
-                {/* Step A: Output Unit Selection */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.5rem' }}>
-                    <span style={{ backgroundColor: 'var(--primary-700)', color: '#fff', borderRadius: '50%', width: '22px', height: '22px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800 }}>A</span>
-                    <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)' }}>Step A: Select Output Volume Unit:</strong>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => setRoundLogOutputUnit('CFT')}
-                      style={{
-                        padding: '0.75rem 0.5rem',
-                        borderRadius: '8px',
-                        border: roundLogOutputUnit === 'CFT' ? '2px solid var(--primary-700, #4b3621)' : '1px solid var(--border-medium)',
-                        backgroundColor: roundLogOutputUnit === 'CFT' ? 'var(--primary-700, #4b3621)' : '#ffffff',
-                        color: roundLogOutputUnit === 'CFT' ? '#ffffff' : 'var(--text-main)',
-                        fontWeight: 800,
-                        fontSize: '0.95rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '0.2rem',
-                        boxShadow: roundLogOutputUnit === 'CFT' ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <span>CFT</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 600, opacity: roundLogOutputUnit === 'CFT' ? 0.9 : 0.7 }}>Cubic Feet</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setRoundLogOutputUnit('CBM')}
-                      style={{
-                        padding: '0.75rem 0.5rem',
-                        borderRadius: '8px',
-                        border: roundLogOutputUnit === 'CBM' ? '2px solid var(--primary-700, #4b3621)' : '1px solid var(--border-medium)',
-                        backgroundColor: roundLogOutputUnit === 'CBM' ? 'var(--primary-700, #4b3621)' : '#ffffff',
-                        color: roundLogOutputUnit === 'CBM' ? '#ffffff' : 'var(--text-main)',
-                        fontWeight: 800,
-                        fontSize: '0.95rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '0.2rem',
-                        boxShadow: roundLogOutputUnit === 'CBM' ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <span>CBM</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 600, opacity: roundLogOutputUnit === 'CBM' ? 0.9 : 0.7 }}>Cubic Meters</span>
-                    </button>
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <strong style={{ fontSize: '0.95rem', color: 'var(--text-main)' }}>Select Output Volume Unit:</strong>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>(Tap to proceed directly to Calculator)</span>
                 </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRoundLogOutputUnit('CFT');
+                      setCurrentStep(6);
+                    }}
+                    style={{
+                      padding: '0.85rem 0.5rem',
+                      borderRadius: '8px',
+                      border: roundLogOutputUnit === 'CFT' ? '2px solid var(--primary-700, #4b3621)' : '1px solid var(--border-medium)',
+                      backgroundColor: roundLogOutputUnit === 'CFT' ? 'var(--primary-700, #4b3621)' : '#ffffff',
+                      color: roundLogOutputUnit === 'CFT' ? '#ffffff' : 'var(--text-main)',
+                      fontWeight: 800,
+                      fontSize: '1rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.2rem',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span>CFT &rarr;</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, opacity: roundLogOutputUnit === 'CFT' ? 0.9 : 0.7 }}>Cubic Feet</span>
+                  </button>
 
-                {/* Step B: Input Unit Type Selection */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.5rem' }}>
-                    <span style={{ backgroundColor: 'var(--primary-700)', color: '#fff', borderRadius: '50%', width: '22px', height: '22px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800 }}>B</span>
-                    <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)' }}>Step B: Select Input Measurement Unit:</strong>
-                    <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>(Mid-Point Girth &times; Length)</span>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '0.55rem' }}>
-                    {ROUND_LOG_INPUT_UNIT_OPTIONS.map((opt, idx) => {
-                      const isSelected = roundLogInputUnit === opt.id;
-                      const formulaText = roundLogOutputUnit === 'CFT' ? opt.formulaDisplayCFT : opt.formulaDisplayCBM;
-                      return (
-                        <div
-                          key={opt.id}
-                          onClick={() => setRoundLogInputUnit(opt.id)}
-                          style={{
-                            padding: '0.65rem 0.75rem',
-                            borderRadius: '8px',
-                            border: isSelected ? '2px solid var(--primary-700, #4b3621)' : '1px solid var(--border-medium)',
-                            backgroundColor: isSelected ? 'var(--primary-50, #fcf7ee)' : '#ffffff',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.25rem',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '0.86rem', fontWeight: 800, color: isSelected ? 'var(--primary-900)' : 'var(--text-main)' }}>
-                              {idx + 1}. {opt.label}
-                            </span>
-                            <input
-                              type="radio"
-                              name="roundLogInputUnit"
-                              checked={isSelected}
-                              onChange={() => setRoundLogInputUnit(opt.id)}
-                              style={{ cursor: 'pointer', accentColor: 'var(--primary-700)' }}
-                            />
-                          </div>
-                          <span style={{ fontSize: '0.74rem', color: isSelected ? 'var(--primary-800)' : 'var(--text-muted)', fontFamily: 'monospace', fontWeight: 600 }}>
-                            {formulaText}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRoundLogOutputUnit('CBM');
+                      setCurrentStep(6);
+                    }}
+                    style={{
+                      padding: '0.85rem 0.5rem',
+                      borderRadius: '8px',
+                      border: roundLogOutputUnit === 'CBM' ? '2px solid var(--primary-700, #4b3621)' : '1px solid var(--border-medium)',
+                      backgroundColor: roundLogOutputUnit === 'CBM' ? 'var(--primary-700, #4b3621)' : '#ffffff',
+                      color: roundLogOutputUnit === 'CBM' ? '#ffffff' : 'var(--text-main)',
+                      fontWeight: 800,
+                      fontSize: '1rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.2rem',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span>CBM &rarr;</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, opacity: roundLogOutputUnit === 'CBM' ? 0.9 : 0.7 }}>Cubic Meters</span>
+                  </button>
                 </div>
-
-                {/* Proceed Action Button */}
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => setCurrentStep(6)}
-                  style={{
-                    marginTop: '0.25rem',
-                    padding: '0.75rem 1rem',
-                    fontSize: '0.95rem',
-                    fontWeight: 800,
-                    justifyContent: 'center',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    borderRadius: '8px',
-                    backgroundColor: 'var(--primary-700, #4b3621)',
-                    color: '#fff'
-                  }}
-                >
-                  <span>Proceed to Round Log Calculator</span>
-                  <span>&rarr;</span>
-                </button>
               </div>
             )}
           </div>
@@ -2764,12 +2700,16 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 inputUnit={roundLogInputUnit}
                 onChange={(newItems) => {
                   const withRates = newItems.map(item => {
-                    const w = item.woodType || 'Mahagony';
+                    const w = (item.woodType || 'Mahagony').trim().toUpperCase();
                     const s = item.slabId || 'upto_23';
                     const key = `${w}__${s}`;
-                    const r = roundLogSlabRates[key] ?? (typeof item.rate === 'number' ? item.rate : 0);
+                    let r = roundLogSlabRates[key];
+                    if (r === undefined) {
+                      const foundKey = Object.keys(roundLogSlabRates).find(k => k.trim().toUpperCase() === key);
+                      r = foundKey ? roundLogSlabRates[foundKey] : (typeof item.rate === 'number' ? item.rate : 0);
+                    }
                     const activeVol = roundLogOutputUnit === 'CFT' ? (item.cft || item.volume) : (item.cbm || item.volume);
-                    const amt = r > 0 ? Math.round(activeVol * r * 100) / 100 : 0;
+                    const amt = r > 0 ? Math.round(activeVol * r * 100) / 100 : (item.amount || 0);
                     return { ...item, rate: r, amount: amt };
                   });
                   setRoundLogItems(withRates);
@@ -2800,13 +2740,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 inputUnit={roundLogInputUnit}
                 slabRates={roundLogSlabRates}
                 onSlabRateChange={(woodType, slabId, rate) => {
-                  const key = `${woodType}__${slabId}`;
+                  const normW = woodType.trim().toUpperCase();
+                  const key = `${normW}__${slabId}`;
                   const nextRates = { ...roundLogSlabRates, [key]: rate };
                   setRoundLogSlabRates(nextRates);
 
                   const updated = roundLogItems.map(item => {
-                    const w = item.woodType || 'Mahagony';
-                    if (w === woodType && item.slabId === slabId) {
+                    const w = (item.woodType || 'Mahagony').trim().toUpperCase();
+                    if (w === normW && item.slabId === slabId) {
                       const activeVol = roundLogOutputUnit === 'CFT' ? (item.cft || item.volume) : (item.cbm || item.volume);
                       const amt = rate > 0 ? Math.round(activeVol * rate * 100) / 100 : 0;
                       return { ...item, rate, amount: amt };
