@@ -12,7 +12,7 @@ import { PAYMENT_QR_BASE64 } from './paymentQrBase64';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from './indianNumberWords';
 import { sortTimberEntries, formatValue } from './calculator';
 import {
-  groupRoundLogsBySlabFirst,
+  groupRoundLogsBySpeciesFirst,
   getRoundLogUnitConfig
 } from './roundLogCalculator';
 
@@ -150,7 +150,7 @@ export function createProformaInvoiceDoc(
   const roundLogInputUnit = invoiceData?.roundLogInputUnit || sheet.roundLogInputUnit || 'girth_ft_length_ft';
   const roundLogSlabRates = invoiceData?.roundLogSlabRates || sheet.roundLogSlabRates || {};
 
-  const { slabSections, overallTotals: roundOverallTotals } = groupRoundLogsBySlabFirst(
+  const { speciesSections, overallTotals: roundOverallTotals } = groupRoundLogsBySpeciesFirst(
     roundLogItems,
     roundLogOutputUnit,
     roundLogInputUnit,
@@ -499,38 +499,39 @@ export function createProformaInvoiceDoc(
 
   if (isRoundLog) {
     let itemIdx = 0;
-    for (const slabSec of slabSections) {
-      // 1. Girth Slab Section Banner
-      const slabBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+    for (const spSec of speciesSections) {
+      // 1. Parent Header: Wood Species Banner
+      const speciesBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
       tableBody.push([
         {
-          content: `${slabSec.slabTitle}  (${slabSec.slabRangeLabel})`,
+          content: spSec.woodType.toUpperCase(),
           colSpan: 7,
           styles: {
             fontStyle: 'bold',
             textColor: [0, 0, 0],
-            fontSize: 8.5,
-            cellPadding: { left: 2.2, top: 0.6, bottom: 0.6 },
+            fontSize: 8.8,
+            cellPadding: { left: 2.2, top: 0.65, bottom: 0.65 },
             halign: 'left',
             fillColor: [226, 232, 240],
-            lineWidth: slabBorder
+            lineWidth: speciesBorder
           }
         }
       ]);
 
-      for (const spGroup of slabSec.speciesGroups) {
-        // 2. Wood Species Header Row inside this slab
+      for (const slabGroup of spSec.slabGroups) {
+        // 2. Girth Slab Sub-section Header inside this wood
+        const slabBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
         tableBody.push([
           {
-            content: spGroup.woodType.toUpperCase(),
+            content: `${slabGroup.slabTitle}  (${slabGroup.slabRangeLabel})`,
             colSpan: 7,
             styles: {
               fontStyle: 'bold',
-              textColor: [0, 0, 0],
-              fontSize: 8.0,
-              cellPadding: { left: 3.5, top: 0.5, bottom: 0.5 },
+              textColor: [30, 41, 59],
+              fontSize: 7.8,
+              cellPadding: { left: 5.0, top: 0.45, bottom: 0.45 },
               halign: 'left',
-              fillColor: [243, 244, 246],
+              fillColor: [241, 245, 249],
               lineWidth: slabBorder
             }
           }
@@ -538,17 +539,17 @@ export function createProformaInvoiceDoc(
 
         // 3. Individual Log Rows
         const itemBorder = { top: 0, bottom: 0.2, left: 0.2, right: 0.2 };
-        for (const it of spGroup.items) {
+        for (const it of slabGroup.items) {
           const rowCfg = getRoundLogUnitConfig(it.inputUnit || roundLogInputUnit);
           const lStr = `${it.length} ${rowCfg.lengthUnit}`;
           const gStr = it.girthFtInStr || (it.girthInches !== undefined ? `${formatValue(it.girthInches, 1)}"` : `${it.girth}`);
           const activeVol = roundLogOutputUnit === 'CFT' ? (it.cft || it.volume) : (it.cbm || it.volume);
-          const itRate = it.rate && it.rate > 0 ? it.rate : spGroup.rate;
+          const itRate = it.rate && it.rate > 0 ? it.rate : slabGroup.rate;
           const itAmount = it.amount && it.amount > 0 ? it.amount : (itRate > 0 ? Math.round(activeVol * itRate * 100) / 100 : 0);
           const zebraBg = (itemIdx++ % 2 === 0) ? [255, 255, 255] : [248, 249, 250];
 
           tableBody.push([
-            { content: `${it.serialNumber || slCounter++}`, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+            { content: `${it.serialNumber || 1}`, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
             { content: lStr, styles: { lineWidth: itemBorder, halign: 'center', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
             { content: gStr, styles: { lineWidth: itemBorder, halign: 'center', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
             { content: formatValue(activeVol, 4), styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
@@ -558,25 +559,25 @@ export function createProformaInvoiceDoc(
           ]);
         }
 
-        // 4. Species Sub Total Row (e.g., Sub Total (MAHAGONY - UPTO 23"))
+        // 4. Sub Total (SlabTitle) Row
         const subtotalBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
         const subtotalBg: [number, number, number] = [243, 244, 246];
         tableBody.push([
           {
-            content: `Sub Total (${spGroup.woodType} - ${slabSec.slabTitle}):`,
+            content: `Sub Total (${slabGroup.slabTitle}):`,
             colSpan: 2,
-            styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: subtotalBg, lineWidth: subtotalBorder }
+            styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 5.0, top: 0.55, bottom: 0.55 }, fillColor: subtotalBg, lineWidth: subtotalBorder }
           },
           {
-            content: `${spGroup.totalPieces} LOGS`,
+            content: `${slabGroup.totalPieces} LOGS`,
             styles: { fontStyle: 'bold', halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
           },
           {
-            content: formatValue(spGroup.totalVolume, 4),
+            content: formatValue(slabGroup.totalVolume, 4),
             styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
           },
           {
-            content: spGroup.rate > 0 ? formatValue(spGroup.rate, 2) : '',
+            content: slabGroup.rate > 0 ? formatValue(slabGroup.rate, 2) : '',
             styles: { halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
           },
           {
@@ -584,14 +585,42 @@ export function createProformaInvoiceDoc(
             styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
           },
           {
-            content: `Rs. ${formatIndianCurrency(spGroup.subtotal)}`,
+            content: `Rs. ${formatIndianCurrency(slabGroup.subtotal)}`,
             styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 } }
           }
         ]);
       }
+
+      // 5. Bold Total - [WOOD SPECIES] row at the bottom of that wood section
+      const speciesTotalBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+      const speciesTotalBg: [number, number, number] = [238, 242, 246];
+      tableBody.push([
+        {
+          content: `Total - ${spSec.woodType.toUpperCase()}`,
+          colSpan: 2,
+          styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.6, bottom: 0.6 }, fillColor: speciesTotalBg, lineWidth: speciesTotalBorder }
+        },
+        {
+          content: `${spSec.totalPieces} LOGS`,
+          styles: { fontStyle: 'bold', halign: 'center', fillColor: speciesTotalBg, lineWidth: speciesTotalBorder, cellPadding: { top: 0.6, bottom: 0.6 } }
+        },
+        {
+          content: `${formatValue(roundLogOutputUnit === 'CFT' ? spSec.totalCft : spSec.totalCbm, 4)}`,
+          styles: { fontStyle: 'bold', halign: 'right', fillColor: speciesTotalBg, lineWidth: speciesTotalBorder, cellPadding: { top: 0.6, bottom: 0.6 } }
+        },
+        {
+          content: '',
+          colSpan: 2,
+          styles: { fillColor: speciesTotalBg, lineWidth: speciesTotalBorder, cellPadding: { top: 0.6, bottom: 0.6 } }
+        },
+        {
+          content: `Rs. ${formatIndianCurrency(spSec.totalAmount)}`,
+          styles: { fontStyle: 'bold', halign: 'right', fillColor: speciesTotalBg, lineWidth: speciesTotalBorder, cellPadding: { right: 1.8, top: 0.6, bottom: 0.6 } }
+        }
+      ]);
     }
 
-    // 5. TOTAL WOOD AMOUNT row
+    // 6. TOTAL WOOD AMOUNT row
     if (totalPieces > 0) {
       const totalWoodBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
       const woodBg: [number, number, number] = [226, 232, 240];
@@ -599,24 +628,24 @@ export function createProformaInvoiceDoc(
         {
           content: 'TOTAL WOOD AMOUNT',
           colSpan: 2,
-          styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: woodBg, lineWidth: totalWoodBorder }
+          styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.6, bottom: 0.6 }, fillColor: woodBg, lineWidth: totalWoodBorder }
         },
         {
           content: `${totalPieces} LOGS CLASSIFIED`,
-          styles: { fontStyle: 'bold', halign: 'center', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
+          styles: { fontStyle: 'bold', halign: 'center', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.6, bottom: 0.6 } }
         },
         {
           content: `${formatValue(roundLogOutputUnit === 'CFT' ? totalCft : totalCbm, 4)} ${roundLogOutputUnit}`,
-          styles: { fontStyle: 'bold', halign: 'right', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
+          styles: { fontStyle: 'bold', halign: 'right', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.6, bottom: 0.6 } }
         },
         {
           content: '',
           colSpan: 2,
-          styles: { fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } }
+          styles: { fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.6, bottom: 0.6 } }
         },
         {
           content: `Rs. ${formatIndianCurrency(totalAmount)}`,
-          styles: { fontStyle: 'bold', halign: 'right', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 } }
+          styles: { fontStyle: 'bold', halign: 'right', fillColor: woodBg, lineWidth: totalWoodBorder, cellPadding: { right: 1.8, top: 0.6, bottom: 0.6 } }
         }
       ]);
     }
@@ -1054,7 +1083,7 @@ export function createProformaInvoiceDoc(
         const c1 = (rawRow[1] as any)?.content ?? (typeof rawRow[1] === 'string' ? rawRow[1] : '');
 
         const isSectionBanner = (rawRow[0] as any)?.colSpan >= 7 || (rawRow[1] as any)?.colSpan >= 7;
-        const isSubtotalRow = (typeof c0 === 'string' && (c0.startsWith('Sub Total') || c0 === 'TOTAL WOOD AMOUNT')) || c1 === 'Total' || c1 === 'TOTAL WOOD AMOUNT';
+        const isSubtotalRow = (typeof c0 === 'string' && (c0.startsWith('Sub Total') || c0.startsWith('Total -') || c0 === 'TOTAL WOOD AMOUNT')) || c1 === 'Total' || c1 === 'TOTAL WOOD AMOUNT';
         const isFootRow = data.section === 'foot';
         const isChargeRow = (rawRow[1] as any)?.colSpan === (isRoundLog ? 5 : 6);
         const isEmptyPaddingRow = c0 === '' && c1 === '' && !isSectionBanner && !isSubtotalRow;

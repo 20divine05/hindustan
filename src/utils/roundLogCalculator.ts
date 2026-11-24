@@ -701,3 +701,250 @@ export function groupRoundLogsBySlabFirst(
 
   return { slabSections, overallTotals };
 }
+
+/**
+ * Re-indexes Round Log item serial numbers sequentially per wood species.
+ * Within each wood species, logs are numbered 1, 2, 3... in the order they appear.
+ * When switching woods, the new wood starts at 1, and returning to a previous wood
+ * continues from the next highest number for that wood species.
+ * If a row is deleted, the remaining rows of that wood species are renumbered 1, 2, 3...
+ */
+export function reindexRoundLogsPerSpecies(items: RoundLogItem[]): RoundLogItem[] {
+  const speciesCounters = new Map<string, number>();
+
+  return items.map((item) => {
+    const rawWood = (item.woodType || 'Mahagony').trim();
+    const woodKey = rawWood.toUpperCase();
+    const currentNum = (speciesCounters.get(woodKey) || 0) + 1;
+    speciesCounters.set(woodKey, currentNum);
+
+    return {
+      ...item,
+      serialNumber: currentNum
+    };
+  });
+}
+
+export interface RoundLogSpeciesSlabGroup {
+  slabId: GirthSlabType;
+  slabTitle: string; // 'Upto 23"', 'Above 24"', 'Above 36"', 'Above 48"', 'Above 60"'
+  slabRangeLabel: string;
+  items: RoundLogItem[];
+  totalPieces: number;
+  totalVolume: number;
+  totalCft: number;
+  totalCbm: number;
+  rate: number;
+  subtotal: number;
+}
+
+export interface RoundLogSpeciesSection {
+  woodType: string;
+  slabGroups: RoundLogSpeciesSlabGroup[];
+  totalPieces: number;
+  totalVolume: number;
+  totalCft: number;
+  totalCbm: number;
+  totalAmount: number;
+}
+
+/**
+ * Groups round logs with Wood Species as the main parent section,
+ * and Girth Slabs (in ascending order) as sub-sections nested inside each wood species.
+ * Only includes slabs that have logs for that wood species.
+ * Logs within each species maintain their independent sequential numbering (Log 1, Log 2...).
+ */
+export function groupRoundLogsBySpeciesFirst(
+  items: RoundLogItem[],
+  outputUnit: RoundLogOutputUnit = 'CFT',
+  inputUnit: RoundLogInputUnitType = 'girth_in_length_ft',
+  slabRates: Record<string, number> = {}
+): {
+  speciesSections: RoundLogSpeciesSection[];
+  overallTotals: {
+    totalPieces: number;
+    totalVolume: number;
+    totalCft: number;
+    totalCbm: number;
+    totalAmount: number;
+  };
+} {
+  const SLAB_DEFS: Array<{ id: GirthSlabType; title: string; rangeLabel: string }> = [
+    { id: 'upto_23', title: 'Upto 23"', rangeLabel: '≤23"' },
+    { id: 'above_24', title: 'Above 24"', rangeLabel: '24"–35.99"' },
+    { id: 'above_36', title: 'Above 36"', rangeLabel: '36"–47.99"' },
+    { id: 'above_48', title: 'Above 48"', rangeLabel: '48"–59.99"' },
+    { id: 'above_60', title: 'Above 60"', rangeLabel: '≥60"' },
+  ];
+
+  // 1. Reindex per wood species first so serialNumber is 1, 2, 3... per species
+  const reindexedItems = reindexRoundLogsPerSpecies(items || []);
+
+  // 2. Normalize dimensions
+  const normalizedItems = reindexedItems.map((it) => {
+    const g = typeof it.girth === 'number' ? it.girth : 0;
+    const gInP = typeof it.girthInPart === 'number' ? it.girthInPart : 0;
+    const l = typeof it.length === 'number' ? it.length : 0;
+    const p = typeof it.pieces === 'number' && it.pieces > 0 ? it.pieces : 1;
+    const itemInputUnit = it.inputUnit || inputUnit;
+
+    let slabId = it.slabId;
+    let cft = typeof it.cft === 'number' && it.cft > 0 ? it.cft : 0;
+    let cbm = typeof it.cbm === 'number' && it.cbm > 0 ? it.cbm : 0;
+    let gInches = it.girthInches;
+    let gFtInStr = it.girthFtInStr;
+
+    if (!slabId || (cft === 0 && cbm === 0)) {
+      const comp = computeRoundLogDimensions({
+        girth: g,
+        girthInPart: gInP,
+        length: l,
+        pieces: p,
+        inputUnit: itemInputUnit,
+        outputUnit
+      });
+      slabId = comp.slab.id;
+      cft = comp.cft;
+      cbm = comp.cbm;
+      gInches = comp.girthInches;
+      gFtInStr = comp.girthFtInStr;
+    }
+
+    return {
+      ...it,
+      slabId,
+      cft,
+      cbm,
+      volume: outputUnit === 'CFT' ? cft : cbm,
+      girthInches: gInches,
+      gFtInStr: gFtInStr
+    };
+  });
+
+  // 3. Group by Wood Species (preserving appearance order)
+  const woodOrder: string[] = [];
+  const woodMap = new Map<string, RoundLogItem[]>();
+
+  for (const it of normalizedItems) {
+    const rawWood = (it.woodType || 'Mahagony').trim();
+    const woodKey = rawWood.toUpperCase();
+    if (!woodMap.has(woodKey)) {
+      woodOrder.push(rawWood);
+      woodMap.set(woodKey, []);
+    }
+    woodMap.get(woodKey)!.push(it);
+  }
+
+  const speciesSections: RoundLogSpeciesSection[] = [];
+  const overallTotals = {
+    totalPieces: 0,
+    totalVolume: 0,
+    totalCft: 0,
+    totalCbm: 0,
+    totalAmount: 0
+  };
+
+  for (const displayWood of woodOrder) {
+    const woodKey = displayWood.toUpperCase();
+    const woodItems = woodMap.get(woodKey) || [];
+    if (woodItems.length === 0) continue;
+
+    const slabGroups: RoundLogSpeciesSlabGroup[] = [];
+    let spPieces = 0;
+    let spVolume = 0;
+    let spCft = 0;
+    let spCbm = 0;
+    let spAmount = 0;
+
+    for (const slabDef of SLAB_DEFS) {
+      const itemsInSlab = woodItems.filter((it) => it.slabId === slabDef.id);
+      if (itemsInSlab.length === 0) continue; // Only show slabs that have logs for this wood
+
+      // Find matching slab rate
+      const exactKey = `${woodKey}__${slabDef.id}`;
+      let rate = slabRates[exactKey];
+      if (rate === undefined) {
+        const foundKey = Object.keys(slabRates).find(
+          (k) => k.trim().toUpperCase() === exactKey.trim().toUpperCase()
+        );
+        if (foundKey) {
+          rate = slabRates[foundKey];
+        }
+      }
+      if (rate === undefined && itemsInSlab.length > 0 && typeof itemsInSlab[0].rate === 'number' && itemsInSlab[0].rate > 0) {
+        rate = itemsInSlab[0].rate;
+      }
+      const finalRate = rate && rate > 0 ? rate : 0;
+
+      let slabGroupPieces = 0;
+      let slabGroupCft = 0;
+      let slabGroupCbm = 0;
+      let slabGroupVolume = 0;
+      let slabGroupAmount = 0;
+
+      for (const it of itemsInSlab) {
+        const p = typeof it.pieces === 'number' && it.pieces > 0 ? it.pieces : 1;
+        const itCft = typeof it.cft === 'number' ? it.cft : 0;
+        const itCbm = typeof it.cbm === 'number' ? it.cbm : 0;
+        const activeVol = outputUnit === 'CFT' ? itCft : itCbm;
+        const itRate = finalRate > 0 ? finalRate : (typeof it.rate === 'number' ? it.rate : 0);
+        const itAmount = it.amount && it.amount > 0 ? it.amount : (itRate > 0 ? Math.round(activeVol * itRate * 100) / 100 : 0);
+
+        it.rate = itRate;
+        it.amount = itAmount;
+
+        slabGroupPieces += p;
+        slabGroupCft += itCft;
+        slabGroupCbm += itCbm;
+        slabGroupVolume += activeVol;
+        slabGroupAmount += itAmount;
+      }
+
+      const slabSubtotal = finalRate > 0
+        ? Math.round(slabGroupVolume * finalRate * 100) / 100
+        : Math.round(slabGroupAmount * 100) / 100;
+
+      slabGroups.push({
+        slabId: slabDef.id,
+        slabTitle: slabDef.title,
+        slabRangeLabel: slabDef.rangeLabel,
+        items: itemsInSlab,
+        totalPieces: slabGroupPieces,
+        totalVolume: Math.round(slabGroupVolume * 10000) / 10000,
+        totalCft: Math.round(slabGroupCft * 10000) / 10000,
+        totalCbm: Math.round(slabGroupCbm * 10000) / 10000,
+        rate: finalRate,
+        subtotal: slabSubtotal
+      });
+
+      spPieces += slabGroupPieces;
+      spVolume += slabGroupVolume;
+      spCft += slabGroupCft;
+      spCbm += slabGroupCbm;
+      spAmount += slabSubtotal;
+    }
+
+    speciesSections.push({
+      woodType: displayWood.toUpperCase(),
+      slabGroups,
+      totalPieces: spPieces,
+      totalVolume: Math.round(spVolume * 10000) / 10000,
+      totalCft: Math.round(spCft * 10000) / 10000,
+      totalCbm: Math.round(spCbm * 10000) / 10000,
+      totalAmount: Math.round(spAmount * 100) / 100
+    });
+
+    overallTotals.totalPieces += spPieces;
+    overallTotals.totalVolume += spVolume;
+    overallTotals.totalCft += spCft;
+    overallTotals.totalCbm += spCbm;
+    overallTotals.totalAmount += spAmount;
+  }
+
+  overallTotals.totalVolume = Math.round(overallTotals.totalVolume * 10000) / 10000;
+  overallTotals.totalCft = Math.round(overallTotals.totalCft * 10000) / 10000;
+  overallTotals.totalCbm = Math.round(overallTotals.totalCbm * 10000) / 10000;
+  overallTotals.totalAmount = Math.round(overallTotals.totalAmount * 100) / 100;
+
+  return { speciesSections, overallTotals };
+}

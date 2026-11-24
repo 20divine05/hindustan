@@ -6,6 +6,7 @@ import {
   calculateRoundLogTotals,
   getRoundLogUnitConfig,
   computeRoundLogDimensions,
+  reindexRoundLogsPerSpecies,
   ROUND_LOG_INPUT_UNIT_OPTIONS
 } from '../utils/roundLogCalculator';
 import { formatValue } from '../utils/calculator';
@@ -133,6 +134,14 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
   // Real-time table totals
   const totals = calculateRoundLogTotals(items, outputUnit);
 
+  const activeWoodSpecies = selectedWoodOption === 'Other (Custom...)'
+    ? (customWoodType.trim() || 'Custom Wood')
+    : selectedWoodOption;
+
+  const nextLogNumberForActiveWood = items.filter(
+    (it) => (it.woodType || 'Mahagony').trim().toUpperCase() === activeWoodSpecies.trim().toUpperCase()
+  ).length + 1;
+
   // In-place row field updates (Girth, Length, Wood Type)
   const handleUpdateItem = (
     index: number,
@@ -142,7 +151,12 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     const updated = [...items];
     const target = { ...updated[index] };
 
-    if (field === 'woodType' || field === 'remarks') {
+    if (field === 'woodType') {
+      target.woodType = rawValue;
+      updated[index] = target;
+      onChange(reindexRoundLogsPerSpecies(updated));
+      return;
+    } else if (field === 'remarks') {
       target[field] = rawValue;
     } else {
       const parsed = rawValue === '' ? '' : parseFloat(rawValue);
@@ -188,10 +202,10 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     onChange(updated);
   };
 
-  // Delete a row
+  // Delete a row - clean re-indexing per wood species
   const handleDeleteRow = (index: number) => {
     const updated = items.filter((_, idx) => idx !== index);
-    const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
+    const reindexed = reindexRoundLogsPerSpecies(updated);
     onChange(reindexed);
   };
 
@@ -287,9 +301,13 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
       ? (customWoodType.trim() || 'Custom Wood')
       : selectedWoodOption;
 
+    const existingCountForSpecies = items.filter(
+      (it) => (it.woodType || 'Mahagony').trim().toUpperCase() === finalWood.trim().toUpperCase()
+    ).length;
+
     const newItem: RoundLogItem = {
       id: generateId(),
-      serialNumber: items.length + 1,
+      serialNumber: existingCountForSpecies + 1,
       woodType: finalWood,
       girth: gFt,
       girthFt: isFtIn ? gFt : undefined,
@@ -310,8 +328,9 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     };
 
     // NEVER MERGE DUPLICATES: Always append every submission as a separate, independent log row
+    // and maintain independent continuous log numbering per species
     const updated = [...items, newItem];
-    const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
+    const reindexed = reindexRoundLogsPerSpecies(updated);
     onChange(reindexed);
 
     // Reset inputs
@@ -435,8 +454,11 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <CornerDownLeft size={16} color="var(--primary-600)" />
               <span style={{ fontWeight: 800 }}>Round Log Quick Entry</span>
+              <span className="badge" style={{ fontSize: '0.72rem', backgroundColor: 'var(--primary-100)', color: 'var(--primary-800)', border: '1px solid var(--primary-200)', padding: '0.12rem 0.45rem', fontWeight: 800 }}>
+                Log {nextLogNumberForActiveWood}
+              </span>
             </div>
-            <span className="badge" style={{ fontSize: '0.72rem', backgroundColor: 'var(--primary-100)', color: 'var(--primary-800)', border: '1px solid var(--primary-200)', padding: '0.15rem 0.45rem' }}>
+            <span className="badge" style={{ fontSize: '0.72rem', backgroundColor: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-medium)', padding: '0.15rem 0.45rem' }}>
               Output: {outputUnit}
             </span>
           </div>

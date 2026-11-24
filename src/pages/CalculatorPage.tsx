@@ -56,6 +56,7 @@ import {
   getRoundLogUnitConfig,
   groupRoundLogsBySpeciesAndSlab,
   computeRoundLogDimensions,
+  reindexRoundLogsPerSpecies,
   GIRTH_SLAB_LIST
 } from '../utils/roundLogCalculator';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
@@ -855,7 +856,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
   const handleStep13DeleteRoundLogItem = (itemId: string) => {
     const updated = roundLogItems.filter((it) => it.id !== itemId);
-    const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
+    const reindexed = reindexRoundLogsPerSpecies(updated);
     setRoundLogItems(reindexed);
   };
 
