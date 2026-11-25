@@ -145,6 +145,7 @@ export function sanitizeAndComputeSheet(
     gstPercent: sheet.gstPercent,
     isConfirmed: Boolean(sheet.isConfirmed),
     finalGrandTotal: sheet.finalGrandTotal,
+    proformaExportData: sheet.proformaExportData,
     totalEntries: sheet.logType === 'round' && sheet.roundLogItems ? sheet.roundLogItems.length : totals.totalEntries,
     totalPieces: sheet.logType === 'round' && sheet.roundLogItems ? sheet.roundLogItems.reduce((acc, it) => acc + (Number(it.pieces) || 0), 0) : totals.totalPieces,
     totalCft: sheet.logType === 'round' && sheet.roundLogItems ? (sheet.roundLogOutputUnit === 'CFT' ? sheet.roundLogItems.reduce((acc, it) => acc + (Number(it.volume) || 0), 0) : sheet.roundLogItems.reduce((acc, it) => acc + (Number(it.volume) || 0), 0) * 35.3147) : totals.totalCft,
@@ -322,7 +323,7 @@ export const dbService = {
         .select('*')
         .eq('id', sheetId);
 
-      if (role !== 'admin' && role !== 'manager') {
+      if (role !== 'admin' && role !== 'manager' && role !== 'public') {
         sheetQuery = sheetQuery.eq('user_id', userId);
       }
 
@@ -455,6 +456,7 @@ export const dbService = {
         gstPercent: parsedMeta?.gstPercent !== undefined ? parsedMeta.gstPercent : localSheet?.gstPercent,
         isConfirmed: parsedMeta?.isConfirmed !== undefined ? Boolean(parsedMeta.isConfirmed) : (localSheet?.isConfirmed ?? Boolean(sheetData.is_confirmed) ?? false),
         finalGrandTotal: parsedMeta?.finalGrandTotal || localSheet?.finalGrandTotal,
+        proformaExportData: parsedMeta?.proformaExportData || localSheet?.proformaExportData,
         totalEntries: sheetData.total_entries || finalItems.length,
         totalPieces: Number(sheetData.total_pieces) || localSheet?.totalPieces || 0,
         totalCft: Number(sheetData.total_cft) || localSheet?.totalCft || 0,
@@ -466,6 +468,17 @@ export const dbService = {
       console.error('Error fetching sheet by ID:', err);
       return localDb.getSheetById(sheetId, userId, role);
     }
+  },
+
+  /**
+   * Fetches a shared invoice/sheet publicly by its UUID (for WhatsApp PDF links)
+   */
+  async getPublicSheetById(sheetId: string): Promise<MeasurementSheet | null> {
+    const found = await this.getSheetById(sheetId, 'public', 'public');
+    if (found) return found;
+    const draft = this.loadDraft();
+    if (draft && draft.id === sheetId) return sanitizeAndComputeSheet(draft, 'public');
+    return null;
   },
 
   /**
@@ -519,6 +532,7 @@ export const dbService = {
         gstPercent: sanitized.gstPercent,
         isConfirmed: Boolean(sanitized.isConfirmed),
         finalGrandTotal: sanitized.finalGrandTotal,
+        proformaExportData: sanitized.proformaExportData,
         logType: sanitized.logType,
         roundLogOutputUnit: sanitized.roundLogOutputUnit,
         roundLogInputUnit: sanitized.roundLogInputUnit,

@@ -151,6 +151,7 @@ export interface MeasurementSheet {
   gstPercent?: number;
   isConfirmed?: boolean;
   finalGrandTotal?: number;
+  proformaExportData?: Record<string, any>;
   totalEntries: number;
   totalPieces: number;
   totalCft: number;

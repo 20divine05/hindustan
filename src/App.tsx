@@ -7,6 +7,7 @@ import { HistoryPage } from './pages/HistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AccessRestrictedScreen } from './components/AccessRestrictedScreen';
+import { PublicInvoicePage } from './components/PublicInvoicePage';
 import { visitorService } from './services/visitorService';
 import type { BusinessSettings, MeasurementSheet, AppVisitor } from './types';
 import { dbService } from './services/db';
@@ -151,6 +152,11 @@ const MainApp: React.FC<{ onNavigateToAdmin?: () => void }> = ({ onNavigateToAdm
 };
 
 export function App() {
+  const [publicInvoiceId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('invoice');
+  });
+
   const [isAdminRoute, setIsAdminRoute] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const path = window.location.pathname.toLowerCase();
@@ -192,10 +198,15 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!isAdminRoute) {
+    if (!isAdminRoute && !publicInvoiceId) {
       verifyVisitor();
     }
-  }, [isAdminRoute, verifyVisitor]);
+  }, [isAdminRoute, publicInvoiceId, verifyVisitor]);
+
+  // 0. Public Read-Only Shared Invoice PDF Route (from WhatsApp invoice link)
+  if (publicInvoiceId) {
+    return <PublicInvoicePage sheetId={publicInvoiceId} businessSettings={defaultSettings} />;
+  }
 
   const handleNavigateToAdmin = () => {
     window.history.pushState({}, '', '/admin');

@@ -315,6 +315,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const [isProformaModalOpen, setIsProformaModalOpen] = useState(false);
   const [isActionsModalOpen, setIsActionsModalOpen] = useState(false);
   const [editModalTarget, setEditModalTarget] = useState<'bill_to' | 'ship_to' | null>(null);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [whatsAppPhoneInput, setWhatsAppPhoneInput] = useState('');
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [whatsAppRedirectInfo, setWhatsAppRedirectInfo] = useState<{ url: string; phone: string; filename: string } | null>(null);
 
   // Global listener so the top header Actions button on mobile can trigger sheet actions
   useEffect(() => {
@@ -1505,88 +1509,125 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     }
   };
 
-  // Share Invoice PDF directly to customer's WhatsApp chat
-  const handleShareWhatsApp = async () => {
-    persistCurrentCustomer();
-
-    // 1. Extract customer phone from invoice details
-    let rawPhone = (customerPhone || '').trim();
-    let digits = rawPhone.replace(/\D/g, '');
+  // Format phone string into international WhatsApp digits (91XXXXXXXXXX for 10-digit Indian numbers)
+  const extractWhatsAppDigits = (phoneStr: string): string => {
+    let digits = (phoneStr || '').replace(/\D/g, '');
     if (digits.startsWith('0') && digits.length === 11) {
       digits = digits.slice(1);
     }
     if (digits.length === 10) {
       digits = `91${digits}`;
     }
+    return digits.length >= 10 ? digits : '';
+  };
+
+  // Generate PDF, persist cloud shareable invoice snapshot, download PDF, and redirect straight to customer's WhatsApp
+  const executeWhatsAppSend = async (targetDigits: string, phoneOverride?: string) => {
+    setIsSendingWhatsApp(true);
+    persistCurrentCustomer();
+
+    try {
+      const { current, exportData } = getFullInvoiceExportData();
+      if (phoneOverride) {
+        current.customerPhone = phoneOverride;
+        exportData.buyerPhone = phoneOverride;
+        if (!exportData.consigneePhone) {
+          exportData.consigneePhone = phoneOverride;
+        }
+      }
+
+      // 1. Persist complete invoice snapshot (with proformaExportData) to Supabase + local storage
+      // so the direct Invoice PDF link in the WhatsApp message works on the customer's phone immediately
+      const sheetWithSnapshot: MeasurementSheet = {
+        ...current,
+        proformaExportData: exportData
+      };
+      try {
+        await dbService.saveSheet(sheetWithSnapshot, user?.id || 'guest');
+      } catch (saveErr) {
+        console.warn('Cloud sync warning before WhatsApp redirect:', saveErr);
+      }
+
+      // 2. Generate official Proforma Invoice PDF named after customer & trigger local download
+      const { blob, filename } = getProformaInvoicePdfBlob(current, businessSettings, exportData);
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 15000);
+
+      // 3. Construct direct Invoice PDF URL + WhatsApp deep link targeting exact customer number
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const invoiceUrl = `${origin}/?invoice=${encodeURIComponent(current.id)}`;
+      const invNo = exportData.invoiceNo || 'Invoice';
+      const clientName = (customerName || consigneeName || '').trim() || 'Valued Customer';
+      const totalPayable = formatIndianCurrency(finalGrandTotal > 0 ? finalGrandTotal : totalBeforeDiscount);
+
+      const shareMessage =
+        `🌲 *HINDUSTAN SAW MILL & WOOD INDUSTRIES* 🌲\n` +
+        `📄 *Proforma Invoice:* #${invNo}\n` +
+        `👤 *Customer:* ${clientName}\n` +
+        `💰 *Grand Total:* Rs. ${totalPayable}\n\n` +
+        `📥 *View / Download Invoice PDF:*\n${invoiceUrl}\n\n` +
+        `Thank you for your business!`;
+
+      const waUrl = `https://wa.me/${targetDigits}?text=${encodeURIComponent(shareMessage)}`;
+      setWhatsAppRedirectInfo({ url: waUrl, phone: targetDigits, filename });
+
+      // 4. Redirect directly to the customer's WhatsApp chat (no generic share sheet intercepting the phone number)
+      const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
+      setTimeout(() => {
+        if (isMobile) {
+          window.location.href = waUrl;
+        } else {
+          const opened = window.open(waUrl, '_blank', 'noopener,noreferrer');
+          if (!opened) {
+            window.location.href = waUrl;
+          }
+        }
+      }, 450);
+    } finally {
+      setIsSendingWhatsApp(false);
+      setIsActionsModalOpen(false);
+    }
+  };
+
+  // Share Invoice PDF directly to customer's WhatsApp mobile number from Customer Details
+  const handleShareWhatsApp = async () => {
+    const rawPhone = (customerPhone || consigneePhone || '').trim();
+    const digits = extractWhatsAppDigits(rawPhone);
 
     if (!digits) {
-      const entered = window.prompt(
-        "Please enter the customer's 10-digit WhatsApp phone number:",
-        customerPhone || ''
-      );
-      if (!entered) return;
-      rawPhone = entered.trim();
-      digits = rawPhone.replace(/\D/g, '');
-      if (digits.startsWith('0') && digits.length === 11) {
-        digits = digits.slice(1);
-      }
-      if (digits.length === 10) {
-        digits = `91${digits}`;
-      }
-      if (!digits) {
-        alert("Please enter a valid phone number to share via WhatsApp.");
-        return;
-      }
-      setCustomerPhone(rawPhone);
+      setWhatsAppPhoneInput(rawPhone);
+      setIsWhatsAppModalOpen(true);
+      return;
     }
 
-    const { current, exportData } = getFullInvoiceExportData();
+    await executeWhatsAppSend(digits);
+  };
 
-    // 2. Generate the official Proforma Invoice PDF named after the client
+  // Secondary option: Attach raw PDF File via native Mobile OS Share Sheet
+  const handleNativePdfFileShare = async () => {
+    persistCurrentCustomer();
+    const { current, exportData } = getFullInvoiceExportData();
     const { blob, filename } = getProformaInvoicePdfBlob(current, businessSettings, exportData);
     const pdfFile = new File([blob], filename, { type: 'application/pdf' });
 
-    const invoiceNo = exportData.invoiceNo || 'Invoice';
-    const clientName = (customerName || '').trim() || 'Valued Customer';
-    const totalPayable = formatIndianCurrency(finalGrandTotal > 0 ? finalGrandTotal : totalBeforeDiscount);
-
-    const shareMessage = `🌲 *HINDUSTAN SAW MILL & WOOD WORKS* 🌲\n` +
-      `📄 *Proforma Invoice:* ${invoiceNo}\n` +
-      `👤 *Customer:* ${clientName}\n` +
-      `💰 *Grand Total:* Rs. ${totalPayable}\n\n` +
-      `Please find your official Timber Proforma Invoice PDF attached.\n` +
-      `Thank you for your business!`;
-
-    // 3. Option 1: Mobile Web Share API with PDF attached directly
     if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
       try {
         await navigator.share({
           files: [pdfFile],
-          title: `${invoiceNo} - ${clientName}`,
-          text: shareMessage
+          title: `${exportData.invoiceNo || 'Invoice'} - ${customerName || 'Customer'}`
         });
-        return; // Successfully presented to WhatsApp with PDF attached!
+        return;
       } catch (err: any) {
-        if (err?.name === 'AbortError') {
-          // User closed the share menu without sending
-          return;
-        }
-        console.warn('Native file share failed, falling back to download + WhatsApp link', err);
+        if (err?.name === 'AbortError') return;
       }
     }
-
-    // 4. Desktop / Fallback flow: Download PDF and open customer's WhatsApp chat with pre-filled message
-    const downloadUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(downloadUrl), 15000);
-
-    const waUrl = `https://api.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(shareMessage)}`;
-    window.open(waUrl, '_blank');
+    exportSheetToPdf(current, businessSettings, exportData);
   };
 
   return (
@@ -4498,32 +4539,41 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
-                {/* 1. Share via WhatsApp */}
+                {/* 1. Share via WhatsApp (Redirects straight to customer's mobile number + sends direct PDF invoice link & downloads PDF) */}
                 <button
                   type="button"
                   onClick={handleShareWhatsApp}
+                  disabled={isSendingWhatsApp}
                   className="calc-export-btn"
                   style={{
                     backgroundColor: '#25D366',
                     color: '#ffffff',
                     minHeight: '62px',
-                    padding: '1.15rem 1.35rem',
-                    fontSize: '1.15rem',
+                    padding: '0.85rem 1.35rem',
+                    fontSize: '1.12rem',
                     fontWeight: 800,
                     borderRadius: '12px',
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.65rem',
+                    gap: '0.15rem',
                     border: 'none',
-                    cursor: 'pointer',
+                    cursor: isSendingWhatsApp ? 'wait' : 'pointer',
                     boxShadow: '0 4px 14px rgba(37, 211, 102, 0.4)',
                     transition: 'all 0.15s ease'
                   }}
-                  title="Directly opens customer's WhatsApp chat with the downloaded invoice PDF"
+                  title="Redirects directly to customer's WhatsApp chat with Invoice PDF link"
                 >
-                  <MessageCircle size={26} />
-                  <span>Send PDF to WhatsApp</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                    <MessageCircle size={24} />
+                    <span>{isSendingWhatsApp ? 'Opening WhatsApp...' : 'Send PDF to WhatsApp'}</span>
+                  </div>
+                  {(customerPhone || consigneePhone) && (
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.92 }}>
+                      Redirects to {(customerPhone || consigneePhone).trim()}
+                    </span>
+                  )}
                 </button>
 
                 {/* 2. Download Official PDF */}
@@ -4583,8 +4633,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </button>
               </div>
 
-              {/* Full Proforma Modal trigger */}
-              <div style={{ marginTop: '0.55rem' }}>
+              {/* Full Proforma Modal trigger & Direct Share Options */}
+              <div style={{ marginTop: '0.55rem', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                 <button
                   type="button"
                   className="btn btn-secondary"
@@ -4593,7 +4643,55 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 >
                   <FileText size={16} /> Full Invoice Preview
                 </button>
+
+                {typeof navigator !== 'undefined' && typeof (navigator as any).share === 'function' && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={handleNativePdfFileShare}
+                    style={{ width: '100%', justifyContent: 'center', fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-muted)' }}
+                  >
+                    <Share2 size={14} /> Attach Raw PDF File via Phone Share Menu
+                  </button>
+                )}
               </div>
+
+              {whatsAppRedirectInfo && (
+                <div style={{
+                  marginTop: '0.75rem',
+                  padding: '0.75rem 0.9rem',
+                  borderRadius: '10px',
+                  backgroundColor: '#f0fdf4',
+                  border: '1.5px solid #86efac',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.45rem'
+                }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#166534' }}>
+                    ✓ PDF Saved &amp; Prepared for +{whatsAppRedirectInfo.phone}
+                  </div>
+                  <a
+                    href={whatsAppRedirectInfo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.4rem',
+                      backgroundColor: '#16a34a',
+                      color: '#ffffff',
+                      padding: '0.55rem 0.85rem',
+                      borderRadius: '8px',
+                      fontSize: '0.86rem',
+                      fontWeight: 800,
+                      textDecoration: 'none'
+                    }}
+                  >
+                    <MessageCircle size={16} /> Open WhatsApp Chat Now &rarr;
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Summary Review Card */}
@@ -5420,6 +5518,99 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   ✓ Save &amp; Done
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Customer WhatsApp Number Modal (Prompted cleanly when Customer Details phone is empty) */}
+        {isWhatsAppModalOpen && (
+          <div className="modal-overlay" onClick={() => setIsWhatsAppModalOpen(false)}>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: '400px', padding: '1.25rem', borderRadius: '14px' }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#15803d' }}>
+                  <MessageCircle size={19} /> Send Invoice to WhatsApp
+                </h3>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setIsWhatsAppModalOpen(false)}
+                  style={{ padding: '4px' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p style={{ margin: '0 0 0.85rem', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                No phone number was entered in Customer Details. Enter the customer&apos;s 10-digit WhatsApp mobile number below to redirect directly to their chat with the invoice PDF:
+              </p>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const cleanDigits = extractWhatsAppDigits(whatsAppPhoneInput);
+                  if (!cleanDigits) {
+                    alert('Please enter a valid 10-digit mobile number.');
+                    return;
+                  }
+                  const enteredPhone = whatsAppPhoneInput.trim();
+                  setCustomerPhone(enteredPhone);
+                  setIsWhatsAppModalOpen(false);
+                  executeWhatsAppSend(cleanDigits, enteredPhone);
+                }}
+              >
+                <div style={{ position: 'relative', marginBottom: '1rem' }}>
+                  <span style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontWeight: 700,
+                    fontSize: '0.95rem',
+                    color: 'var(--text-muted)'
+                  }}>
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    autoFocus
+                    required
+                    placeholder="98765 43210"
+                    value={whatsAppPhoneInput}
+                    onChange={(e) => setWhatsAppPhoneInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.7rem 0.85rem 0.7rem 2.75rem',
+                      fontSize: '1.05rem',
+                      fontWeight: 700,
+                      borderRadius: '8px',
+                      border: '1.5px solid var(--border-medium)',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setIsWhatsAppModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{ backgroundColor: '#25D366', borderColor: '#25D366', fontWeight: 800 }}
+                  >
+                    <MessageCircle size={16} /> Open WhatsApp &amp; Send
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
