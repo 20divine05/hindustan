@@ -19,6 +19,8 @@ export interface ProformaInvoiceProps {
 }
 
 export interface InvoiceItemRow {
+  id?: string;
+  sourceIndex?: number;
   slNo: number;
   description: string;
   hsn: string;
@@ -127,28 +129,78 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const [buyerState, setBuyerState] = useState(initialBuyerState);
   const [buyerStateCode, setBuyerStateCode] = useState(sheet?.customerStateCode || '29');
 
+  // Default global rate per CFT
+  const [globalRate, setGlobalRate] = useState<number>(businessSettings?.ratePerCft || 1200);
+
+  // Custom per-item rates map: id or index -> rate
+  const [customRates, setCustomRates] = useState<Record<string | number, number>>({});
+  // Custom per-item HSN map: index -> HSN
+  const [customHsn, setCustomHsn] = useState<Record<number, string>>({});
+  // Custom per-item discount map: index -> discount
+  const [customDisc, setCustomDisc] = useState<Record<number, string>>({});
+
+  // Sync initial rates from sheet items on mount
+  useEffect(() => {
+    if (sheet?.items && sheet.items.length > 0) {
+      const initialRates: Record<string | number, number> = {};
+      sheet.items.forEach((it, idx) => {
+        if (typeof it.rate === 'number' && it.rate > 0) {
+          if (it.id) initialRates[it.id] = it.rate;
+          initialRates[idx] = it.rate;
+        }
+      });
+      setCustomRates((prev) => ({ ...initialRates, ...prev }));
+    }
+  }, [sheet?.items]);
+
+  // Construct updated items list incorporating user's custom rates
+  const getUpdatedItems = () => {
+    if (!sheet?.items || sheet.items.length === 0) return [];
+    return sheet.items.map((it, idx) => {
+      const isSqftBilled = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
+      const defaultItemRate = isSqftBilled ? 120 : globalRate;
+      const currentRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultItemRate;
+      const effectiveRate = (it.id && customRates[it.id] !== undefined)
+        ? customRates[it.id]
+        : (customRates[idx] !== undefined ? customRates[idx] : currentRate);
+      const cft = it.cft;
+      const sqft = it.sqft || (it.cft * 12);
+      const multiplier = isSqftBilled ? sqft : cft;
+      const newAmount = Math.round(multiplier * effectiveRate * 100) / 100;
+      return {
+        ...it,
+        rate: effectiveRate,
+        amount: newAmount
+      };
+    });
+  };
+
   // Construct payload of current modal state for saving & syncing
-  const getLatestPayload = () => ({
-    consigneeName,
-    consigneePhone,
-    consigneeAddress,
-    consigneeGstin,
-    consigneeState,
-    consigneeStateCode,
-    consigneeDistrict: destination,
-    customerName: buyerName,
-    customerPhone: buyerPhone,
-    customerAddress: buyerAddress,
-    customerGstin: buyerGstin,
-    customerState: buyerState,
-    customerStateCode: buyerStateCode,
-    destination,
-    motorVehicleNo,
-    termsOfDelivery,
-    paymentTerms,
-    buyerOrderNo,
-    buyerOrderDate
-  });
+  const getLatestPayload = () => {
+    const updatedItems = getUpdatedItems();
+    return {
+      consigneeName,
+      consigneePhone,
+      consigneeAddress,
+      consigneeGstin,
+      consigneeState,
+      consigneeStateCode,
+      consigneeDistrict: destination,
+      customerName: buyerName,
+      customerPhone: buyerPhone,
+      customerAddress: buyerAddress,
+      customerGstin: buyerGstin,
+      customerState: buyerState,
+      customerStateCode: buyerStateCode,
+      destination,
+      motorVehicleNo,
+      termsOfDelivery,
+      paymentTerms,
+      buyerOrderNo,
+      buyerOrderDate,
+      items: updatedItems.length > 0 ? updatedItems : sheet?.items
+    };
+  };
 
   // Manual save handler for toolbar button
   const handleManualSave = () => {
@@ -174,6 +226,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
     return () => clearTimeout(timer);
   }, [
+    customRates,
     consigneeName,
     consigneePhone,
     consigneeAddress,
@@ -193,16 +246,6 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
     buyerOrderNo,
     buyerOrderDate
   ]);
-
-  // Default global rate per CFT
-  const [globalRate, setGlobalRate] = useState<number>(businessSettings?.ratePerCft || 1200);
-
-  // Custom per-item rates map: index -> rate
-  const [customRates, setCustomRates] = useState<Record<number, number>>({});
-  // Custom per-item HSN map: index -> HSN
-  const [customHsn, setCustomHsn] = useState<Record<number, string>>({});
-  // Custom per-item discount map: index -> discount
-  const [customDisc, setCustomDisc] = useState<Record<number, string>>({});
 
   // Save changes to localStorage draft
   useEffect(() => {
@@ -322,7 +365,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
         const isSqftBilled = (typeof w === 'number' ? w : 0) >= 7 && it.rateUnit !== 'CFT';
         const defaultItemRate = isSqftBilled ? 120 : globalRate;
         const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultItemRate;
-        const rate = customRates[idx] ?? itemRate;
+        const rate = (it.id && customRates[it.id] !== undefined) ? customRates[it.id] : (customRates[idx] ?? itemRate);
         const hsn = customHsn[idx] ?? '4407';
         const disc = customDisc[idx] ?? '';
         const wood = (it.woodType || 'TIMBER').toUpperCase();
@@ -334,6 +377,8 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
         const amount = Math.round(multiplier * rate * 100) / 100;
 
         return {
+          id: it.id,
+          sourceIndex: idx,
           slNo: idx + 1,
           description: desc,
           hsn,
@@ -416,9 +461,9 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
     : subtotalWithCharges;
   const gstAmount = sheet?.gstPercent ? Math.round((gstTaxableBase * (sheet.gstPercent / 100)) * 100) / 100 : 0;
   const computedFallback = Math.max(0, subtotalWithCharges + gstAmount - discAmount);
-  const effectiveTotal = (sheet?.finalGrandTotal && sheet.finalGrandTotal > 0)
-    ? sheet.finalGrandTotal
-    : (computedFallback > 0 ? computedFallback : effectiveWoodTotalAmount);
+  const effectiveTotal = computedFallback > 0
+    ? computedFallback
+    : (sheet?.finalGrandTotal && sheet.finalGrandTotal > 0 ? sheet.finalGrandTotal : effectiveWoodTotalAmount);
 
   const amountInWords = useMemo(() => {
     return numberToIndianCurrencyWords(effectiveTotal);
@@ -1130,15 +1175,26 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                         )}
 
                         {discAmount > 0 && (
-                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                            <td></td>
-                            <td colSpan={3} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
-                              LESS: DISCOUNT
-                            </td>
-                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
-                              - {renderWithSmallDecimalHtml(formatIndianCurrency(discAmount))}
-                            </td>
-                          </tr>
+                          <>
+                            <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                              <td></td>
+                              <td colSpan={3} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                                TOTAL PRICE BEFORE DISCOUNT
+                              </td>
+                              <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                                {renderWithSmallDecimalHtml(formatIndianCurrency(subtotalWithCharges + gstAmount))}
+                              </td>
+                            </tr>
+                            <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                              <td></td>
+                              <td colSpan={3} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
+                                LESS: DISCOUNT {sheet?.discount?.type === 'percentage' && sheet.discount.value ? `(${sheet.discount.value}%)` : ''}
+                              </td>
+                              <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
+                                - {renderWithSmallDecimalHtml(formatIndianCurrency(discAmount))}
+                              </td>
+                            </tr>
+                          </>
                         )}
                       </>
                     );
@@ -1209,11 +1265,11 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                       {/* Measurements of that wood */}
                       {group.items.map((item, itemIdx) => {
                         const dimOnly = item.description.split(/\s+/)[0] || item.description;
-                        const originalIdx = item.slNo - 1;
+                        const originalIdx = item.sourceIndex !== undefined ? item.sourceIndex : (item.slNo - 1);
                         const isSqftBilled = item.rateUnit !== 'CFT' && (item.widthInches || 0) >= 7;
                         const slStr = String(item.slNo);
                         return (
-                          <tr key={item.slNo} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                          <tr key={item.id || item.slNo} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                             <td className="text-center">{slStr}</td>
                             <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 700 }}>
                               {renderDimensionHtml(dimOnly)}
@@ -1228,7 +1284,8 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                                 value={item.rate}
                                 onChange={(e) => {
                                   const val = Number(e.target.value) || 0;
-                                  setCustomRates((prev) => ({ ...prev, [originalIdx]: val }));
+                                  const key = item.id || originalIdx;
+                                  setCustomRates((prev) => ({ ...prev, [key]: val, [originalIdx]: val }));
                                 }}
                               />
                             </td>
@@ -1361,15 +1418,26 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
                       {/* 6. Next: Discount */}
                       {discAmount > 0 && (
-                        <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                          <td className="text-center"></td>
-                          <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
-                            LESS: DISCOUNT
-                          </td>
-                          <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
-                            - {renderWithSmallDecimalHtml(formatIndianCurrency(discAmount))}
-                          </td>
-                        </tr>
+                        <>
+                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                            <td className="text-center"></td>
+                            <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                              TOTAL PRICE BEFORE DISCOUNT
+                            </td>
+                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                              {renderWithSmallDecimalHtml(formatIndianCurrency(subtotalWithCharges + gstAmount))}
+                            </td>
+                          </tr>
+                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                            <td className="text-center"></td>
+                            <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
+                              LESS: DISCOUNT {sheet?.discount?.type === 'percentage' && sheet.discount.value ? `(${sheet.discount.value}%)` : ''}
+                            </td>
+                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
+                              - {renderWithSmallDecimalHtml(formatIndianCurrency(discAmount))}
+                            </td>
+                          </tr>
+                        </>
                       )}
                     </>
                   );

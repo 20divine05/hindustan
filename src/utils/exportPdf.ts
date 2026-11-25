@@ -877,6 +877,9 @@ export function createProformaInvoiceDoc(
 
   // 6. Next: DISCOUNT (if any)
   if (invoiceData?.discountAmount && invoiceData.discountAmount > 0) {
+    const totalBeforeDiscount = totalAmount + additionalChargesSum + gstAmt;
+    tableBody.push(chargeRow('TOTAL PRICE BEFORE DISCOUNT', formatIndianCurrency(totalBeforeDiscount)));
+
     const discLabel = invoiceData.discountDesc ? `LESS: DISCOUNT (${invoiceData.discountDesc})` : 'LESS: DISCOUNT';
     tableBody.push(chargeRow(discLabel, `- ${formatIndianCurrency(invoiceData.discountAmount)}`, true));
   }

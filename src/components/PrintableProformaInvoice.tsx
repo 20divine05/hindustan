@@ -656,15 +656,26 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       )}
 
                       {discountAmount > 0 && (
-                        <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                          <td></td>
-                          <td colSpan={3} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
-                            LESS: DISCOUNT {discountDesc ? `(${discountDesc})` : ''}
-                          </td>
-                          <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
-                            - {renderWithSmallDecimalHtml(formatIndianCurrency(discountAmount))}
-                          </td>
-                        </tr>
+                        <>
+                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                            <td></td>
+                            <td colSpan={3} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                              TOTAL PRICE BEFORE DISCOUNT
+                            </td>
+                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                              {renderWithSmallDecimalHtml(formatIndianCurrency(subtotalWithCharges + (gstAmount || 0)))}
+                            </td>
+                          </tr>
+                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                            <td></td>
+                            <td colSpan={3} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
+                              LESS: DISCOUNT {discountDesc ? `(${discountDesc})` : ''}
+                            </td>
+                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
+                              - {renderWithSmallDecimalHtml(formatIndianCurrency(discountAmount))}
+                            </td>
+                          </tr>
+                        </>
                       )}
                     </>
                   );
@@ -891,15 +902,26 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
 
                       {/* 6. Next: Discount Line */}
                       {discountAmount > 0 && (
-                        <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                          <td className="text-center"></td>
-                          <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
-                            LESS: DISCOUNT {discountDesc ? `(${discountDesc})` : ''}
-                          </td>
-                          <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
-                            - {renderWithSmallDecimalHtml(formatIndianCurrency(discountAmount))}
-                          </td>
-                        </tr>
+                        <>
+                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                            <td className="text-center"></td>
+                            <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                              TOTAL PRICE BEFORE DISCOUNT
+                            </td>
+                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                              {renderWithSmallDecimalHtml(formatIndianCurrency(subtotalWithCharges + (gstAmount || 0)))}
+                            </td>
+                          </tr>
+                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                            <td className="text-center"></td>
+                            <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
+                              LESS: DISCOUNT {discountDesc ? `(${discountDesc})` : ''}
+                            </td>
+                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
+                              - {renderWithSmallDecimalHtml(formatIndianCurrency(discountAmount))}
+                            </td>
+                          </tr>
+                        </>
                       )}
                     </>
                   );

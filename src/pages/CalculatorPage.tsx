@@ -1391,6 +1391,20 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     if (updated.buyerOrderNo !== undefined) setBuyerOrderNo(updated.buyerOrderNo);
     if (updated.buyerOrderDate !== undefined) setBuyerOrderDate(updated.buyerOrderDate);
 
+    if (updated.items !== undefined && updated.items.length > 0) {
+      setItems(updated.items);
+      const current = getCurrentSheetObject();
+      const updatedSheet = {
+        ...current,
+        items: updated.items
+      };
+      dbService.saveDraft(updatedSheet);
+      dbService.saveSheet(sanitizeAndComputeSheet(updatedSheet, user?.id || 'guest'), user?.id || 'guest').catch(() => {});
+    }
+    if (updated.roundLogSlabRates !== undefined) {
+      setRoundLogSlabRates(updated.roundLogSlabRates);
+    }
+
     setIsShipToTouched(true);
   };
 
@@ -4521,6 +4535,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <div className="summary-preview-item">
                     <span className="preview-label">GST ({gstPercent}%):</span>
                     <span className="preview-val font-bold">+₹ {formatIndianCurrency(gstAmount)}</span>
+                  </div>
+                )}
+                {discountAmount > 0 && (
+                  <div className="summary-preview-item">
+                    <span className="preview-label">Total Before Discount:</span>
+                    <span className="preview-val font-bold">₹ {formatIndianCurrency(totalBeforeDiscount)}</span>
                   </div>
                 )}
                 {discountAmount > 0 && (
