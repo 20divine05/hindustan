@@ -265,6 +265,16 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   // Step 4: Discount & GST State (with Custom Taxable Base & Custom GST Rate)
   const [discountType, setDiscountType] = useState<'rupees' | 'percentage'>(sheetToEdit?.discount?.type || 'rupees');
   const [discountValue, setDiscountValue] = useState<number>(sheetToEdit?.discount?.value || 0);
+  const [discountMode, setDiscountMode] = useState<'target_payable' | 'rupees' | 'percentage'>(() => {
+    if (sheetToEdit?.discount?.type === 'percentage') return 'percentage';
+    return 'target_payable';
+  });
+  const [targetPayableAmount, setTargetPayableAmount] = useState<string>(() => {
+    if (sheetToEdit?.discount?.type !== 'percentage' && sheetToEdit?.discount?.amount && sheetToEdit.discount.amount > 0 && sheetToEdit.finalGrandTotal) {
+      return String(sheetToEdit.finalGrandTotal);
+    }
+    return '';
+  });
 
   const [customGstTaxableAmount, setCustomGstTaxableAmount] = useState<number>(
     sheetToEdit?.customGstTaxableAmount || 0
@@ -351,8 +361,22 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       setSawingCharges(0);
       setOtherCharges(sheetToEdit.additionalCharges?.other || 0);
       setOtherChargesLabel(sheetToEdit.additionalCharges?.otherLabel || 'Other Charges');
-      setDiscountType(sheetToEdit.discount?.type || 'rupees');
-      setDiscountValue(sheetToEdit.discount?.value || 0);
+      if (sheetToEdit.discount?.type === 'percentage') {
+        setDiscountType('percentage');
+        setDiscountMode('percentage');
+        setDiscountValue(sheetToEdit.discount?.value || 0);
+        setTargetPayableAmount('');
+      } else if (sheetToEdit.discount?.amount && sheetToEdit.discount.amount > 0) {
+        setDiscountType('rupees');
+        setDiscountMode('target_payable');
+        setDiscountValue(sheetToEdit.discount.amount);
+        setTargetPayableAmount(sheetToEdit.finalGrandTotal ? String(sheetToEdit.finalGrandTotal) : '');
+      } else {
+        setDiscountType('rupees');
+        setDiscountMode('target_payable');
+        setDiscountValue(0);
+        setTargetPayableAmount('');
+      }
       setCustomGstTaxableAmount(sheetToEdit.customGstTaxableAmount || 0);
       const isCustomRate = sheetToEdit.gstPercent !== undefined && ![0, 5, 12, 18, 28].includes(sheetToEdit.gstPercent);
       setIsCustomGstRate(isCustomRate);
@@ -763,15 +787,25 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const totalBeforeDiscount = Math.round((subtotalWithCharges + gstAmount) * 100) / 100;
 
   // Customer Discount / Concession:
+  // - If target_payable: user enters total amount to pay (e.g. 3000 when total is 3300) -> discount is 300
+  // - If flat rupees: flat deduction amount directly entered
   // - If percentage: calculated as % of subtotal with charges
-  // - If flat rupees: flat amount deducted directly from total payable
   const discountAmount = useMemo(() => {
-    if (!discountValue || discountValue <= 0) return 0;
-    if (discountType === 'percentage') {
+    if (discountMode === 'percentage') {
+      if (!discountValue || discountValue <= 0) return 0;
       return Math.round((subtotalWithCharges * (discountValue / 100)) * 100) / 100;
     }
+    if (discountMode === 'target_payable') {
+      if (!targetPayableAmount || targetPayableAmount.trim() === '') return 0;
+      const target = parseFloat(targetPayableAmount);
+      if (isNaN(target) || target < 0) return 0;
+      if (target >= totalBeforeDiscount) return 0;
+      return Math.max(0, Math.round((totalBeforeDiscount - target) * 100) / 100);
+    }
+    // direct rupees deduction mode
+    if (!discountValue || discountValue <= 0) return 0;
     return Math.min(discountValue, totalBeforeDiscount);
-  }, [discountType, discountValue, subtotalWithCharges, totalBeforeDiscount]);
+  }, [discountMode, targetPayableAmount, discountValue, subtotalWithCharges, totalBeforeDiscount]);
 
   // Grand Total = Total Before Discount - Discount Deducted
   const finalGrandTotal = Math.max(0, Math.round((totalBeforeDiscount - discountAmount) * 100) / 100);
@@ -989,8 +1023,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         otherLabel: otherChargesLabel
       },
       discount: {
-        type: discountType,
-        value: discountValue,
+        type: discountMode === 'percentage' ? 'percentage' : 'rupees',
+        value: discountMode === 'percentage' ? discountValue : discountAmount,
         amount: discountAmount
       },
       customGstTaxableAmount: customGstTaxableAmount > 0 ? customGstTaxableAmount : undefined,
@@ -1072,8 +1106,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         otherLabel: otherChargesLabel
       },
       discount: {
-        type: discountType,
-        value: discountValue,
+        type: discountMode === 'percentage' ? 'percentage' : 'rupees',
+        value: discountMode === 'percentage' ? discountValue : discountAmount,
         amount: discountAmount
       },
       customGstTaxableAmount: customGstTaxableAmount > 0 ? customGstTaxableAmount : undefined,
@@ -1146,6 +1180,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     discountType,
     discountValue,
     discountAmount,
+    discountMode,
+    targetPayableAmount,
     customGstTaxableAmount,
     gstPercent,
     finalGrandTotal,
@@ -1235,6 +1271,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setSawingCharges(0);
     setOtherCharges(0);
     setDiscountValue(0);
+    setDiscountMode('target_payable');
+    setTargetPayableAmount('');
+    setDiscountType('rupees');
     setCustomGstTaxableAmount(0);
     setIsCustomGstRate(false);
     setGstPercent(0);
@@ -1394,7 +1433,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         otherLabel: otherChargesLabel
       },
       discountAmount,
-      discountDesc: discountType === 'percentage' ? `DISCOUNT (${discountValue}%)` : 'SPECIAL DISCOUNT',
+      discountDesc: discountMode === 'percentage' ? `DISCOUNT (${discountValue}%)` : (discountAmount > 0 ? 'LESS: DISCOUNT' : undefined),
       gstPercent,
       gstTaxableBase: (customGstTaxableAmount > 0 && customGstTaxableAmount !== subtotalWithCharges) ? gstTaxableBase : undefined,
       finalGrandTotal,
@@ -3369,36 +3408,89 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               </div>
             </div>
 
+            {/* Current Bill Subtotal / Before Discount Display */}
+            <div style={{
+              background: 'var(--bg-subtle, #f8fafc)',
+              border: '1px solid var(--border-medium, #cbd5e1)',
+              borderRadius: '8px',
+              padding: '0.65rem 0.95rem',
+              marginBottom: '0.75rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '0.4rem',
+              maxWidth: '640px',
+              margin: '0 auto 0.75rem'
+            }}>
+              <span style={{ fontSize: '0.86rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
+                Bill Total Before Discount:
+              </span>
+              <span style={{ fontSize: '1.12rem', color: 'var(--text-main, #0f172a)', fontWeight: 800 }}>
+                ₹{formatIndianCurrency(totalBeforeDiscount)}
+              </span>
+            </div>
+
             {/* Input Card */}
             <div className="calc-charge-card">
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
-                {/* Mode Toggle: Rupees vs Percentage */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
+                {/* Mode Toggle: Target Payable vs Flat Discount vs Percentage */}
                 <div style={{ display: 'inline-flex', borderRadius: '6px', border: '1px solid var(--border-medium)', overflow: 'hidden' }}>
                   <button
                     type="button"
-                    onClick={() => setDiscountType('rupees')}
+                    onClick={() => {
+                      setDiscountMode('target_payable');
+                      setDiscountType('rupees');
+                      if (discountAmount > 0) {
+                        setTargetPayableAmount(String(Math.max(0, Math.round((totalBeforeDiscount - discountAmount) * 100) / 100)));
+                      }
+                    }}
                     style={{
                       padding: '0.35rem 0.85rem',
                       fontSize: '0.82rem',
                       fontWeight: 700,
-                      backgroundColor: discountType === 'rupees' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
-                      color: discountType === 'rupees' ? '#fff' : 'var(--text-main)',
+                      backgroundColor: discountMode === 'target_payable' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
+                      color: discountMode === 'target_payable' ? '#fff' : 'var(--text-main)',
                       border: 'none',
                       cursor: 'pointer'
                     }}
                   >
-                    Flat ₹ (Rupees)
+                    🎯 Total to Pay (₹)
                   </button>
                   <button
                     type="button"
-                    onClick={() => setDiscountType('percentage')}
+                    onClick={() => {
+                      setDiscountMode('rupees');
+                      setDiscountType('rupees');
+                      setDiscountValue(discountAmount);
+                    }}
                     style={{
                       padding: '0.35rem 0.85rem',
                       fontSize: '0.82rem',
                       fontWeight: 700,
-                      backgroundColor: discountType === 'percentage' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
-                      color: discountType === 'percentage' ? '#fff' : 'var(--text-main)',
+                      backgroundColor: discountMode === 'rupees' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
+                      color: discountMode === 'rupees' ? '#fff' : 'var(--text-main)',
                       border: 'none',
+                      borderLeft: '1px solid var(--border-medium)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Flat Discount ₹
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDiscountMode('percentage');
+                      setDiscountType('percentage');
+                    }}
+                    style={{
+                      padding: '0.35rem 0.85rem',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      backgroundColor: discountMode === 'percentage' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
+                      color: discountMode === 'percentage' ? '#fff' : 'var(--text-main)',
+                      border: 'none',
+                      borderLeft: '1px solid var(--border-medium)',
                       cursor: 'pointer'
                     }}
                   >
@@ -3407,68 +3499,227 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </div>
               </div>
 
-              {/* Discount Input */}
-              <div style={{ position: 'relative', width: '100%' }}>
-                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
-                  {discountType === 'percentage' ? '%' : '₹'}
-                </span>
-                <input
-                  type="number"
-                  className="calc-prefixed-input"
-                  value={discountValue === 0 ? '' : discountValue}
-                  onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
-                />
-              </div>
+              {/* Discount Input Form based on mode */}
+              {discountMode === 'target_payable' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.3rem' }}>
+                    Total Amount Customer Will Pay (₹):
+                  </label>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      className="calc-prefixed-input"
+                      value={targetPayableAmount}
+                      placeholder={totalBeforeDiscount > 0 ? `e.g. ${Math.floor(totalBeforeDiscount)} (Enter target amount)` : 'e.g. 3000'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTargetPayableAmount(val);
+                        if (val && !isNaN(Number(val))) {
+                          const num = Number(val);
+                          if (num < totalBeforeDiscount) {
+                            setDiscountValue(Math.max(0, Math.round((totalBeforeDiscount - num) * 100) / 100));
+                          } else {
+                            setDiscountValue(0);
+                          }
+                        } else {
+                          setDiscountValue(0);
+                        }
+                      }}
+                      style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                    />
+                  </div>
+                  <p style={{ margin: '0.35rem 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    💡 Enter agreed payable amount (e.g. if total is ₹3,300, enter <strong>3000</strong> → <strong>₹300</strong> discount is detected automatically).
+                  </p>
 
-              {/* Quick Chips */}
-              <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
-                {discountType === 'rupees' ? (
-                  [500, 1000, 2000, 5000, 10000].map(amt => (
-                    <button
-                      key={amt}
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setDiscountValue(amt)}
-                      style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
-                    >
-                      -₹{amt}
-                    </button>
-                  ))
-                ) : (
-                  [2, 5, 10, 15, 20].map(pct => (
-                    <button
-                      key={pct}
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setDiscountValue(pct)}
-                      style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
-                    >
-                      {pct}%
-                    </button>
-                  ))
-                )}
-                {discountValue > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setDiscountValue(0)}
-                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
+                  {/* Quick Chips for Target Payable */}
+                  <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.55rem', flexWrap: 'wrap' }}>
+                    {[500, 1000, 2000, 5000, 10000].map(amt => (
+                      <button
+                        key={amt}
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          const newTarget = Math.max(0, Math.round((totalBeforeDiscount - amt) * 100) / 100);
+                          setTargetPayableAmount(String(newTarget));
+                          setDiscountValue(amt);
+                        }}
+                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
+                        title={`Reduce ₹${amt} (Target: ₹${formatIndianCurrency(Math.max(0, totalBeforeDiscount - amt))})`}
+                      >
+                        -₹{amt}
+                      </button>
+                    ))}
+                    {totalBeforeDiscount > 100 && (
+                      (() => {
+                        const r100 = Math.floor(totalBeforeDiscount / 100) * 100;
+                        const r500 = Math.floor(totalBeforeDiscount / 500) * 500;
+                        const r1000 = Math.floor(totalBeforeDiscount / 1000) * 1000;
+                        const roundChips: number[] = [];
+                        if (r100 > 0 && r100 < totalBeforeDiscount) roundChips.push(r100);
+                        if (r500 > 0 && r500 < totalBeforeDiscount && !roundChips.includes(r500)) roundChips.push(r500);
+                        if (r1000 > 0 && r1000 < totalBeforeDiscount && !roundChips.includes(r1000)) roundChips.push(r1000);
+                        return roundChips.map(chipVal => (
+                          <button
+                            key={`round-${chipVal}`}
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => {
+                              setTargetPayableAmount(String(chipVal));
+                              setDiscountValue(Math.round((totalBeforeDiscount - chipVal) * 100) / 100);
+                            }}
+                            style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--primary-50, #eff6ff)', color: 'var(--primary-800)', border: '1px solid var(--primary-200)', borderRadius: '6px' }}
+                          >
+                            Round to ₹{formatIndianCurrency(chipVal)}
+                          </button>
+                        ));
+                      })()
+                    )}
+                    {(targetPayableAmount !== '' || discountAmount > 0) && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          setTargetPayableAmount('');
+                          setDiscountValue(0);
+                        }}
+                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {discountMode === 'rupees' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.3rem' }}>
+                    Direct Discount Deduction Amount (₹):
+                  </label>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      className="calc-prefixed-input"
+                      value={discountValue === 0 ? '' : discountValue}
+                      placeholder="Enter discount to reduce"
+                      onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value) || 0))}
+                      style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                    />
+                  </div>
+                  <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
+                    {[500, 1000, 2000, 5000, 10000].map(amt => (
+                      <button
+                        key={amt}
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => setDiscountValue(amt)}
+                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
+                      >
+                        -₹{amt}
+                      </button>
+                    ))}
+                    {discountValue > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => setDiscountValue(0)}
+                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {discountMode === 'percentage' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.3rem' }}>
+                    Discount Percentage (%):
+                  </label>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
+                      %
+                    </span>
+                    <input
+                      type="number"
+                      className="calc-prefixed-input"
+                      value={discountValue === 0 ? '' : discountValue}
+                      placeholder="Enter percentage (e.g. 5)"
+                      onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value) || 0))}
+                      style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                    />
+                  </div>
+                  <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
+                    {[2, 5, 10, 15, 20].map(pct => (
+                      <button
+                        key={pct}
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => setDiscountValue(pct)}
+                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
+                    {discountValue > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => setDiscountValue(0)}
+                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Quick Running Total Banner */}
-            <div style={{ background: 'var(--bg-card)', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px dashed var(--primary-300)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
-              <span style={{ fontSize: '0.84rem', color: 'var(--danger-600, #dc2626)', fontWeight: 700 }}>
-                Discount Deducted: -₹{formatIndianCurrency(discountAmount)}
-              </span>
-              <strong style={{ fontSize: '0.92rem', color: 'var(--primary-800)', fontWeight: 700 }}>
-                Total Payable: ₹{formatIndianCurrency(finalGrandTotal)}
-              </strong>
+            <div style={{
+              background: discountAmount > 0 ? '#f0fdf4' : 'var(--bg-card)',
+              padding: '0.65rem 0.95rem',
+              borderRadius: '8px',
+              border: discountAmount > 0 ? '1.5px solid #86efac' : '1px dashed var(--primary-300)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '0.4rem',
+              maxWidth: '640px',
+              margin: '0.55rem auto 0',
+              width: '100%'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  {discountAmount > 0 ? '🎉 Discount Auto-Detected:' : 'Discount Deducted:'}
+                </div>
+                <span style={{ fontSize: '1.05rem', color: discountAmount > 0 ? '#15803d' : 'var(--danger-600, #dc2626)', fontWeight: 800 }}>
+                  -₹{formatIndianCurrency(discountAmount)}
+                </span>
+                {discountAmount > 0 && totalBeforeDiscount > 0 && (
+                  <span style={{ fontSize: '0.76rem', fontWeight: 700, marginLeft: '0.35rem', color: '#16a34a' }}>
+                    ({Math.round((discountAmount / totalBeforeDiscount) * 1000) / 10}% off)
+                  </span>
+                )}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Total Payable:
+                </div>
+                <strong style={{ fontSize: '1.22rem', color: 'var(--primary-800)', fontWeight: 800 }}>
+                  ₹{formatIndianCurrency(finalGrandTotal)}
+                </strong>
+              </div>
             </div>
           </div>
         )}
@@ -5337,7 +5588,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             otherLabel: otherChargesLabel
           }}
           discountAmount={discountAmount}
-          discountDesc={discountType === 'percentage' ? `${discountValue}%` : `₹${discountValue}`}
+          discountDesc={discountMode === 'percentage' ? `${discountValue}%` : undefined}
           gstPercent={gstPercent}
           gstTaxableBase={(customGstTaxableAmount > 0 && customGstTaxableAmount !== subtotalWithCharges) ? gstTaxableBase : undefined}
           gstAmount={gstAmount}
