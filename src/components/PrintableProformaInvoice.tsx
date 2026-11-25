@@ -321,7 +321,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
           const match = (it as any).boardSize.match(/8\s*[xX×*]\s*(\d+)/);
           if (match) sheetW = parseInt(match[1], 10);
         }
-        const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : ((8 * sheetW * p) / 12));
+        const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : (8 * sheetW * p));
         return acc + sqft;
       }
       if ((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT') {
@@ -340,7 +340,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
           const match = (it as any).boardSize.match(/8\s*[xX×*]\s*(\d+)/);
           if (match) sheetW = parseInt(match[1], 10);
         }
-        const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : ((8 * sheetW * p) / 12));
+        const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : (8 * sheetW * p));
         const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
         const amt = typeof it.amount === 'number' && it.amount > 0 && it.rateUnit === 'SQFT' ? it.amount : Math.round(sqft * r * 100) / 100;
         return acc + amt;
@@ -821,7 +821,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         const match = (it as any).boardSize.match(/8\s*[xX×*]\s*(\d+)/);
                         if (match) sheetW = parseInt(match[1], 10);
                       }
-                      const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : ((8 * sheetW * p) / 12));
+                      const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : (8 * sheetW * p));
                       return acc + sqft;
                     }
                     if ((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT') {
@@ -839,7 +839,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         const match = (it as any).boardSize.match(/8\s*[xX×*]\s*(\d+)/);
                         if (match) sheetW = parseInt(match[1], 10);
                       }
-                      const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : ((8 * sheetW * p) / 12));
+                      const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : (8 * sheetW * p));
                       const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
                       return acc + (typeof it.amount === 'number' && it.amount > 0 && it.rateUnit === 'SQFT' ? it.amount : Math.round(sqft * r * 100) / 100);
                     }
@@ -882,7 +882,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                           const match = (it as any).boardSize.match(/8\s*[xX×*]\s*(\d+)/);
                           if (match) sheetW = parseInt(match[1], 10);
                         }
-                        const sheetSqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * itPieces) : ((8 * sheetW * itPieces) / 12));
+                        const sheetSqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * itPieces) : (8 * sheetW * itPieces));
                         const mult = isSheet ? sheetSqft : (isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft);
                         const amount = (isSheet && typeof it.amount === 'number' && it.amount > 0 && it.rateUnit === 'SQFT')
                           ? it.amount

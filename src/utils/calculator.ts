@@ -152,7 +152,7 @@ export function calculateTotals(
           const match = item.boardSize.match(/8\s*[xX×*]\s*(\d+)/);
           if (match) sheetW = parseInt(match[1], 10);
         }
-        const rowSqft = typeof item.sqft === 'number' && item.sqft > 0 ? item.sqft : (isPly ? (32 * p) : ((8 * sheetW * p) / 12));
+        const rowSqft = typeof item.sqft === 'number' && item.sqft > 0 ? item.sqft : (isPly ? (32 * p) : (8 * sheetW * p));
         totalSqft += rowSqft;
         // Do NOT compute or add CFT for Plywood or Ready Board (cft = 0)
         const r = typeof item.rate === 'number' && item.rate > 0 ? item.rate : 0;
@@ -375,7 +375,7 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
           const match = it.boardSize.match(/8\s*[xX×*]\s*(\d+)/);
           if (match) sheetW = parseInt(match[1], 10);
         }
-        const sqft = isPlywood ? (32 * p) : ((8 * sheetW * p) / 12);
+        const sqft = isPlywood ? (32 * p) : (8 * sheetW * p);
         validItems.push({
           ...it,
           itemCategory: isPlywood ? 'plywood' : 'ready_board',
@@ -449,7 +449,7 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
           const match = it.boardSize.match(/8\s*[xX×*]\s*(\d+)/);
           if (match) sheetW = parseInt(match[1], 10);
         }
-        const sheetSqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : ((8 * sheetW * p) / 12));
+        const sheetSqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : (8 * sheetW * p));
         const boardKey = isPly ? '8x4' : (it.boardSize || `${l}x${sheetW}`);
         const brandKey = it.brand || (isPly ? 'Red Tag' : 'Mine Gold');
         const key = `sheet_${it.itemCategory}_${boardKey}_${brandKey}_${r}_SQFT`;

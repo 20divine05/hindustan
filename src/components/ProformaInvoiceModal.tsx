@@ -275,7 +275,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
           const brand = it.brand || (isPlywood ? 'Red Tag' : 'Mine Gold');
           const desc = getCutLogItemDescription({ ...it, brand, itemCategory: isPlywood ? 'plywood' : 'ready_board', woodType: wood });
           const sheetW = typeof it.widthInches === 'number' && it.widthInches > 0 ? it.widthInches : (isPlywood ? 4 : 12);
-          const sqft = isPlywood ? (32 * p) : ((8 * sheetW * p) / 12);
+          const sqft = isPlywood ? (32 * p) : (8 * sheetW * p);
           const amount = Math.round(sqft * rate * 100) / 100;
 
           validItems.push({

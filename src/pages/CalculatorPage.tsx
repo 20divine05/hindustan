@@ -1286,7 +1286,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           const woodType = getCutLogItemSectionHeading(it);
           const desc = getCutLogItemDescription({ ...it, brand, itemCategory: isPlywood ? 'plywood' : 'ready_board', woodType });
           const sheetW = typeof it.widthInches === 'number' && it.widthInches > 0 ? it.widthInches : (isPlywood ? 4 : 12);
-          const sqft = isPlywood ? (32 * p) : ((8 * sheetW * p) / 12);
+          const sqft = isPlywood ? (32 * p) : (8 * sheetW * p);
           const rowAmount = Math.round(sqft * rowRate * 100) / 100;
 
           return {

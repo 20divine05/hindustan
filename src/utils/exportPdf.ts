@@ -193,7 +193,7 @@ export function createProformaInvoiceDoc(
             const match = (it as any).boardSize.match(/8\s*[xX×*]\s*(\d+)/);
             if (match) sheetW = parseInt(match[1], 10);
           }
-          const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * pcs) : ((8 * sheetW * pcs) / 12));
+          const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * pcs) : (8 * sheetW * pcs));
           const amt = Math.round(sqft * r * 100) / 100;
           return {
             slNo: idx + 1,
@@ -280,7 +280,7 @@ export function createProformaInvoiceDoc(
           const match = (it as any).boardSize.match(/8\s*[xX×*]\s*(\d+)/);
           if (match) sheetW = parseInt(match[1], 10);
         }
-        const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : ((8 * sheetW * p) / 12));
+        const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : (8 * sheetW * p));
         const amt = Math.round(sqft * r * 100) / 100;
         totalAmount += amt;
         totalSqftBilled += sqft;
@@ -845,7 +845,7 @@ export function createProformaInvoiceDoc(
           const match = (it as any).boardSize.match(/8\s*[xX×*]\s*(\d+)/);
           if (match) sheetW = parseInt(match[1], 10);
         }
-        const sheetSqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * itPieces) : ((8 * sheetW * itPieces) / 12));
+        const sheetSqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * itPieces) : (8 * sheetW * itPieces));
         const rowAmount = isSheet ? Math.round(sheetSqft * itRate * 100) / 100 : (typeof it.amount === 'number' ? it.amount : 0);
 
         groupPieces += itPieces;

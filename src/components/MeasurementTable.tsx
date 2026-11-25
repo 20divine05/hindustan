@@ -147,7 +147,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   } else if (isReadyBoard) {
     liveCft = 0;
     const rbW = parseInt(selectedReadyBoardSize.split('×')[1]?.trim() || '9', 10);
-    liveSqft = ((8 * rbW) / 12) * pVal;
+    liveSqft = (8 * rbW) * pVal;
   } else {
     liveCft = lVal > 0 && wVal > 0 && tVal > 0 && pVal > 0 ? (lVal * wVal * tVal * pVal) / 144 : 0;
     liveSqft = liveCft * 12;
@@ -180,7 +180,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         const match = item.boardSize.match(/8\s*[xX×*]\s*(\d+)/);
         if (match) sheetW = parseInt(match[1], 10);
       }
-      const sqft = typeof item.sqft === 'number' && item.sqft > 0 ? item.sqft : (isPly ? (32 * p) : ((8 * sheetW * p) / 12));
+      const sqft = typeof item.sqft === 'number' && item.sqft > 0 ? item.sqft : (isPly ? (32 * p) : (8 * sheetW * p));
       const currentRate = typeof item.rate === 'number' && item.rate > 0 ? item.rate : 0;
       const currentAmount = typeof item.amount === 'number' && item.amount > 0 ? item.amount : Math.round(sqft * currentRate * 100) / 100;
       setPriceModalUnit('SQFT');
@@ -220,7 +220,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           const match = item.boardSize.match(/8\s*[xX×*]\s*(\d+)/);
           if (match) sheetW = parseInt(match[1], 10);
         }
-        const sqft = typeof item.sqft === 'number' && item.sqft > 0 ? item.sqft : (isPly ? (32 * p) : ((8 * sheetW * p) / 12));
+        const sqft = typeof item.sqft === 'number' && item.sqft > 0 ? item.sqft : (isPly ? (32 * p) : (8 * sheetW * p));
         setPriceModalAmount((Math.round(sqft * r * 100) / 100).toFixed(2));
         return;
       }
@@ -250,7 +250,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           const match = item.boardSize.match(/8\s*[xX×*]\s*(\d+)/);
           if (match) sheetW = parseInt(match[1], 10);
         }
-        const sqft = typeof item.sqft === 'number' && item.sqft > 0 ? item.sqft : (isPly ? (32 * p) : ((8 * sheetW * p) / 12));
+        const sqft = typeof item.sqft === 'number' && item.sqft > 0 ? item.sqft : (isPly ? (32 * p) : (8 * sheetW * p));
         if (sqft > 0) {
           setPriceModalRate((Math.round((amt / sqft) * 100) / 100).toString());
         }
@@ -302,7 +302,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         const match = target.boardSize.match(/8\s*[xX×*]\s*(\d+)/);
         if (match) sheetW = parseInt(match[1], 10);
       }
-      const sqft = isPly ? (32 * p) : ((8 * sheetW * p) / 12);
+      const sqft = isPly ? (32 * p) : (8 * sheetW * p);
       target.sqft = sqft;
       target.cft = 0;
       target.rateUnit = 'SQFT';
@@ -359,7 +359,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             target.thicknessInches = 0;
             target.cft = 0;
             const p = typeof target.pieces === 'number' && target.pieces > 0 ? target.pieces : 0;
-            target.sqft = (8 * target.widthInches * p) / 12;
+            target.sqft = 8 * target.widthInches * p;
             target.rateUnit = 'SQFT';
             const r = typeof target.rate === 'number' && target.rate > 0 ? target.rate : 0;
             target.amount = Math.round(target.sqft * r * 100) / 100;
@@ -386,7 +386,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           const match = target.boardSize.match(/8\s*[xX×*]\s*(\d+)/);
           if (match) sheetW = parseInt(match[1], 10);
         }
-        const sqft = isPly ? (32 * p) : ((8 * sheetW * p) / 12);
+        const sqft = isPly ? (32 * p) : (8 * sheetW * p);
         target.cft = 0;
         target.sqft = sqft;
         target.rateUnit = 'SQFT';
@@ -427,7 +427,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           target.thicknessInches = 0;
           target.cft = 0;
           const p = typeof target.pieces === 'number' && target.pieces > 0 ? target.pieces : 0;
-          target.sqft = (8 * target.widthInches * p) / 12;
+          target.sqft = 8 * target.widthInches * p;
           target.rateUnit = 'SQFT';
           const r = typeof target.rate === 'number' && target.rate > 0 ? target.rate : 0;
           target.amount = Math.round(target.sqft * r * 100) / 100;
@@ -660,7 +660,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         return;
       }
       const rbW = parseInt(selectedReadyBoardSize.split('×')[1]?.trim() || '12', 10);
-      const sqft = (8 * rbW * p) / 12;
+      const sqft = 8 * rbW * p;
       const rowAmount = Math.round(sqft * parsedRate * 100) / 100;
 
       const newItem: MeasurementItem = {
@@ -1354,7 +1354,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                   if (match) sheetW = parseInt(match[1], 10);
                 }
                 const rowSqft = isSheet
-                  ? (typeof item.sqft === 'number' && item.sqft > 0 ? item.sqft : (isPly ? (32 * p) : ((8 * sheetW * p) / 12)))
+                  ? (typeof item.sqft === 'number' && item.sqft > 0 ? item.sqft : (isPly ? (32 * p) : (8 * sheetW * p)))
                   : item.sqft;
                 const isSqft = isSheet ? true : (w >= 7 && item.rateUnit !== 'CFT');
                 const defaultRowRate = isSqft ? 120 : defaultRate;
@@ -1692,7 +1692,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                 if (match) sheetW = parseInt(match[1], 10);
               }
               const rowSqft = isSheet
-                ? (typeof item.sqft === 'number' && item.sqft > 0 ? item.sqft : (isPly ? (32 * p) : ((8 * sheetW * p) / 12)))
+                ? (typeof item.sqft === 'number' && item.sqft > 0 ? item.sqft : (isPly ? (32 * p) : (8 * sheetW * p)))
                 : item.sqft;
               const isSqft = isSheet ? true : (w >= 7 && item.rateUnit !== 'CFT');
               const defaultRowRate = isSqft ? 120 : defaultRate;
