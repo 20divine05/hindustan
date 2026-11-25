@@ -267,20 +267,28 @@ export function getCutLogItemDescription(it: {
   thicknessInches?: number | '';
   description?: string;
 }): string {
-  if (it.itemCategory === 'plywood' || (it.woodType && it.woodType.trim().toUpperCase() === 'PLYWOOD')) {
+  const isPlywood = it.itemCategory === 'plywood' || (it.woodType && it.woodType.trim().toUpperCase().includes('PLYWOOD'));
+  const isReady = it.itemCategory === 'ready_board' || (it.woodType && it.woodType.trim().toUpperCase().includes('READY'));
+
+  if (isPlywood) {
     const b = it.brand || 'Red Tag';
     return `8 × 4 (${b})`;
   }
-  if (it.itemCategory === 'ready_board' || (it.woodType && it.woodType.trim().toUpperCase() === 'READY BOARD')) {
+  if (isReady) {
     const b = it.brand || 'Red Tag';
-    const size = it.boardSize || (it.widthInches ? `8 × ${it.widthInches}` : '8 × 9');
-    return `${size} (${b})`;
+    let size = it.boardSize;
+    if (!size) {
+      const w = it.widthInches && Number(it.widthInches) > 0 ? it.widthInches : 9;
+      size = `8 × ${w}`;
+    }
+    const cleanSize = size.replace(/\s*[*xX×]\s*/, ' × ');
+    return `${cleanSize} (${b})`;
   }
   if (it.description) {
     if (it.description.includes('(') && it.description.includes(')')) {
       return it.description;
     }
-    const match = it.description.match(/^([\d.]+)[X|x]([\d.]+)(?:[X|x]([\d.]+))?/);
+    const match = it.description.match(/^([\d.]+)[X|x*]([\d.]+)(?:[X|x*]([\d.]+))?/);
     if (match) {
       if (!match[3] || match[3] === '0' || parseFloat(match[3]) === 0) {
         return `${match[1]} × ${match[2]}`;
@@ -322,7 +330,7 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
         validItems.push({
           ...it,
           cft: 0,
-          rateUnit: it.rateUnit || 'SQFT'
+          rateUnit: 'PCS'
         });
         continue;
       }
@@ -370,40 +378,40 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
     const consolidatedList: MeasurementItem[] = [];
 
     for (const it of groupItems) {
-      const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board';
+      const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS';
       const l = typeof it.lengthFeet === 'number' ? it.lengthFeet : parseFloat(String(it.lengthFeet)) || 0;
       const w = typeof it.widthInches === 'number' ? it.widthInches : parseFloat(String(it.widthInches)) || 0;
       const t = typeof it.thicknessInches === 'number' ? it.thicknessInches : parseFloat(String(it.thicknessInches)) || 0;
       const p = typeof it.pieces === 'number' ? it.pieces : parseFloat(String(it.pieces)) || 1;
       const isWide = w >= 7;
-      const unit = isSheet ? (it.rateUnit || 'SQFT') : (isWide ? (it.rateUnit === 'CFT' ? 'CFT' : 'SQFT') : 'CFT');
-      const defaultRateVal = unit === 'SQFT' ? 120 : 1200;
+      const unit = isSheet ? 'PCS' : (isWide ? (it.rateUnit === 'CFT' ? 'CFT' : 'SQFT') : 'CFT');
+      const defaultRateVal = unit === 'SQFT' ? 120 : (unit === 'PCS' ? 0 : 1200);
       const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRateVal;
 
       if (isSheet) {
         const boardKey = it.itemCategory === 'plywood' ? '8x4' : (it.boardSize || `${l}x${w}`);
         const brandKey = it.brand || 'Red Tag';
-        const key = `sheet_${it.itemCategory}_${boardKey}_${brandKey}_${r}_${unit}`;
+        const key = `sheet_${it.itemCategory}_${boardKey}_${brandKey}_${r}_PCS`;
 
         if (consolidatedMap.has(key)) {
           const existing = consolidatedMap.get(key)!;
           const oldPieces = typeof existing.pieces === 'number' ? existing.pieces : parseFloat(String(existing.pieces)) || 0;
           const newPieces = oldPieces + p;
-          const sqftPerUnit = (existing.sqft || 0) / (oldPieces || 1);
-          const newSqft = sqftPerUnit * newPieces;
-          const newAmt = unit === 'PCS' ? Math.round(newPieces * r * 100) / 100 : Math.round(newSqft * r * 100) / 100;
+          const newAmt = Math.round(newPieces * r * 100) / 100;
 
           existing.pieces = newPieces;
-          existing.sqft = newSqft;
+          existing.sqft = 0;
           existing.cft = 0;
+          existing.rateUnit = 'PCS';
           existing.amount = newAmt;
         } else {
           const clone: MeasurementItem = {
             ...it,
             cft: 0,
+            sqft: 0,
             rate: r,
-            rateUnit: unit,
-            amount: typeof it.amount === 'number' && it.amount > 0 ? it.amount : (unit === 'PCS' ? Math.round(p * r * 100) / 100 : Math.round((it.sqft || 0) * r * 100) / 100)
+            rateUnit: 'PCS',
+            amount: typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(p * r * 100) / 100
           };
           consolidatedMap.set(key, clone);
           consolidatedList.push(clone);
@@ -513,6 +521,11 @@ export function groupTimberByWood(items: MeasurementItem[], defaultRate = 1200):
     const totalAmount = groupItems.reduce((acc, it) => {
       if (typeof it.amount === 'number' && it.amount > 0) {
         return acc + it.amount;
+      }
+      if (isSheet || it.rateUnit === 'PCS') {
+        const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
+        const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
+        return acc + Math.round(p * r * 100) / 100;
       }
       const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
       const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : (isSqft ? 120 : defaultRate);
