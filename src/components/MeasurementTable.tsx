@@ -171,7 +171,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     const item = items[index];
     if (!item) return;
 
-    const isSheet = item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || item.woodType?.toLowerCase().includes('plywood') || item.woodType?.toLowerCase().includes('ready') || item.rateUnit === 'PCS' || item.rateUnit === 'SQFT';
+    const isSheet = (item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || item.woodType?.toLowerCase().includes('plywood') || item.woodType?.toLowerCase().includes('ready')) && item.itemCategory !== 'timber';
     if (isSheet) {
       const p = typeof item.pieces === 'number' ? item.pieces : (parseFloat(String(item.pieces)) || 0);
       const isPly = item.itemCategory === 'plywood' || (item.woodType && item.woodType.toLowerCase().includes('plywood'));
@@ -211,7 +211,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     if (!item) return;
     const r = parseFloat(newRateStr);
     if (!isNaN(r)) {
-      const isSheet = item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || item.woodType?.toLowerCase().includes('plywood') || item.woodType?.toLowerCase().includes('ready') || item.rateUnit === 'PCS' || item.rateUnit === 'SQFT';
+      const isSheet = (item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || item.woodType?.toLowerCase().includes('plywood') || item.woodType?.toLowerCase().includes('ready')) && item.itemCategory !== 'timber';
       if (isSheet) {
         const p = typeof item.pieces === 'number' ? item.pieces : (parseFloat(String(item.pieces)) || 0);
         const isPly = item.itemCategory === 'plywood' || (item.woodType && item.woodType.toLowerCase().includes('plywood'));
@@ -241,7 +241,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     if (!item) return;
     const amt = parseFloat(newAmtStr);
     if (!isNaN(amt)) {
-      const isSheet = item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || item.woodType?.toLowerCase().includes('plywood') || item.woodType?.toLowerCase().includes('ready') || item.rateUnit === 'PCS' || item.rateUnit === 'SQFT';
+      const isSheet = (item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || item.woodType?.toLowerCase().includes('plywood') || item.woodType?.toLowerCase().includes('ready')) && item.itemCategory !== 'timber';
       if (isSheet) {
         const p = typeof item.pieces === 'number' ? item.pieces : (parseFloat(String(item.pieces)) || 0);
         const isPly = item.itemCategory === 'plywood' || (item.woodType && item.woodType.toLowerCase().includes('plywood'));
@@ -293,7 +293,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     const r = parseFloat(priceModalRate) || 0;
     const amt = parseFloat(priceModalAmount) || 0;
 
-    const isSheet = target.itemCategory === 'plywood' || target.itemCategory === 'ready_board' || target.woodType?.toLowerCase().includes('plywood') || target.woodType?.toLowerCase().includes('ready') || target.rateUnit === 'PCS' || target.rateUnit === 'SQFT' || priceModalUnit === 'PCS';
+    const isSheet = (target.itemCategory === 'plywood' || target.itemCategory === 'ready_board' || target.woodType?.toLowerCase().includes('plywood') || target.woodType?.toLowerCase().includes('ready')) && target.itemCategory !== 'timber';
     if (isSheet) {
       const p = typeof target.pieces === 'number' ? target.pieces : (parseFloat(String(target.pieces)) || 0);
       const isPly = target.itemCategory === 'plywood' || (target.woodType && target.woodType.toLowerCase().includes('plywood'));

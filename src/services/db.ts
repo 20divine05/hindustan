@@ -23,9 +23,9 @@ export function sanitizeAndComputeSheet(
   const items: MeasurementItem[] = (sheet.items || []).map((item, index) => {
     const itDesc = (item.remarks || '').toUpperCase();
     const itWood = (item.woodType || '').toUpperCase();
-    const isPlywood = item.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
-    const isReady = item.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
-    const isSheet = isPlywood || isReady || item.rateUnit === 'PCS' || item.rateUnit === 'SQFT';
+    const isPlywood = (item.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD')) && item.itemCategory !== 'timber';
+    const isReady = (item.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY')) && item.itemCategory !== 'timber';
+    const isSheet = isPlywood || isReady;
 
     if (isSheet) {
       const p = typeof item.pieces === 'number' ? item.pieces : (parseFloat(String(item.pieces)) || 0);
@@ -75,12 +75,17 @@ export function sanitizeAndComputeSheet(
     const multiplier = isSqftBilled ? calc.sqft : calc.cft;
     const amount = typeof item.amount === 'number' && item.amount > 0 ? item.amount : Math.round(multiplier * rateNum * 100) / 100;
 
+    const isExplicitSheetWood = itWood.includes('PLYWOOD') || itWood.includes('READY');
+    const resolvedCategory: 'timber' | 'plywood' | 'ready_board' = isExplicitSheetWood
+      ? (item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' ? item.itemCategory : 'timber')
+      : 'timber';
+
     return {
       id: item.id || generateId(),
       serialNumber: index + 1,
-      itemCategory: item.itemCategory,
-      brand: item.brand,
-      boardSize: item.boardSize,
+      itemCategory: resolvedCategory,
+      brand: isExplicitSheetWood ? item.brand : undefined,
+      boardSize: isExplicitSheetWood ? item.boardSize : undefined,
       teakGrade: item.teakGrade ? (normalizeTeakGrade(item.teakGrade) as any) : undefined,
       lengthFeet: l,
       widthInches: w,

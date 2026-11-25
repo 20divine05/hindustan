@@ -1264,9 +1264,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       .filter((it) => {
         const itDesc = (it.remarks || '').toUpperCase();
         const itWood = (it.woodType || '').toUpperCase();
-        const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
-        const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
-        const isSheet = isPlywood || isReady || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
+        const isExplicitSheetWood = itWood.includes('PLYWOOD') || itWood.includes('READY');
+        const isPlywood = (it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD')) && it.itemCategory !== 'timber';
+        const isReady = (it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY')) && it.itemCategory !== 'timber';
+        const isSheet = (isPlywood || isReady) && (isExplicitSheetWood || !it.woodType || it.woodType === 'Plywood' || it.woodType === 'Ready Board');
         if (isSheet) {
           const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
           return p > 0;
@@ -1276,9 +1277,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       .map((it, idx) => {
         const itDesc = (it.remarks || '').toUpperCase();
         const itWood = (it.woodType || '').toUpperCase();
-        const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
-        const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
-        const isSheet = isPlywood || isReady || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
+        const isExplicitSheetWood = itWood.includes('PLYWOOD') || itWood.includes('READY');
+        const isPlywood = (it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD')) && it.itemCategory !== 'timber';
+        const isReady = (it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY')) && it.itemCategory !== 'timber';
+        const isSheet = (isPlywood || isReady) && (isExplicitSheetWood || !it.woodType || it.woodType === 'Plywood' || it.woodType === 'Ready Board');
 
         if (isSheet) {
           const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);

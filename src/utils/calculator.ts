@@ -248,14 +248,15 @@ export function getCutLogItemSectionHeading(it: {
 }): string {
   const woodUpper = (it.woodType || '').toUpperCase();
   const descUpper = (it.description || '').toUpperCase();
-  const isPlywood = it.itemCategory === 'plywood' || woodUpper.includes('PLYWOOD') || descUpper.includes('PLYWOOD');
-  const isReady = it.itemCategory === 'ready_board' || woodUpper.includes('READY') || descUpper.includes('READY');
+  const isExplicitSheetWood = woodUpper.includes('PLYWOOD') || woodUpper.includes('READY');
+  const isPlywood = (it.itemCategory === 'plywood' || woodUpper.includes('PLYWOOD') || descUpper.includes('PLYWOOD')) && it.itemCategory !== 'timber';
+  const isReady = (it.itemCategory === 'ready_board' || woodUpper.includes('READY') || descUpper.includes('READY')) && it.itemCategory !== 'timber';
 
-  if (isPlywood) {
+  if (isPlywood && (isExplicitSheetWood || !it.woodType || it.woodType.toUpperCase() === 'PLYWOOD')) {
     if (woodUpper.includes('34') || descUpper.includes('34')) return 'PLYWOOD(34)';
     return 'PLYWOOD(30)';
   }
-  if (isReady) {
+  if (isReady && (isExplicitSheetWood || !it.woodType || it.woodType.toUpperCase() === 'READY BOARD' || it.woodType.toUpperCase() === 'READYWOOD')) {
     if (woodUpper.includes('34') || descUpper.includes('34')) return 'READYWOOD(34)';
     return 'READYWOOD(30)';
   }
@@ -287,8 +288,9 @@ export function getCutLogItemDescription(it: {
 }): string {
   const descUpper = (it.description || '').toUpperCase();
   const woodUpper = (it.woodType || '').toUpperCase();
-  const isPlywood = it.itemCategory === 'plywood' || woodUpper.includes('PLYWOOD') || descUpper.includes('PLYWOOD');
-  const isReady = it.itemCategory === 'ready_board' || woodUpper.includes('READY') || descUpper.includes('READY');
+  const isExplicitSheetWood = woodUpper.includes('PLYWOOD') || woodUpper.includes('READY');
+  const isPlywood = (it.itemCategory === 'plywood' || woodUpper.includes('PLYWOOD') || descUpper.includes('PLYWOOD')) && it.itemCategory !== 'timber' && (isExplicitSheetWood || !it.woodType || it.woodType.toUpperCase() === 'PLYWOOD');
+  const isReady = (it.itemCategory === 'ready_board' || woodUpper.includes('READY') || descUpper.includes('READY')) && it.itemCategory !== 'timber' && (isExplicitSheetWood || !it.woodType || it.woodType.toUpperCase() === 'READY BOARD' || it.woodType.toUpperCase() === 'READYWOOD');
 
   if (isPlywood) {
     let b = it.brand;
@@ -360,9 +362,10 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
   for (const it of items) {
     const itDesc = (it.remarks || '').toUpperCase();
     const itWood = (it.woodType || '').toUpperCase();
-    const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
-    const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
-    const isSheet = isPlywood || isReady || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
+    const isExplicitSheetWood = itWood.includes('PLYWOOD') || itWood.includes('READY');
+    const isPlywood = (it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD')) && it.itemCategory !== 'timber';
+    const isReady = (it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY')) && it.itemCategory !== 'timber';
+    const isSheet = (isPlywood || isReady) && (isExplicitSheetWood || !it.woodType || it.woodType === 'Plywood' || it.woodType === 'Ready Board');
 
     if (isSheet) {
       const p = typeof it.pieces === 'number' ? it.pieces : parseFloat(String(it.pieces));
@@ -429,7 +432,7 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
     const consolidatedList: MeasurementItem[] = [];
 
     for (const it of groupItems) {
-      const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
+      const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready')) && it.itemCategory !== 'timber';
       const l = typeof it.lengthFeet === 'number' ? it.lengthFeet : parseFloat(String(it.lengthFeet)) || 0;
       const w = typeof it.widthInches === 'number' ? it.widthInches : parseFloat(String(it.widthInches)) || 0;
       const t = typeof it.thicknessInches === 'number' ? it.thicknessInches : parseFloat(String(it.thicknessInches)) || 0;

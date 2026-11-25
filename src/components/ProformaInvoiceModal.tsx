@@ -257,9 +257,10 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
     sourceItems.forEach((it, sourceIdx) => {
       const itDesc = (it.remarks || '').toUpperCase();
       const itWood = (it.woodType || '').toUpperCase();
-      const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
-      const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
-      const isSheet = isPlywood || isReady || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
+      const isExplicitSheetWood = itWood.includes('PLYWOOD') || itWood.includes('READY');
+      const isPlywood = (it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD')) && it.itemCategory !== 'timber';
+      const isReady = (it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY')) && it.itemCategory !== 'timber';
+      const isSheet = (isPlywood || isReady) && (isExplicitSheetWood || !it.woodType || it.woodType === 'Plywood' || it.woodType === 'Ready Board');
 
       if (isSheet) {
         const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
@@ -270,7 +271,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
             : (customRates[sourceIdx] !== undefined ? customRates[sourceIdx] : itemRate);
           const hsn = (it.id && customHsn[it.id] !== undefined) ? customHsn[it.id] : (customHsn[sourceIdx] ?? '4412');
           const disc = (it.id && customDisc[it.id] !== undefined) ? customDisc[it.id] : (customDisc[sourceIdx] ?? '');
-          const wood = isPlywood ? 'PLYWOOD' : 'READY BOARD';
+          const wood = getCutLogItemSectionHeading(it);
           const brand = it.brand || (isPlywood ? 'Red Tag' : 'Mine Gold');
           const desc = getCutLogItemDescription({ ...it, brand, itemCategory: isPlywood ? 'plywood' : 'ready_board', woodType: wood });
           const sheetW = typeof it.widthInches === 'number' && it.widthInches > 0 ? it.widthInches : (isPlywood ? 4 : 12);

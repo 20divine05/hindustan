@@ -312,7 +312,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
     totalPieces = validItems.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
 
     totalSqftBilled = validItems.reduce((acc, it) => {
-      const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
+      const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS') && it.itemCategory !== 'timber';
       if (isSheet) {
         const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
         const isPly = it.itemCategory === 'plywood' || (it.woodType && it.woodType.toLowerCase().includes('plywood'));
@@ -331,7 +331,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
     }, 0);
 
     timberTotalAmount = validItems.reduce((acc, it) => {
-      const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
+      const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS') && it.itemCategory !== 'timber';
       if (isSheet) {
         const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
         const isPly = it.itemCategory === 'plywood' || (it.woodType && it.woodType.toLowerCase().includes('plywood'));
@@ -805,14 +805,14 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                 {woodGroups.map((group, gIdx) => {
                   const groupPieces = group.items.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
                   const groupCft = group.items.reduce((acc, it) => {
-                    const isSheet = group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || (it as any).rateUnit === 'PCS' || it.rateUnit === 'SQFT';
+                    const isSheet = group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready');
                     const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
                     const isSqftBilled = isSheet || (!isSheet && (it.rateUnit === 'SQFT' || (w >= 7 && it.rateUnit !== 'CFT')));
                     if (isSqftBilled) return acc;
                     return acc + (typeof it.cft === 'number' ? it.cft : 0);
                   }, 0);
                   const groupSqftBilled = group.items.reduce((acc, it) => {
-                    const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
+                    const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready');
                     if (isSheet) {
                       const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
                       const isPly = it.itemCategory === 'plywood' || (it.woodType && it.woodType.toLowerCase().includes('plywood'));
@@ -830,7 +830,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                     return acc;
                   }, 0);
                   const groupAmount = group.items.reduce((acc, it) => {
-                    const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
+                    const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS') && it.itemCategory !== 'timber';
                     if (isSheet) {
                       const p = typeof it.pieces === 'number' ? it.pieces : 0;
                       const isPly = it.itemCategory === 'plywood' || (it.woodType && it.woodType.toLowerCase().includes('plywood'));
@@ -870,7 +870,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       {/* Measurements of that wood (with zebra striping and small decimals) */}
                       {group.items.map((it, itemIdx) => {
                         const currentSl = runningSl++;
-                        const isSheet = group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT' || ((it as any).remarks && ((it as any).remarks.toUpperCase().includes('PLYWOOD') || (it as any).remarks.toUpperCase().includes('READY'))) || ((it as any).description && ((it as any).description.toUpperCase().includes('PLYWOOD') || (it as any).description.toUpperCase().includes('READY')));
+                        const isSheet = group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready');
                         const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
                         const isSqftBilled = isSheet || (!isSheet && w >= 7 && it.rateUnit !== 'CFT');
                         const defaultRowRate = isSheet ? 0 : (isSqftBilled ? 120 : ratePerCft);

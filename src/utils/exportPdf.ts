@@ -164,14 +164,24 @@ export function createProformaInvoiceDoc(
     const sourceItems = sortTimberEntries(rawItems);
     items = sourceItems
       .filter((it) => {
-        const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
+        const itDesc = ((it as any).remarks || (it as any).description || '').toUpperCase();
+        const itWood = (it.woodType || '').toUpperCase();
+        const isExplicitSheetWood = itWood.includes('PLYWOOD') || itWood.includes('READY');
+        const isPlywood = ((it as any).itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD')) && (it as any).itemCategory !== 'timber';
+        const isReady = ((it as any).itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY')) && (it as any).itemCategory !== 'timber';
+        const isSheet = (isPlywood || isReady) && (isExplicitSheetWood || !it.woodType || it.woodType === 'Plywood' || it.woodType === 'Ready Board');
         if (isSheet) {
           return typeof it.pieces === 'number' && it.pieces > 0;
         }
         return typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0;
       })
       .map((it, idx) => {
-        const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
+        const itDesc = ((it as any).remarks || (it as any).description || '').toUpperCase();
+        const itWood = (it.woodType || '').toUpperCase();
+        const isExplicitSheetWood = itWood.includes('PLYWOOD') || itWood.includes('READY');
+        const isPlywood = ((it as any).itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD')) && (it as any).itemCategory !== 'timber';
+        const isReady = ((it as any).itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY')) && (it as any).itemCategory !== 'timber';
+        const isSheet = (isPlywood || isReady) && (isExplicitSheetWood || !it.woodType || it.woodType === 'Plywood' || it.woodType === 'Ready Board');
         if (isSheet) {
           const wood = getCutLogItemSectionHeading(it as any);
           const desc = getCutLogItemDescription({ ...it, woodType: wood });
@@ -252,15 +262,15 @@ export function createProformaInvoiceDoc(
     for (const it of items) {
       const itDesc = (it.description || (it as any).remarks || '').toUpperCase();
       const itWood = (it.woodType || '').toUpperCase();
-      const isPlywood = (it as any).itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
-      const isReady = (it as any).itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
+      const isPlywood = ((it as any).itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD')) && (it as any).itemCategory !== 'timber';
+      const isReady = ((it as any).itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY')) && (it as any).itemCategory !== 'timber';
       const isPureSheet = isPlywood || isReady || (it as any).rateUnit === 'PCS' || it.per === 'PCS';
 
       if (!isPureSheet) {
         totalCft += (typeof it.cft === 'number' ? it.cft : 0);
       }
       totalPieces += (typeof it.pieces === 'number' ? it.pieces : 0);
-      const isSheet = isPureSheet || (it as any).rateUnit === 'SQFT' || it.per === 'SQFT';
+      const isSheet = isPureSheet;
       if (isSheet) {
         const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
         const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
@@ -750,8 +760,8 @@ export function createProformaInvoiceDoc(
 
     for (const group of woodGroups) {
       group.items.sort((a, b) => {
-        const isSheetA = (a as any).itemCategory === 'plywood' || (a as any).itemCategory === 'ready_board' || a.woodType?.toLowerCase().includes('plywood') || a.woodType?.toLowerCase().includes('ready') || (a as any).rateUnit === 'PCS' || a.per === 'PCS';
-        const isSheetB = (b as any).itemCategory === 'plywood' || (b as any).itemCategory === 'ready_board' || b.woodType?.toLowerCase().includes('plywood') || b.woodType?.toLowerCase().includes('ready') || (b as any).rateUnit === 'PCS' || b.per === 'PCS';
+        const isSheetA = ((a as any).itemCategory === 'plywood' || (a as any).itemCategory === 'ready_board' || a.woodType?.toLowerCase().includes('plywood') || a.woodType?.toLowerCase().includes('ready') || (a as any).rateUnit === 'PCS' || a.per === 'PCS') && (a as any).itemCategory !== 'timber';
+        const isSheetB = ((b as any).itemCategory === 'plywood' || (b as any).itemCategory === 'ready_board' || b.woodType?.toLowerCase().includes('plywood') || b.woodType?.toLowerCase().includes('ready') || (b as any).rateUnit === 'PCS' || b.per === 'PCS') && (b as any).itemCategory !== 'timber';
         if (isSheetA || isSheetB) {
           const wA = typeof a.widthInches === 'number' ? a.widthInches : 0;
           const wB = typeof b.widthInches === 'number' ? b.widthInches : 0;
@@ -769,14 +779,14 @@ export function createProformaInvoiceDoc(
 
         const parseDims = (item: any) => {
           let w = typeof item.widthInches === 'number' ? item.widthInches : 0;
-          let l = 0;
-          let t = 0;
-          if (item.description) {
+          let l = typeof item.lengthFeet === 'number' ? item.lengthFeet : 0;
+          let t = typeof item.thicknessInches === 'number' ? item.thicknessInches : 0;
+          if (item.description && (!w || !l || !t)) {
             const match = item.description.match(/^([\d.]+)[X|x]([\d.]+)[X|x]([\d.]+)/);
             if (match) {
-              l = parseFloat(match[1]) || 0;
+              if (!l) l = parseFloat(match[1]) || 0;
               if (!w) w = parseFloat(match[2]) || 0;
-              t = parseFloat(match[3]) || 0;
+              if (!t) t = parseFloat(match[3]) || 0;
             }
           }
           return { w, l, t };
@@ -815,7 +825,7 @@ export function createProformaInvoiceDoc(
       let itemIdx = 0;
 
       for (const it of group.items) {
-        const isSheet = group.wood.includes('PLYWOOD') || group.wood.includes('READY') || (it as any).itemCategory === 'plywood' || (it as any).itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || (it as any).rateUnit === 'PCS' || (it as any).rateUnit === 'SQFT' || it.per === 'PCS' || it.per === 'SQFT' || ((it as any).remarks && ((it as any).remarks.toUpperCase().includes('PLYWOOD') || (it as any).remarks.toUpperCase().includes('READY'))) || (it.description && (it.description.toUpperCase().includes('PLYWOOD') || it.description.toUpperCase().includes('READY')));
+        const isSheet = (group.wood.includes('PLYWOOD') || group.wood.includes('READY') || (it as any).itemCategory === 'plywood' || (it as any).itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || (it as any).rateUnit === 'PCS' || it.per === 'PCS') && (it as any).itemCategory !== 'timber';
         let dimOnly = '';
         if (isSheet) {
           dimOnly = getCutLogItemDescription({ ...it, woodType: group.wood || it.woodType } as any);
@@ -823,7 +833,7 @@ export function createProformaInvoiceDoc(
           const rawDim = (it.description || '').split(/\s+/)[0] || it.description;
           dimOnly = rawDim.split(/([xX×])/).map(p => p.trim().replace(/^0+(\d)/, '$1')).join('');
         }
-        const isSqftBilled = isSheet || (!isSheet && ((it as any).rateUnit === 'SQFT' || it.per === 'SQFT'));
+        const isSqftBilled = isSheet || (!isSheet && ((it as any).rateUnit === 'SQFT' || it.per === 'SQFT' || ((it as any).widthInches && (it as any).widthInches >= 7 && (it as any).rateUnit !== 'CFT')));
         const perText = isSheet ? 'SQFT' : (isSqftBilled ? 'SQFT' : 'CFT');
         const zebraBg = (itemIdx++ % 2 === 0) ? [243, 244, 246] : [255, 255, 255];
 
