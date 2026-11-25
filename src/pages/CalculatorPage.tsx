@@ -233,7 +233,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const [consigneeStateCode, setConsigneeStateCode] = useState<string>(sheetToEdit?.consigneeStateCode || '');
   const [consigneeState, setConsigneeState] = useState<string>(sheetToEdit?.consigneeState || '');
   const [, setIsShipToTouched] = useState<boolean>(Boolean(sheetToEdit?.consigneeName));
-  const [showShipToDetails, setShowShipToDetails] = useState<boolean>(Boolean(sheetToEdit?.consigneeName || sheetToEdit?.consigneeAddress));
   const [isShipToGstSearching, setIsShipToGstSearching] = useState<boolean>(false);
   const [shipToGstNotice, setShipToGstNotice] = useState<string | null>(null);
   const [shipToCopyNotice, setShipToCopyNotice] = useState<string | null>(null);
@@ -369,7 +368,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       setConsigneeStateCode(sheetToEdit.consigneeStateCode || '');
       setConsigneeState(sheetToEdit.consigneeState || '');
       setIsShipToTouched(Boolean(sheetToEdit.consigneeName));
-      setShowShipToDetails(Boolean(sheetToEdit.consigneeName || sheetToEdit.consigneeAddress));
       setLogType(sheetToEdit.logType || 'cut');
       setRoundLogOutputUnit(sheetToEdit.roundLogOutputUnit || 'CFT');
       setRoundLogInputUnit(sheetToEdit.roundLogInputUnit || 'girth_in_length_ft');
@@ -1217,7 +1215,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setConsigneeStateCode('');
     setConsigneeState('Karnataka');
     setIsShipToTouched(false);
-    setShowShipToDetails(false);
     setProjectName('');
     const newRef = `REF-${Math.floor(100000 + Math.random() * 900000)}`;
     setReferenceNumber(newRef);
@@ -2354,134 +2351,72 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             ========================================================================= */}
         {currentStep === 4 && (
           <div className="card calc-step-card">
-            {!showShipToDetails ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '1.75rem 1rem', gap: '0.9rem' }}>
-                <span style={{
-                  fontSize: '0.88rem',
-                  fontWeight: 900,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: '#0284c7',
-                  background: '#e0f2fe',
-                  padding: '4px 18px',
-                  borderRadius: '6px',
-                  border: '1.5px solid #38bdf8',
-                  boxShadow: '0 1px 3px rgba(2, 132, 199, 0.15)'
-                }}>
-                  SHIP TO / CONSIGNEE
-                </span>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingBottom: '0.45rem',
+              borderBottom: '1px solid var(--border-light, #e2e8f0)',
+              marginBottom: '0.65rem',
+              flexWrap: 'wrap',
+              gap: '0.5rem'
+            }}>
+              <span style={{
+                fontSize: '0.88rem',
+                fontWeight: 900,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: customerType === 'b2b' ? '#1d4ed8' : '#0284c7',
+                background: customerType === 'b2b' ? '#dbeafe' : '#e0f2fe',
+                padding: '4px 16px',
+                borderRadius: '6px',
+                border: `1.5px solid ${customerType === 'b2b' ? '#60a5fa' : '#38bdf8'}`,
+                whiteSpace: 'nowrap',
+                lineHeight: 1.25,
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)'
+              }}>
+                SHIP TO ({customerType.toUpperCase()})
+              </span>
 
-                <div style={{ maxWidth: '360px', marginTop: '0.25rem' }}>
-                  <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
-                    Shipping address is currently not specified.
-                  </p>
-                  <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                    Click below to copy details from <strong>Bill To</strong>, or enter a separate delivery address.
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', width: '100%', maxWidth: '320px', marginTop: '0.5rem' }}>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => {
-                      setConsigneeName(customerName);
-                      setConsigneePhone(customerPhone);
-                      setConsigneeAddress(customerAddress);
-                      setConsigneeGstin(customerGstin);
-                      setConsigneeStateCode(customerStateCode || '29');
-                      setConsigneeState(destination || customerState || 'Karnataka');
-                      setIsShipToTouched(true);
-                      setShowShipToDetails(true);
-                      setShipToCopyNotice('✓ Copied from Bill To');
-                      setTimeout(() => setShipToCopyNotice(null), 2500);
-                    }}
-                    style={{
-                      padding: '0.7rem 1rem',
-                      fontWeight: 800,
-                      fontSize: '0.9rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.45rem',
-                      background: '#0284c7',
-                      color: '#ffffff',
-                      borderRadius: '8px',
-                      boxShadow: '0 2px 6px rgba(2, 132, 199, 0.35)',
-                      border: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <span>📋 Copy from Bill To</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowShipToDetails(true);
-                      setIsShipToTouched(true);
-                    }}
-                    style={{
-                      padding: '0.65rem 1rem',
-                      fontWeight: 800,
-                      fontSize: '0.86rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.45rem',
-                      borderRadius: '8px',
-                      border: '1.5px solid #cbd5e1',
-                      background: '#ffffff',
-                      color: 'var(--text-main)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <span>✍️ Enter Different Shipping Details</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Top Indicator: Ship to (Centered, Highlighted & Bold) with Copy from Bill To beside it */}
-                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '0.65rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem', flexWrap: 'wrap' }}>
-                  <span style={{
-                    fontSize: '0.88rem',
-                    fontWeight: 900,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    color: '#0284c7',
-                    background: '#e0f2fe',
-                    padding: '4px 18px',
-                    borderRadius: '6px',
-                    border: '1.5px solid #38bdf8',
+              {/* Action buttons: Copy from Bill To & Clear */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => {
+                    setConsigneeName(customerName);
+                    setConsigneePhone(customerPhone);
+                    setConsigneeAddress(customerAddress);
+                    setConsigneeGstin(customerGstin);
+                    setConsigneeStateCode(customerStateCode || '29');
+                    setConsigneeState(destination || customerState || 'Karnataka');
+                    setIsShipToTouched(true);
+                    setShipToCopyNotice('✓ Copied from Bill To');
+                    setTimeout(() => setShipToCopyNotice(null), 2500);
+                  }}
+                  style={{
+                    fontSize: '0.78rem',
+                    padding: '4px 12px',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
                     whiteSpace: 'nowrap',
-                    lineHeight: 1.25,
-                    boxShadow: '0 1px 3px rgba(2, 132, 199, 0.15)'
-                  }}>
-                    SHIP TO
-                  </span>
+                    height: '32px',
+                    minHeight: '32px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    color: '#ffffff',
+                    backgroundColor: '#0284c7',
+                    boxShadow: '0 2px 4px rgba(2, 132, 199, 0.25)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span>📋 Copy from Bill To</span>
+                </button>
 
-                  {/* Action: Copy from Bill To Button */}
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => {
-                      setConsigneeName(customerName);
-                      setConsigneePhone(customerPhone);
-                      setConsigneeAddress(customerAddress);
-                      setConsigneeGstin(customerGstin);
-                      setConsigneeStateCode(customerStateCode || '29');
-                      setConsigneeState(destination || customerState || 'Karnataka');
-                      setIsShipToTouched(true);
-                      setShipToCopyNotice('✓ Copied from Bill To');
-                      setTimeout(() => setShipToCopyNotice(null), 2500);
-                    }}
-                    style={{ fontSize: '0.74rem', padding: '3px 10px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap', height: '28px', minHeight: '28px', borderRadius: '6px', border: '1.5px solid #93c5fd', color: '#0369a1', backgroundColor: '#ffffff', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-                  >
-                    <span>📋 Copy from Bill To</span>
-                  </button>
-
-                  {/* Action: Clear / Hide Button */}
+                {(consigneeName || consigneePhone || consigneeAddress || consigneeGstin) && (
                   <button
                     type="button"
                     onClick={() => {
@@ -2492,20 +2427,31 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setConsigneeDistrict('');
                       setConsigneeStateCode('');
                       setConsigneeState('');
-                      setShowShipToDetails(false);
                       setIsShipToTouched(false);
                     }}
-                    style={{ fontSize: '0.74rem', padding: '3px 8px', fontWeight: 700, borderRadius: '6px', border: '1px solid #e2e8f0', color: '#64748b', background: '#f8fafc', cursor: 'pointer' }}
+                    style={{
+                      fontSize: '0.74rem',
+                      padding: '4px 8px',
+                      fontWeight: 700,
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      color: '#64748b',
+                      background: '#f8fafc',
+                      cursor: 'pointer',
+                      height: '32px'
+                    }}
                   >
                     <span>✕ Clear</span>
                   </button>
-                </div>
-
-                {shipToCopyNotice && (
-                  <div style={{ padding: '0.4rem 0.7rem', background: '#dcfce7', color: '#15803d', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800 }}>
-                    {shipToCopyNotice}
-                  </div>
                 )}
+              </div>
+            </div>
+
+            {shipToCopyNotice && (
+              <div style={{ padding: '0.4rem 0.7rem', background: '#dcfce7', color: '#15803d', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+                {shipToCopyNotice}
+              </div>
+            )}
 
             {customerType === 'b2b' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -2780,10 +2726,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
-      </div>
-    )}
 
         {/* =========================================================================
             STEP 5: SELECT TIMBER LOG TYPE (CUT LOGS vs ROUND LOGS)
