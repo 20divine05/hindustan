@@ -1564,14 +1564,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       const invoiceUrl = `${origin}/?invoice=${encodeURIComponent(current.id)}`;
       const invNo = exportData.invoiceNo || 'Invoice';
       const clientName = (customerName || consigneeName || '').trim() || 'Valued Customer';
-      const totalPayable = formatIndianCurrency(finalGrandTotal > 0 ? finalGrandTotal : totalBeforeDiscount);
 
       const shareMessage =
-        `🌲 *HINDUSTAN SAW MILL & WOOD INDUSTRIES* 🌲\n` +
-        `📄 *Proforma Invoice:* #${invNo}\n` +
-        `👤 *Customer:* ${clientName}\n` +
-        `💰 *Grand Total:* Rs. ${totalPayable}\n\n` +
-        `📥 *View / Download Invoice PDF:*\n${invoiceUrl}\n\n` +
+        `*HINDUSTAN SAW MILL & WOOD INDUSTRIES*\n` +
+        `*Proforma Invoice:* #${invNo}\n` +
+        `*Customer:* ${clientName}\n\n` +
+        `*View / Download Invoice PDF:*\n${invoiceUrl}\n\n` +
         `Thank you for your business!`;
 
       const waUrl = `https://wa.me/${targetDigits}?text=${encodeURIComponent(shareMessage)}`;
