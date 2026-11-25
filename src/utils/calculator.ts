@@ -345,8 +345,8 @@ export function getCutLogItemDescription(it: {
  * 1. Wood Species Grouping: Keeps all entries of the same wood species together,
  *    preserving the initial sequence in which each wood species was introduced in the sheet.
  * 2. Width (IN) - Ascending: Smallest width to largest width within each wood species.
- * 3. Length (FT) - Descending: Longest to shortest within each width group.
- * 4. Thickness (IN) - Descending: Thickest to thinnest within each length group.
+ * 3. Thickness (IN) - Descending: Thickest to thinnest within each width group.
+ * 4. Length (FT) - Ascending: Shortest to longest within each thickness group.
  * 5. Serial Number: Sequential 1, 2, 3... across the entire sheet.
  * Preserves all existing calculations, rates, quantities, and properties.
  */
@@ -547,7 +547,7 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
 
       const lA = typeof a.lengthFeet === 'number' ? a.lengthFeet : parseFloat(String(a.lengthFeet)) || 0;
       const lB = typeof b.lengthFeet === 'number' ? b.lengthFeet : parseFloat(String(b.lengthFeet)) || 0;
-      if (lA !== lB) return lB - lA;
+      if (lA !== lB) return lA - lB;
 
       const rA = typeof a.rate === 'number' ? a.rate : 0;
       const rB = typeof b.rate === 'number' ? b.rate : 0;

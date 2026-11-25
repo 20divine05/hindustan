@@ -575,7 +575,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
         const dB = parseDims(b);
         if (dA.w !== dB.w) return dA.w - dB.w;
         if (dA.t !== dB.t) return dB.t - dA.t;
-        if (dA.l !== dB.l) return dB.l - dA.l;
+        if (dA.l !== dB.l) return dA.l - dB.l;
         return (b.pieces || 0) - (a.pieces || 0);
       });
     }
@@ -1315,14 +1315,19 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                 {woodGroups.map((group, gIdx) => {
                   const groupPieces = group.items.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
                   const groupCft = group.items.reduce((acc, it) => {
-                    const isSheet = it.rateUnit === 'PCS' || it.per === 'PCS' || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType === 'PLYWOOD' || it.woodType === 'READY BOARD';
-                    return isSheet ? acc : acc + (typeof it.cft === 'number' ? it.cft : 0);
+                    const isSheet = it.rateUnit === 'PCS' || it.per === 'PCS' || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY');
+                    const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
+                    const isSqftBilled = isSheet || (!isSheet && (it.rateUnit === 'SQFT' || it.per === 'SQFT' || (w >= 7 && it.rateUnit !== 'CFT')));
+                    if (isSqftBilled) return acc;
+                    return acc + (typeof it.cft === 'number' ? it.cft : 0);
                   }, 0);
                   const groupAmount = group.items.reduce((acc, it) => acc + (typeof it.amount === 'number' ? it.amount : 0), 0);
                   const groupSqftBilled = group.items.reduce((acc, it) => {
-                    const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType === 'PLYWOOD' || it.woodType === 'READY BOARD';
+                    const isSheet = it.rateUnit === 'PCS' || it.per === 'PCS' || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY');
                     if (isSheet) return acc + (typeof it.sqft === 'number' ? it.sqft : 0);
-                    if (it.rateUnit === 'SQFT' && (it.widthInches || 0) >= 7) return acc + (typeof it.sqft === 'number' ? it.sqft : (it.cft * 12));
+                    const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
+                    const isSqft = it.rateUnit === 'SQFT' || it.per === 'SQFT' || (w >= 7 && it.rateUnit !== 'CFT');
+                    if (isSqft) return acc + (typeof it.sqft === 'number' ? it.sqft : (it.cft * 12));
                     return acc;
                   }, 0);
 
