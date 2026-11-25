@@ -1393,19 +1393,25 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
     if (updated.items !== undefined && updated.items.length > 0) {
       setItems(updated.items);
-      const current = getCurrentSheetObject();
-      const updatedSheet = {
-        ...current,
-        items: updated.items
-      };
-      dbService.saveDraft(updatedSheet);
-      dbService.saveSheet(sanitizeAndComputeSheet(updatedSheet, user?.id || 'guest'), user?.id || 'guest').catch(() => {});
     }
     if (updated.roundLogSlabRates !== undefined) {
       setRoundLogSlabRates(updated.roundLogSlabRates);
     }
 
     setIsShipToTouched(true);
+
+    try {
+      const current = getCurrentSheetObject();
+      const merged: MeasurementSheet = {
+        ...current,
+        ...updated,
+        items: (updated.items && updated.items.length > 0) ? updated.items : current.items
+      };
+      dbService.saveDraft(merged);
+      dbService.saveSheet(merged, user?.id || 'guest');
+    } catch (e) {
+      console.warn('Sync notice:', e);
+    }
   };
 
   // Share Invoice PDF directly to customer's WhatsApp chat
@@ -4535,12 +4541,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <div className="summary-preview-item">
                     <span className="preview-label">GST ({gstPercent}%):</span>
                     <span className="preview-val font-bold">+₹ {formatIndianCurrency(gstAmount)}</span>
-                  </div>
-                )}
-                {discountAmount > 0 && (
-                  <div className="summary-preview-item">
-                    <span className="preview-label">Total Before Discount:</span>
-                    <span className="preview-val font-bold">₹ {formatIndianCurrency(totalBeforeDiscount)}</span>
                   </div>
                 )}
                 {discountAmount > 0 && (

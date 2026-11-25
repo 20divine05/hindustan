@@ -146,9 +146,10 @@ export function calculateTotals(
       if (p > 0) {
         validEntries++;
         totalPieces += p;
-        // Do NOT compute or add CFT or SQFT for Plywood or Ready Board (cft = 0, sqft = 0)
-        const r = typeof item.rate === 'number' && item.rate > 0 ? item.rate : 0;
-        const amt = typeof item.amount === 'number' && item.amount > 0 ? item.amount : (p * r);
+        const rowSqft = typeof item.sqft === 'number' ? item.sqft : 0;
+        totalSqft += rowSqft;
+        // Do NOT compute or add CFT for Plywood or Ready Board (cft = 0)
+        const amt = typeof item.amount === 'number' && item.amount > 0 ? item.amount : 0;
         totalAmount += amt;
       }
       continue;
@@ -276,11 +277,17 @@ export function getCutLogItemDescription(it: {
     return `${size} (${b})`;
   }
   if (it.description) {
-    let cleanDesc = it.description;
-    // Strip " × 0" or " x 0" or "X0" completely
-    cleanDesc = cleanDesc.replace(/\s*[Xx×*]\s*0+(?:\.0+)?(?=\s|\(|$)/g, '');
-    cleanDesc = cleanDesc.replace(/\s*[Xx×*]\s*/g, ' × ');
-    return cleanDesc;
+    if (it.description.includes('(') && it.description.includes(')')) {
+      return it.description;
+    }
+    const match = it.description.match(/^([\d.]+)[X|x]([\d.]+)(?:[X|x]([\d.]+))?/);
+    if (match) {
+      if (!match[3] || match[3] === '0' || parseFloat(match[3]) === 0) {
+        return `${match[1]} × ${match[2]}`;
+      }
+      return `${match[1]} × ${match[2]} × ${match[3]}`;
+    }
+    return it.description;
   }
   if (it.lengthFeet && it.widthInches) {
     if (it.thicknessInches && Number(it.thicknessInches) > 0) {
@@ -315,8 +322,7 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
         validItems.push({
           ...it,
           cft: 0,
-          sqft: 0,
-          rateUnit: 'PCS'
+          rateUnit: it.rateUnit || 'SQFT'
         });
         continue;
       }
@@ -377,27 +383,27 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
       if (isSheet) {
         const boardKey = it.itemCategory === 'plywood' ? '8x4' : (it.boardSize || `${l}x${w}`);
         const brandKey = it.brand || 'Red Tag';
-        const key = `sheet_${it.itemCategory}_${boardKey}_${brandKey}_${r}_PCS`;
+        const key = `sheet_${it.itemCategory}_${boardKey}_${brandKey}_${r}_${unit}`;
 
         if (consolidatedMap.has(key)) {
           const existing = consolidatedMap.get(key)!;
           const oldPieces = typeof existing.pieces === 'number' ? existing.pieces : parseFloat(String(existing.pieces)) || 0;
           const newPieces = oldPieces + p;
-          const newAmt = Math.round(newPieces * r * 100) / 100;
+          const sqftPerUnit = (existing.sqft || 0) / (oldPieces || 1);
+          const newSqft = sqftPerUnit * newPieces;
+          const newAmt = unit === 'PCS' ? Math.round(newPieces * r * 100) / 100 : Math.round(newSqft * r * 100) / 100;
 
           existing.pieces = newPieces;
-          existing.sqft = 0;
+          existing.sqft = newSqft;
           existing.cft = 0;
-          existing.rateUnit = 'PCS';
           existing.amount = newAmt;
         } else {
           const clone: MeasurementItem = {
             ...it,
             cft: 0,
-            sqft: 0,
             rate: r,
-            rateUnit: 'PCS',
-            amount: typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(p * r * 100) / 100
+            rateUnit: unit,
+            amount: typeof it.amount === 'number' && it.amount > 0 ? it.amount : (unit === 'PCS' ? Math.round(p * r * 100) / 100 : Math.round((it.sqft || 0) * r * 100) / 100)
           };
           consolidatedMap.set(key, clone);
           consolidatedList.push(clone);
@@ -507,12 +513,6 @@ export function groupTimberByWood(items: MeasurementItem[], defaultRate = 1200):
     const totalAmount = groupItems.reduce((acc, it) => {
       if (typeof it.amount === 'number' && it.amount > 0) {
         return acc + it.amount;
-      }
-      const isSheetItem = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || isSheet;
-      if (isSheetItem) {
-        const p = typeof it.pieces === 'number' ? it.pieces : 0;
-        const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
-        return acc + (p * r);
       }
       const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
       const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : (isSqft ? 120 : defaultRate);

@@ -10,7 +10,7 @@ import type {
 import { LOGO_ICON_BASE64 } from './logoBase64';
 import { PAYMENT_QR_BASE64 } from './paymentQrBase64';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from './indianNumberWords';
-import { sortTimberEntries, formatValue, getCutLogItemSectionHeading, getCutLogItemDescription } from './calculator';
+import { sortTimberEntries, formatValue } from './calculator';
 import {
   groupRoundLogsBySpeciesFirst,
   getRoundLogUnitConfig
@@ -64,7 +64,7 @@ export interface ProformaInvoiceExportData {
     cft: number;
     sqft?: number;
     widthInches?: number | '';
-    rateUnit?: 'CFT' | 'SQFT' | 'CBM' | 'PCS';
+    rateUnit?: 'CFT' | 'SQFT' | 'CBM';
     pieces: number;
     rate: number;
     per: string;
@@ -163,65 +163,32 @@ export function createProformaInvoiceDoc(
     const rawItems = sheet.items && sheet.items.length > 0 ? sheet.items : [];
     const sourceItems = sortTimberEntries(rawItems);
     items = sourceItems
-      .filter((it) => (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board'
-        ? (typeof it.pieces === 'number' && it.pieces > 0)
-        : (typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)
-      ))
+      .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)
       .map((it, idx) => {
-        const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board';
+        const l = it.lengthFeet;
+        const w = it.widthInches;
+        const t = it.thicknessInches;
+        const wood = (it.woodType || 'MAHAGONY').toUpperCase();
+        const desc = `${l}X${w}X${t} ${wood}`;
+        const cft = it.cft;
+        const sqft = it.sqft;
         const pcs = typeof it.pieces === 'number' ? it.pieces : 0;
-        const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
-        let wood = getCutLogItemSectionHeading(it);
-        let desc = getCutLogItemDescription(it);
-        let cft = isSheet ? 0 : (it.cft || 0);
-        let sqft = it.sqft || 0;
-        let perUnit: 'CFT' | 'SQFT' | 'PCS' = 'CFT';
-
-        if (it.itemCategory === 'plywood') {
-          wood = 'PLYWOOD';
-          desc = `8 × 4 (${it.brand || 'Red Tag'})`;
-          cft = 0;
-          sqft = it.sqft || (32 * pcs);
-          perUnit = it.rateUnit === 'PCS' ? 'PCS' : 'SQFT';
-        } else if (it.itemCategory === 'ready_board') {
-          wood = 'READY BOARD';
-          const rbW = w || parseInt((it.boardSize || '8 × 9').split('×')[1]?.trim() || '9', 10);
-          desc = `${it.boardSize || ('8 × ' + rbW)} (${it.brand || 'Red Tag'})`;
-          cft = 0;
-          sqft = it.sqft || (((8 * rbW) / 12) * pcs);
-          perUnit = it.rateUnit === 'PCS' ? 'PCS' : 'SQFT';
-        } else {
-          if (it.teakGrade) {
-            wood = `TEAK WOOD (${it.teakGrade})`;
-          }
-          const isWide = w >= 7;
-          const isSqftBilled = isWide && it.rateUnit !== 'CFT';
-          perUnit = isSqftBilled ? 'SQFT' : 'CFT';
-          sqft = it.sqft || (cft * 12);
-        }
-
-        const isSqftBilled = perUnit === 'SQFT';
-        const defaultRowRate = isSheet ? (perUnit === 'PCS' ? 800 : 45) : (isSqftBilled ? 120 : defaultRate);
+        const isSqftBilled = (typeof w === 'number' ? w : 0) >= 7 && it.rateUnit !== 'CFT';
+        const defaultRowRate = isSqftBilled ? 120 : defaultRate;
         const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
-        const mult = perUnit === 'PCS' ? pcs : (isSqftBilled ? sqft : cft);
+        const mult = isSqftBilled ? (typeof sqft === 'number' ? sqft : 0) : cft;
         const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * r * 100) / 100;
-
         return {
           slNo: idx + 1,
           description: desc,
-          woodType: wood,
-          itemCategory: it.itemCategory,
-          brand: it.brand,
-          boardSize: it.boardSize,
-          teakGrade: it.teakGrade,
-          hsn: isSheet ? '4412' : '4407',
+          hsn: '4407',
           cft,
           sqft,
           widthInches: w,
-          rateUnit: perUnit,
+          rateUnit: isSqftBilled ? 'SQFT' : 'CFT',
           pieces: pcs,
           rate: r,
-          per: perUnit,
+          per: isSqftBilled ? 'SQFT' : 'CFT',
           discPercent: '',
           amount: amt
         };
@@ -243,22 +210,19 @@ export function createProformaInvoiceDoc(
     totalAmount = roundOverallTotals.totalAmount;
   } else {
     for (const it of items) {
-      const isSheet = (it as any).itemCategory === 'plywood' || (it as any).itemCategory === 'ready_board';
-      if (!isSheet) {
-        totalCft += (typeof it.cft === 'number' ? it.cft : 0);
-      }
+      totalCft += (typeof it.cft === 'number' ? it.cft : 0);
       totalPieces += (typeof it.pieces === 'number' ? it.pieces : 0);
-      const isSqftBilled = isSheet ? ((it as any).rateUnit === 'SQFT' || (it as any).per === 'SQFT') : (it.rateUnit === 'SQFT' || it.per === 'SQFT');
-      const defaultRowRate = isSheet ? (isSqftBilled ? 45 : 800) : (isSqftBilled ? 120 : defaultRate);
+      const isSqftBilled = it.rateUnit === 'SQFT' || it.per === 'SQFT';
+      const defaultRowRate = isSqftBilled ? 120 : defaultRate;
       const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
-      const mult = isSheet ? (isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : (typeof it.pieces === 'number' ? it.pieces : 0)) : (isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : (it.cft || 0) * 12) : (it.cft || 0));
+      const mult = isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : it.cft * 12) : it.cft;
       const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * r * 100) / 100;
       totalAmount += amt;
 
       if (isSqftBilled) {
-        totalSqftBilled += (typeof it.sqft === 'number' ? it.sqft : (it.cft || 0) * 12);
-      } else if (!isSheet) {
-        totalCftBilled += (it.cft || 0);
+        totalSqftBilled += (typeof it.sqft === 'number' ? it.sqft : it.cft * 12);
+      } else {
+        totalCftBilled += it.cft;
       }
     }
   }
@@ -711,7 +675,15 @@ export function createProformaInvoiceDoc(
     const woodMap = new Map<string, typeof items>();
 
     for (const it of items) {
-      const wood = getCutLogItemSectionHeading(it as any);
+      let wood = 'MAHAGONY';
+      if (it.woodType) {
+        wood = it.woodType.toUpperCase();
+      } else {
+        const parts = (it.description || '').trim().split(/\s+/);
+        if (parts.length > 1) {
+          wood = parts.slice(1).join(' ').toUpperCase();
+        }
+      }
       if (!woodMap.has(wood)) {
         const arr: typeof items = [];
         woodMap.set(wood, arr);
@@ -721,49 +693,44 @@ export function createProformaInvoiceDoc(
     }
 
     for (const group of woodGroups) {
-      const isSheetGroup = group.wood === 'PLYWOOD' || group.wood === 'READY BOARD';
-      if (!isSheetGroup) {
-        group.items.sort((a, b) => {
-          const parseDims = (item: any) => {
-            let w = typeof item.widthInches === 'number' ? item.widthInches : 0;
-            let l = 0;
-            let t = 0;
-            if (item.description) {
-              const match = item.description.match(/^([\d.]+)[X|x]([\d.]+)[X|x]([\d.]+)/);
-              if (match) {
-                l = parseFloat(match[1]) || 0;
-                if (!w) w = parseFloat(match[2]) || 0;
-                t = parseFloat(match[3]) || 0;
-              }
+      group.items.sort((a, b) => {
+        const parseDims = (item: any) => {
+          let w = typeof item.widthInches === 'number' ? item.widthInches : 0;
+          let l = 0;
+          let t = 0;
+          if (item.description) {
+            const match = item.description.match(/^([\d.]+)[X|x]([\d.]+)[X|x]([\d.]+)/);
+            if (match) {
+              l = parseFloat(match[1]) || 0;
+              if (!w) w = parseFloat(match[2]) || 0;
+              t = parseFloat(match[3]) || 0;
             }
-            return { w, l, t };
-          };
-          const dA = parseDims(a);
-          const dB = parseDims(b);
-          if (dA.w !== dB.w) return dA.w - dB.w;
-          if (dA.t !== dB.t) return dB.t - dA.t;
-          if (dA.l !== dB.l) return dB.l - dA.l;
-          const pA = typeof a.pieces === 'number' ? a.pieces : 0;
-          const pB = typeof b.pieces === 'number' ? b.pieces : 0;
-          return pB - pA;
-        });
-      }
+          }
+          return { w, l, t };
+        };
+        const dA = parseDims(a);
+        const dB = parseDims(b);
+        if (dA.w !== dB.w) return dA.w - dB.w;
+        if (dA.t !== dB.t) return dB.t - dA.t;
+        if (dA.l !== dB.l) return dB.l - dA.l;
+        const pA = typeof a.pieces === 'number' ? a.pieces : 0;
+        const pB = typeof b.pieces === 'number' ? b.pieces : 0;
+        return pB - pA;
+      });
 
-      const headingBorder = { top: 0.3, bottom: 0.3, left: 0.2, right: 0.2 };
+      const headingBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
       tableBody.push([
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
         {
           content: group.wood.toUpperCase(),
-          colSpan: 8,
-          styles: {
-            fontStyle: 'bold',
-            textColor: [0, 0, 0],
-            fontSize: 8.8,
-            cellPadding: { left: 3.5, top: 0.8, bottom: 0.8 },
-            halign: 'left',
-            fillColor: [226, 232, 240],
-            lineWidth: headingBorder
-          }
-        }
+          styles: { fontStyle: 'bold', textColor: [0, 0, 0], fontSize: 8.5, cellPadding: { left: 2.2, top: 0.5, bottom: 0.5 }, halign: 'left', lineWidth: headingBorder }
+        },
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+        { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } }
       ]);
 
       let groupPieces = 0;
@@ -775,41 +742,35 @@ export function createProformaInvoiceDoc(
       let itemIdx = 0;
 
       for (const it of group.items) {
-        const isSheet = (it as any).itemCategory === 'plywood' || (it as any).itemCategory === 'ready_board' || isSheetGroup;
-        const displayDesc = getCutLogItemDescription(it as any);
-        const isSqftBilled = isSheet ? false : (it.rateUnit === 'SQFT' || it.per === 'SQFT');
+        const rawDim = (it.description || '').split(/\s+/)[0] || it.description;
+        const dimOnly = rawDim.split(/([xX×])/).map(p => p.trim().replace(/^0+(\d)/, '$1')).join('');
+        const isSqftBilled = it.rateUnit === 'SQFT' || it.per === 'SQFT';
         const zebraBg = (itemIdx++ % 2 === 0) ? [243, 244, 246] : [255, 255, 255];
 
         groupPieces += (typeof it.pieces === 'number' ? it.pieces : 0);
-        if (!isSheet) {
-          groupCft += (typeof it.cft === 'number' ? it.cft : 0);
-        }
+        groupCft += (typeof it.cft === 'number' ? it.cft : 0);
         groupAmount += (typeof it.amount === 'number' ? it.amount : 0);
 
-        const sqftVal = (typeof it.sqft === 'number' && it.sqft > 0)
-          ? it.sqft
-          : (isSheet ? 0 : ((it.cft || 0) * 12));
-
         if (isSqftBilled) {
-          groupSqftBilled += sqftVal;
+          groupSqftBilled += (typeof it.sqft === 'number' ? it.sqft : it.cft * 12);
         }
 
-        const cftText = !isSheet && it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : '-';
-        const sqftText = isSheet ? '-' : (isSqftBilled && sqftVal > 0 ? `${sqftVal.toFixed(2)} SQFT` : '');
+        const cftText = it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : '';
+        const sqftText = isSqftBilled
+          ? (it.sqft && it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : `${(it.cft * 12).toFixed(2)} SQFT`)
+          : '';
 
         const slStr = `${slCounter}`;
         slCounter++;
 
-        const unitText = isSheet ? 'PCS' : (isSqftBilled ? 'SQFT' : 'CFT');
-
         tableBody.push([
           { content: slStr, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-          { content: `   ${displayDesc}`, styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: `   ${dimOnly}`, styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: it.pieces > 0 ? `${it.pieces} PCS` : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: cftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: sqftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: it.rate !== 0 ? formatIndianCurrency(it.rate) : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-          { content: unitText, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: isSqftBilled ? 'SQFT' : 'CFT', styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: formatIndianCurrency(it.amount), styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'normal', textColor: [75, 85, 99], fillColor: zebraBg, cellPadding: { left: 2.2, top: 0.45, bottom: 0.45 } } }
         ]);
       }
@@ -821,10 +782,10 @@ export function createProformaInvoiceDoc(
 
       tableBody.push([
         { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
-        { content: `Total - ${group.wood.toUpperCase()}`, styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, textColor: subtotalTextColor } },
+        { content: 'Total', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, textColor: subtotalTextColor } },
         { content: `${groupPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
-        { content: !isSheetGroup && groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '-', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
-        { content: !isSheetGroup && groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : (isSheetGroup ? '-' : ''), styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
+        { content: groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
+        { content: groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
         { content: '', styles: { halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
         { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
         { content: `Rs. ${formatIndianCurrency(groupAmount)}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 1.8, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } }
@@ -916,9 +877,8 @@ export function createProformaInvoiceDoc(
 
   // 6. Next: DISCOUNT (if any)
   if (invoiceData?.discountAmount && invoiceData.discountAmount > 0) {
-    const totalBeforeDiscount = totalAmount + additionalChargesSum + gstAmt;
-    tableBody.push(chargeRow('TOTAL PRICE BEFORE DISCOUNT', formatIndianCurrency(totalBeforeDiscount)));
-
+    const totalBeforeDisc = totalAmount + additionalChargesSum + (invoiceData?.gstAmount || 0);
+    tableBody.push(chargeRow('TOTAL PRICE BEFORE DISCOUNT', formatIndianCurrency(totalBeforeDisc), false));
     const discLabel = invoiceData.discountDesc ? `LESS: DISCOUNT (${invoiceData.discountDesc})` : 'LESS: DISCOUNT';
     tableBody.push(chargeRow(discLabel, `- ${formatIndianCurrency(invoiceData.discountAmount)}`, true));
   }
@@ -1134,7 +1094,7 @@ export function createProformaInvoiceDoc(
         const c1 = (rawRow[1] as any)?.content ?? (typeof rawRow[1] === 'string' ? rawRow[1] : '');
 
         const isSectionBanner = (rawRow[0] as any)?.colSpan >= (isRoundLog ? 5 : 7) || (rawRow[1] as any)?.colSpan >= (isRoundLog ? 5 : 7);
-        const isSubtotalRow = (typeof c0 === 'string' && (c0.startsWith('Sub Total') || c0.startsWith('Total ') || c0.startsWith('Total -') || c0 === 'TOTAL WOOD AMOUNT' || (c0.includes('logs') && c0.includes('@')))) || (typeof c1 === 'string' && (c1 === 'Total' || c1.startsWith('Total') || c1 === 'TOTAL WOOD AMOUNT'));
+        const isSubtotalRow = (typeof c0 === 'string' && (c0.startsWith('Sub Total') || c0.startsWith('Total ') || c0.startsWith('Total -') || c0 === 'TOTAL WOOD AMOUNT' || (c0.includes('logs') && c0.includes('@')))) || c1 === 'Total' || c1 === 'TOTAL WOOD AMOUNT';
         const isFootRow = data.section === 'foot';
         const isChargeRow = (rawRow[1] as any)?.colSpan === (isRoundLog ? 3 : 6);
         const isEmptyPaddingRow = c0 === '' && c1 === '' && !isSectionBanner && !isSubtotalRow;
