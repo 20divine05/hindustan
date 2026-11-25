@@ -280,13 +280,20 @@ export function getCutLogItemDescription(it: {
     if (it.description.includes('(') && it.description.includes(')')) {
       return it.description;
     }
-    const match = it.description.match(/^([\d.]+)[X|x]([\d.]+)[X|x]([\d.]+)/);
+    const match = it.description.match(/^([\d.]+)[X|x]([\d.]+)(?:[X|x]([\d.]+))?/);
     if (match) {
+      if (!match[3] || match[3] === '0' || parseFloat(match[3]) === 0) {
+        return `${match[1]} × ${match[2]}`;
+      }
       return `${match[1]} × ${match[2]} × ${match[3]}`;
     }
+    return it.description;
   }
-  if (it.lengthFeet && it.widthInches && it.thicknessInches) {
-    return `${it.lengthFeet} × ${it.widthInches} × ${it.thicknessInches}`;
+  if (it.lengthFeet && it.widthInches) {
+    if (it.thicknessInches && Number(it.thicknessInches) > 0) {
+      return `${it.lengthFeet} × ${it.widthInches} × ${it.thicknessInches}`;
+    }
+    return `${it.lengthFeet} × ${it.widthInches}`;
   }
   return it.description || '';
 }

@@ -1306,18 +1306,26 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
                   return (
                     <React.Fragment key={`wood-grp-${gIdx}`}>
-                      {/* Wood Species Heading (no dots, continuous vertical borders) */}
-                      <tr className="p-wood-heading-row">
-                        <td></td>
-                        <td className="p-wood-heading-desc">
+                      {/* Wood Species Heading Banner spanning all columns */}
+                      <tr className="p-wood-heading-row" style={{ backgroundColor: '#e2e8f0' }}>
+                        <td
+                          colSpan={8}
+                          className="p-wood-heading-desc"
+                          style={{
+                            padding: '3px 8px',
+                            fontWeight: 900,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.04em',
+                            fontSize: '11px',
+                            color: '#000000',
+                            backgroundColor: '#e2e8f0',
+                            borderTop: '1.5px solid #222222',
+                            borderBottom: '1.5px solid #222222',
+                            textAlign: 'left'
+                          }}
+                        >
                           {group.wood.toUpperCase()}
                         </td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
                       </tr>
 
                       {/* Measurements of that wood */}
@@ -1360,11 +1368,11 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                         );
                       })}
 
-                      {/* Wood Subtotal Row (Total without wood species name) */}
-                      <tr className="p-item-row" style={{ backgroundColor: '#f3f4f6', borderTop: '1px solid #222222', borderBottom: '1px solid #222222', fontWeight: 700 }}>
+                      {/* Wood Subtotal Row (Total with wood species name) */}
+                      <tr className="p-item-row" style={{ backgroundColor: '#f3f4f6', borderTop: '1px solid #222222', borderBottom: '1px solid #222222', fontWeight: 800 }}>
                         <td className="text-center" style={{ color: '#888' }}></td>
-                        <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 800, textTransform: 'uppercase' }}>
-                          Total
+                        <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 800, textTransform: 'uppercase', color: '#000000' }}>
+                          Total - {group.wood.toUpperCase()}
                         </td>
                         <td className="text-right p-mono" style={{ fontWeight: 800 }}>
                           {groupPieces} PCS
