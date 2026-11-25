@@ -10,7 +10,7 @@ import type {
 import { LOGO_ICON_BASE64 } from './logoBase64';
 import { PAYMENT_QR_BASE64 } from './paymentQrBase64';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from './indianNumberWords';
-import { sortTimberEntries, formatValue, getCutLogItemDescription } from './calculator';
+import { sortTimberEntries, formatValue, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from './calculator';
 import {
   groupRoundLogsBySpeciesFirst,
   getRoundLogUnitConfig
@@ -173,8 +173,8 @@ export function createProformaInvoiceDoc(
       .map((it, idx) => {
         const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
         if (isSheet) {
-          const wood = (it.woodType || (it.itemCategory === 'plywood' ? 'PLYWOOD' : 'READY BOARD')).toUpperCase();
-          const desc = getCutLogItemDescription(it);
+          const wood = getCutLogItemSectionHeading(it as any);
+          const desc = getCutLogItemDescription({ ...it, woodType: wood });
           const pcs = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
           const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
           const isPly = it.itemCategory === 'plywood' || wood.includes('PLYWOOD');
@@ -206,7 +206,7 @@ export function createProformaInvoiceDoc(
         const l = it.lengthFeet;
         const w = it.widthInches;
         const t = it.thicknessInches;
-        const wood = (it.woodType || 'MAHAGONY').toUpperCase();
+        const wood = getCutLogItemSectionHeading(it as any);
         const desc = `${l}X${w}X${t} ${wood}`;
         const cft = it.cft;
         const sqft = it.sqft;
@@ -220,6 +220,7 @@ export function createProformaInvoiceDoc(
           slNo: idx + 1,
           description: desc,
           woodType: wood,
+          teakGrade: it.teakGrade ? normalizeTeakGrade(it.teakGrade) : undefined,
           hsn: '4407',
           cft,
           sqft,
@@ -737,32 +738,7 @@ export function createProformaInvoiceDoc(
     const woodMap = new Map<string, typeof items>();
 
     for (const it of items) {
-      const itDesc = (it.description || '').toUpperCase();
-      const itWood = (it.woodType || '').toUpperCase();
-      const isPlywood = (it as any).itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
-      const isReady = (it as any).itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
-
-      let wood = 'MAHAGONY';
-      if (isPlywood) {
-        wood = 'PLYWOOD';
-      } else if (isReady) {
-        wood = 'READY BOARD';
-      } else if (it.woodType) {
-        wood = it.woodType.toUpperCase();
-      } else {
-        const parts = (it.description || '').trim().split(/\s+/);
-        if (parts.length > 1) {
-          wood = parts.slice(1).join(' ').toUpperCase();
-        }
-      }
-      if (wood.includes('TEAK')) {
-        const grade = (it as any).teakGrade || (it.description?.match(/TEAK WOOD\s*\(([^)]+)\)/)?.[1]);
-        if (grade) {
-          wood = `TEAK WOOD (${grade.toUpperCase()})`;
-        } else if (!wood.includes('(')) {
-          wood = 'TEAK WOOD';
-        }
-      }
+      const wood = getCutLogItemSectionHeading(it as any);
       if (!woodMap.has(wood)) {
         const arr: typeof items = [];
         woodMap.set(wood, arr);

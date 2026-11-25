@@ -6,11 +6,15 @@ export type WoodSpeciesCutLog =
   | 'Pine'
   | 'Neem'
   | 'Jungle'
+  | 'Plywood(30)'
+  | 'Plywood(34)'
+  | 'Readywood(30)'
+  | 'Readywood(34)'
   | 'Plywood'
   | 'Ready Board'
   | 'Other (Custom...)';
 
-export type TeakGrade = '1st Teak' | 'Medium Teak' | '2nd Teak';
+export type TeakGrade = '1st' | 'M' | '2nd' | '1st Teak' | 'Medium Teak' | '2nd Teak';
 export type SheetBrand = 'Red Tag' | 'Mine Gold' | 'Magnus';
 export type ReadyBoardSize = '8 × 9' | '8 × 12' | '8 × 18' | '8 × 24' | '8 × 48';
 

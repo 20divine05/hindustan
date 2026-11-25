@@ -524,29 +524,13 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
     const map = new Map<string, InvoiceItemRow[]>();
 
     for (const it of invoiceItems) {
-      const itDesc = (it.description || '').toUpperCase();
-      const itWood = (it.woodType || '').toUpperCase();
-      const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
-      const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
-      let wood = 'MAHAGONY';
-      if (isPlywood) {
-        wood = 'PLYWOOD';
-      } else if (isReady) {
-        wood = 'READY BOARD';
-      } else if (it.woodType) {
-        wood = it.woodType.trim().toUpperCase();
-        if (wood.includes('TEAK')) {
-          const grade = it.teakGrade || it.description?.match(/TEAK WOOD\s*\(([^)]+)\)/)?.[1];
-          if (grade) {
-            wood = `TEAK WOOD (${grade.toUpperCase()})`;
-          }
-        }
-      } else {
-        const parts = it.description.trim().split(/\s+/);
-        if (parts.length > 1) {
-          wood = parts.slice(1).join(' ').toUpperCase();
-        }
-      }
+      const wood = getCutLogItemSectionHeading({
+        woodType: it.woodType,
+        itemCategory: it.itemCategory as any,
+        teakGrade: it.teakGrade,
+        brand: it.brand,
+        description: it.description
+      });
       if (!map.has(wood)) {
         const arr: InvoiceItemRow[] = [];
         map.set(wood, arr);
@@ -1360,7 +1344,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
                       {/* Measurements of that wood */}
                       {group.items.map((item, itemIdx) => {
-                        const isSheet = group.wood.includes('PLYWOOD') || group.wood.includes('READY') || item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || (item.woodType && (item.woodType.toUpperCase() === 'PLYWOOD' || item.woodType.toUpperCase() === 'READY BOARD'));
+                        const isSheet = group.wood.includes('PLYWOOD') || group.wood.includes('READY') || item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || (item.woodType && (item.woodType.toUpperCase().includes('PLYWOOD') || item.woodType.toUpperCase().includes('READY')));
                         const dimOnly = isSheet ? getCutLogItemDescription({ ...item, woodType: group.wood || item.woodType } as any) : (item.description.split(/\s+/)[0] || item.description);
                         const isSqftBilled = isSheet || (!isSheet && item.rateUnit !== 'CFT' && (item.widthInches || 0) >= 7);
                         const slStr = String(item.slNo);

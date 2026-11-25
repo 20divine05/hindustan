@@ -9,7 +9,7 @@ import type {
 import { formatIndianCurrency, numberToIndianCurrencyWords } from '../utils/indianNumberWords';
 import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
 import { groupRoundLogsBySpeciesFirst, getRoundLogUnitConfig } from '../utils/roundLogCalculator';
-import { formatValue, getCutLogItemDescription } from '../utils/calculator';
+import { formatValue, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
 import './ProformaInvoice.css';
 
 export const renderDimensionHtml = (dim: string) => {
@@ -235,23 +235,13 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
   const woodMap = new Map<string, typeof validItems>();
 
   for (const it of validItems) {
-    const itDesc = (it.remarks || (it as any).description || '').toUpperCase();
-    const itWood = (it.woodType || '').toUpperCase();
-    const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
-    const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
-    let wood = isPlywood
-      ? 'PLYWOOD'
-      : (isReady
-          ? 'READY BOARD'
-          : (it.woodType || 'MAHAGONY').trim().toUpperCase());
-    if (wood.includes('TEAK')) {
-      const grade = it.teakGrade || ((it as any).description?.match(/TEAK WOOD\s*\(([^)]+)\)/)?.[1]);
-      if (grade) {
-        wood = `TEAK WOOD (${grade.toUpperCase()})`;
-      } else if (!wood.includes('(')) {
-        wood = 'TEAK WOOD';
-      }
-    }
+    const wood = getCutLogItemSectionHeading({
+      woodType: it.woodType,
+      itemCategory: it.itemCategory,
+      teakGrade: it.teakGrade,
+      brand: it.brand,
+      description: it.remarks || (it as any).description
+    });
     if (!woodMap.has(wood)) {
       const arr: typeof validItems = [];
       woodMap.set(wood, arr);

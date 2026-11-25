@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Trash2, Copy, AlertCircle, CornerDownLeft, X, Pencil } from 'lucide-react';
 import type { MeasurementItem } from '../types';
-import { calculateRow, calculateTotals, formatValue } from '../utils/calculator';
+import { calculateRow, calculateTotals, formatValue, normalizeTeakGrade } from '../utils/calculator';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
 import { generateId } from '../services/db';
 
@@ -13,13 +13,15 @@ export const CUT_LOG_WOOD_OPTIONS = [
   'Pine',
   'Neem',
   'Jungle',
-  'Plywood',
-  'Ready Board',
+  'Plywood(30)',
+  'Plywood(34)',
+  'Readywood(30)',
+  'Readywood(34)',
   'Other (Custom...)'
 ];
 export const WOOD_SPECIES_OPTIONS = CUT_LOG_WOOD_OPTIONS;
 
-export const TEAK_GRADES = ['1st Teak', 'Medium Teak', '2nd Teak'] as const;
+export const TEAK_GRADES = ['1st', 'M', '2nd'] as const;
 export const SHEET_BRANDS = ['Red Tag', 'Mine Gold', 'Magnus'] as const;
 export const READY_BOARD_SIZES = ['8 × 9', '8 × 12', '8 × 18', '8 × 24', '8 × 48'] as const;
 
@@ -47,7 +49,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const [quickRateSqft, setQuickRateSqft] = useState<string>('');
 
   // Plywood & Ready Board & Teak Grade States
-  const [selectedTeakGrade, setSelectedTeakGrade] = useState<'1st Teak' | 'Medium Teak' | '2nd Teak'>('1st Teak');
+  const [selectedTeakGrade, setSelectedTeakGrade] = useState<'1st' | 'M' | '2nd' | string>('1st');
   const [selectedBrand, setSelectedBrand] = useState<'Red Tag' | 'Mine Gold' | 'Magnus'>('Red Tag');
   const [selectedReadyBoardSize, setSelectedReadyBoardSize] = useState<'8 × 9' | '8 × 12' | '8 × 18' | '8 × 24' | '8 × 48'>('8 × 9');
 
@@ -127,8 +129,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   };
 
   // Live calculation for quick entry preview
-  const isPlywood = selectedWoodOption === 'Plywood';
-  const isReadyBoard = selectedWoodOption === 'Ready Board';
+  const isPlywood = selectedWoodOption.toLowerCase().includes('plywood');
+  const isReadyBoard = selectedWoodOption.toLowerCase().includes('ready');
   const isSheetCategory = isPlywood || isReadyBoard;
 
   const lVal = parseFloat(quickLength) || 0;
@@ -336,7 +338,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           const valUpper = (rawValue || '').toUpperCase();
           if (valUpper.includes('PLYWOOD')) {
             target.itemCategory = 'plywood';
-            target.woodType = 'Plywood';
+            target.woodType = rawValue.includes('34') ? 'Plywood(34)' : 'Plywood(30)';
             target.brand = target.brand || selectedBrand || 'Red Tag';
             target.lengthFeet = 8;
             target.widthInches = 4;
@@ -349,7 +351,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             target.amount = Math.round(target.sqft * r * 100) / 100;
           } else if (valUpper.includes('READY')) {
             target.itemCategory = 'ready_board';
-            target.woodType = 'Ready Board';
+            target.woodType = rawValue.includes('34') ? 'Readywood(34)' : 'Readywood(30)';
             target.brand = target.brand || selectedBrand || 'Mine Gold';
             target.boardSize = target.boardSize || selectedReadyBoardSize || '8 × 12';
             target.lengthFeet = 8;
@@ -401,10 +403,10 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       if (field === 'woodType') {
         const valUpper = (rawValue || '').toUpperCase();
         if (valUpper.includes('TEAK')) {
-          target.teakGrade = target.teakGrade || selectedTeakGrade || '1st Teak';
+          target.teakGrade = normalizeTeakGrade(target.teakGrade || selectedTeakGrade || '1st');
         } else if (valUpper.includes('PLYWOOD')) {
           target.itemCategory = 'plywood';
-          target.woodType = 'Plywood';
+          target.woodType = rawValue.includes('34') ? 'Plywood(34)' : 'Plywood(30)';
           target.brand = target.brand || selectedBrand || 'Red Tag';
           target.lengthFeet = 8;
           target.widthInches = 4;
@@ -417,7 +419,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           target.amount = Math.round(target.sqft * r * 100) / 100;
         } else if (valUpper.includes('READY')) {
           target.itemCategory = 'ready_board';
-          target.woodType = 'Ready Board';
+          target.woodType = rawValue.includes('34') ? 'Readywood(34)' : 'Readywood(30)';
           target.brand = target.brand || selectedBrand || 'Mine Gold';
           target.boardSize = target.boardSize || selectedReadyBoardSize || '8 × 12';
           target.lengthFeet = 8;
@@ -430,6 +432,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           const r = typeof target.rate === 'number' && target.rate > 0 ? target.rate : 0;
           target.amount = Math.round(target.sqft * r * 100) / 100;
         }
+      } else if (field === 'teakGrade') {
+        target.teakGrade = normalizeTeakGrade(rawValue);
       }
     } else {
       const parsed = rawValue === '' ? '' : parseFloat(rawValue);
@@ -602,10 +606,10 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     const p = !isNaN(pRaw) && pRaw > 0 ? pRaw : 1;
 
     // Handle Plywood
-    if (selectedWoodOption === 'Plywood') {
+    if (isPlywood) {
       const parsedRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : parseFloat(quickRate);
       if (!parsedRate || isNaN(parsedRate) || parsedRate <= 0) {
-        setQuickError('Please enter rate / price per SQFT for Plywood');
+        setQuickError(`Please enter rate / price per SQFT for ${selectedWoodOption}`);
         rateInputRef.current?.focus();
         return;
       }
@@ -617,7 +621,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         serialNumber: items.length + 1,
         itemCategory: 'plywood',
         brand: selectedBrand,
-        woodType: 'Plywood',
+        woodType: selectedWoodOption as any,
         lengthFeet: 8,
         widthInches: 4,
         thicknessInches: 0,
@@ -648,10 +652,10 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     }
 
     // Handle Ready Board
-    if (selectedWoodOption === 'Ready Board') {
+    if (isReadyBoard) {
       const parsedRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : parseFloat(quickRate);
       if (!parsedRate || isNaN(parsedRate) || parsedRate <= 0) {
-        setQuickError('Please enter rate / price per SQFT for Ready Board');
+        setQuickError(`Please enter rate / price per SQFT for ${selectedWoodOption}`);
         rateInputRef.current?.focus();
         return;
       }
@@ -665,7 +669,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         itemCategory: 'ready_board',
         brand: selectedBrand,
         boardSize: selectedReadyBoardSize,
-        woodType: 'Ready Board',
+        woodType: selectedWoodOption as any,
         lengthFeet: 8,
         widthInches: rbW,
         thicknessInches: 0,
@@ -745,7 +749,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       id: generateId(),
       serialNumber: items.length + 1,
       itemCategory: 'timber',
-      teakGrade: selectedWoodOption.toLowerCase().includes('teak') ? selectedTeakGrade : undefined,
+      teakGrade: selectedWoodOption.toLowerCase().includes('teak') ? (normalizeTeakGrade(selectedTeakGrade) as any) : undefined,
       lengthFeet: l,
       widthInches: w,
       thicknessInches: t,
@@ -855,7 +859,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           )}
 
           {/* Sub-options for Plywood */}
-          {selectedWoodOption === 'Plywood' && (
+          {isPlywood && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.45rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflowX: 'auto', padding: '0.1rem 0' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-800)', whiteSpace: 'nowrap' }}>Brand:</span>
@@ -902,7 +906,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           )}
 
           {/* Sub-options for Ready Board */}
-          {selectedWoodOption === 'Ready Board' && (
+          {isReadyBoard && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.45rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflowX: 'auto', padding: '0.1rem 0' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-800)', whiteSpace: 'nowrap' }}>Brand:</span>
@@ -1366,7 +1370,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                         <div className="mobile-show" style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 700, lineHeight: 1, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '48px' }}>
                           {item.woodType}
                           {item.woodType.toLowerCase().includes('teak') && item.teakGrade && (
-                            <div style={{ color: '#1d4ed8', fontSize: '0.52rem' }}>({item.teakGrade})</div>
+                            <div style={{ color: '#1d4ed8', fontSize: '0.52rem' }}>({normalizeTeakGrade(item.teakGrade)})</div>
                           )}
                         </div>
                       )}
@@ -1396,7 +1400,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       </select>
                       {item.woodType?.toLowerCase().includes('teak') && (
                         <select
-                          value={item.teakGrade || selectedTeakGrade || '1st Teak'}
+                          value={normalizeTeakGrade(item.teakGrade) || normalizeTeakGrade(selectedTeakGrade) || '1st'}
                           onChange={(e) => handleUpdateItem(index, 'teakGrade', e.target.value)}
                           style={{
                             fontSize: '0.72rem',

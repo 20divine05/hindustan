@@ -15,7 +15,7 @@
  * - Grand totals are summed from raw unrounded values before display rounding.
  */
 
-import type { MeasurementItem, SheetTotals } from '../types';
+import type { MeasurementItem, SheetTotals, TeakGrade } from '../types';
 
 export type SqftConvention = 'standard_1face' | 'surface_area_2face';
 
@@ -221,10 +221,22 @@ export function formatCompact(value: number): string {
 }
 
 /**
+ * Normalizes teak grade to '1st', 'M', or '2nd'
+ */
+export function normalizeTeakGrade(grade?: string): TeakGrade {
+  if (!grade) return '1st';
+  const clean = grade.trim().toLowerCase();
+  if (clean.includes('medium') || clean === 'm') return 'M';
+  if (clean.includes('2nd') || clean.includes('second') || clean === '2') return '2nd';
+  if (clean.includes('1st') || clean.includes('first') || clean === '1') return '1st';
+  return '1st';
+}
+
+/**
  * Returns clean Wood Section Heading for Proforma Invoice and sorting:
- * - TEAK WOOD (1st Teak), TEAK WOOD (Medium Teak), TEAK WOOD (2nd Teak)
- * - PLYWOOD (all plywood)
- * - READY BOARD (all ready boards)
+ * - TEAK WOOD (1st), TEAK WOOD (M), TEAK WOOD (2nd)
+ * - PLYWOOD(30), PLYWOOD(34)
+ * - READYWOOD(30), READYWOOD(34)
  * - Other wood species (SILVER WOOD, MAHAGONY, PINE, NEEM, JUNGLE, etc.)
  */
 export function getCutLogItemSectionHeading(it: {
@@ -234,24 +246,25 @@ export function getCutLogItemSectionHeading(it: {
   brand?: string;
   description?: string;
 }): string {
-  if (it.itemCategory === 'plywood' || (it.woodType && it.woodType.trim().toUpperCase() === 'PLYWOOD')) {
-    return 'PLYWOOD';
+  const woodUpper = (it.woodType || '').toUpperCase();
+  const descUpper = (it.description || '').toUpperCase();
+  const isPlywood = it.itemCategory === 'plywood' || woodUpper.includes('PLYWOOD') || descUpper.includes('PLYWOOD');
+  const isReady = it.itemCategory === 'ready_board' || woodUpper.includes('READY') || descUpper.includes('READY');
+
+  if (isPlywood) {
+    if (woodUpper.includes('34') || descUpper.includes('34')) return 'PLYWOOD(34)';
+    return 'PLYWOOD(30)';
   }
-  if (it.itemCategory === 'ready_board' || (it.woodType && it.woodType.trim().toUpperCase() === 'READY BOARD')) {
-    return 'READY BOARD';
+  if (isReady) {
+    if (woodUpper.includes('34') || descUpper.includes('34')) return 'READYWOOD(34)';
+    return 'READYWOOD(30)';
   }
-  if (it.description) {
-    const descUp = it.description.toUpperCase();
-    if (descUp.includes('PLYWOOD')) return 'PLYWOOD';
-    if (descUp.includes('READY BOARD')) return 'READY BOARD';
-    const teakMatch = descUp.match(/TEAK WOOD\s*\(([^)]+)\)/);
-    if (teakMatch) return `TEAK WOOD (${teakMatch[1].trim()})`;
-  }
+
   const wt = (it.woodType || 'MAHAGONY').trim().toUpperCase();
-  if (wt.includes('TEAK')) {
-    if (wt.includes('(')) return wt;
-    if (it.teakGrade) return `TEAK WOOD (${it.teakGrade.toUpperCase()})`;
-    return 'TEAK WOOD';
+  if (wt.includes('TEAK') || descUpper.includes('TEAK')) {
+    const rawGrade = it.teakGrade || descUpper.match(/TEAK WOOD\s*\(([^)]+)\)/)?.[1] || wt.match(/\(([^)]+)\)/)?.[1];
+    const grade = normalizeTeakGrade(rawGrade);
+    return `TEAK WOOD (${grade})`;
   }
   return wt;
 }

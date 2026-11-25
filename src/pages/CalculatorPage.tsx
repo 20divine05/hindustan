@@ -50,7 +50,7 @@ import { RoundLogSlabPricing } from '../components/RoundLogSlabPricing';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ProformaInvoiceModal } from '../components/ProformaInvoiceModal';
 import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice';
-import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood, calculateRow, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
+import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood, calculateRow, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from '../utils/calculator';
 import {
   calculateRoundLogTotals,
   getRoundLogUnitConfig,
@@ -1284,7 +1284,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
           const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
           const brand = it.brand || (isPlywood ? 'Red Tag' : 'Mine Gold');
-          const woodType = (isPlywood ? 'PLYWOOD' : 'READY BOARD');
+          const woodType = getCutLogItemSectionHeading(it);
           const desc = getCutLogItemDescription({ ...it, brand, itemCategory: isPlywood ? 'plywood' : 'ready_board', woodType });
           const sheetW = typeof it.widthInches === 'number' && it.widthInches > 0 ? it.widthInches : (isPlywood ? 4 : 12);
           const sqft = isPlywood ? (32 * p) : ((8 * sheetW * p) / 12);
@@ -1324,7 +1324,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           slNo: idx + 1,
           description: `${it.lengthFeet}X${it.widthInches}X${it.thicknessInches} ${woodKey}`,
           woodType: woodKey,
-          teakGrade: it.teakGrade,
+          teakGrade: it.teakGrade ? normalizeTeakGrade(it.teakGrade) : undefined,
           hsn: '4407',
           cft: it.cft,
           sqft: it.sqft,

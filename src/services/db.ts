@@ -1,6 +1,6 @@
 import { getSupabase, getSupabaseCredentials } from '../lib/supabase';
 import type { MeasurementItem, MeasurementSheet } from '../types';
-import { calculateRow, calculateTotals } from '../utils/calculator';
+import { calculateRow, calculateTotals, normalizeTeakGrade } from '../utils/calculator';
 
 const LOCAL_SHEETS_KEY = 'timberpro_local_sheets';
 const ACTIVE_DRAFT_KEY = 'timberpro_active_draft';
@@ -33,13 +33,19 @@ export function sanitizeAndComputeSheet(
       const sheetW = typeof item.widthInches === 'number' && item.widthInches > 0 ? item.widthInches : (isPlywood ? 4 : 12);
       const sqft = isPlywood ? (32 * p) : ((8 * sheetW * p) / 12);
       const amount = Math.round(sqft * r * 100) / 100;
+      let resolvedWoodType = item.woodType || '';
+      if (isPlywood) {
+        resolvedWoodType = resolvedWoodType.includes('34') ? 'Plywood(34)' : 'Plywood(30)';
+      } else if (isReady) {
+        resolvedWoodType = resolvedWoodType.includes('34') ? 'Readywood(34)' : 'Readywood(30)';
+      }
       return {
         id: item.id || generateId(),
         serialNumber: index + 1,
         itemCategory: isPlywood ? 'plywood' : 'ready_board',
         brand: item.brand || (isPlywood ? 'Red Tag' : 'Mine Gold'),
         boardSize: item.boardSize || (isReady ? (typeof item.widthInches === 'number' ? `8 × ${item.widthInches}` : '8 × 12') : undefined),
-        teakGrade: item.teakGrade,
+        teakGrade: item.teakGrade ? (normalizeTeakGrade(item.teakGrade) as any) : undefined,
         lengthFeet: 8,
         widthInches: sheetW,
         thicknessInches: 0,
@@ -49,7 +55,7 @@ export function sanitizeAndComputeSheet(
         rate: r,
         rateUnit: 'SQFT',
         amount,
-        woodType: isPlywood ? 'Plywood' : 'Ready Board',
+        woodType: resolvedWoodType,
         remarks: item.remarks || ''
       };
     }
@@ -75,7 +81,7 @@ export function sanitizeAndComputeSheet(
       itemCategory: item.itemCategory,
       brand: item.brand,
       boardSize: item.boardSize,
-      teakGrade: item.teakGrade,
+      teakGrade: item.teakGrade ? (normalizeTeakGrade(item.teakGrade) as any) : undefined,
       lengthFeet: l,
       widthInches: w,
       thicknessInches: t,
