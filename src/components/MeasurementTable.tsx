@@ -289,6 +289,36 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     if (target.itemCategory === 'plywood' || target.itemCategory === 'ready_board') {
       if (field === 'woodType' || field === 'remarks' || field === 'brand' || field === 'boardSize') {
         (target as any)[field] = rawValue;
+        if (field === 'woodType') {
+          const valUpper = (rawValue || '').toUpperCase();
+          if (valUpper.includes('PLYWOOD')) {
+            target.itemCategory = 'plywood';
+            target.woodType = 'Plywood';
+            target.brand = target.brand || selectedBrand || 'Red Tag';
+            target.lengthFeet = 8;
+            target.widthInches = 4;
+            target.thicknessInches = 0;
+          } else if (valUpper.includes('READY')) {
+            target.itemCategory = 'ready_board';
+            target.woodType = 'Ready Board';
+            target.brand = target.brand || selectedBrand || 'Mine Gold';
+            target.boardSize = target.boardSize || selectedReadyBoardSize || '8 × 12';
+            target.lengthFeet = 8;
+            target.widthInches = target.widthInches || 12;
+            target.thicknessInches = 0;
+          } else {
+            target.itemCategory = 'timber';
+            target.rateUnit = 'CFT';
+          }
+        }
+        if (field === 'brand') {
+          target.brand = rawValue as any;
+        }
+        if (field === 'boardSize') {
+          target.boardSize = rawValue as any;
+          const match = (rawValue || '').match(/8\s*[xX×*]\s*(\d+)/);
+          if (match) target.widthInches = parseInt(match[1], 10);
+        }
       } else {
         const parsed = rawValue === '' ? '' : parseFloat(rawValue);
         (target as any)[field] = isNaN(parsed as number) ? '' : parsed;
@@ -306,6 +336,37 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
     if (field === 'woodType' || field === 'remarks') {
       target[field] = rawValue;
+      if (field === 'woodType') {
+        const valUpper = (rawValue || '').toUpperCase();
+        if (valUpper.includes('PLYWOOD')) {
+          target.itemCategory = 'plywood';
+          target.woodType = 'Plywood';
+          target.brand = target.brand || selectedBrand || 'Red Tag';
+          target.lengthFeet = 8;
+          target.widthInches = 4;
+          target.thicknessInches = 0;
+          target.cft = 0;
+          target.sqft = 0;
+          target.rateUnit = 'PCS';
+          const p = typeof target.pieces === 'number' && target.pieces > 0 ? target.pieces : 0;
+          const r = typeof target.rate === 'number' && target.rate > 0 ? target.rate : 0;
+          target.amount = Math.round(p * r * 100) / 100;
+        } else if (valUpper.includes('READY')) {
+          target.itemCategory = 'ready_board';
+          target.woodType = 'Ready Board';
+          target.brand = target.brand || selectedBrand || 'Mine Gold';
+          target.boardSize = target.boardSize || selectedReadyBoardSize || '8 × 12';
+          target.lengthFeet = 8;
+          target.widthInches = target.widthInches || 12;
+          target.thicknessInches = 0;
+          target.cft = 0;
+          target.sqft = 0;
+          target.rateUnit = 'PCS';
+          const p = typeof target.pieces === 'number' && target.pieces > 0 ? target.pieces : 0;
+          const r = typeof target.rate === 'number' && target.rate > 0 ? target.rate : 0;
+          target.amount = Math.round(p * r * 100) / 100;
+        }
+      }
     } else {
       const parsed = rawValue === '' ? '' : parseFloat(rawValue);
       (target as any)[field] = isNaN(parsed as number) ? '' : parsed;
@@ -1261,7 +1322,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       <td colSpan={3} style={{ textAlign: 'center', padding: '0.25rem 0.1rem', fontWeight: 800, color: 'var(--primary-800)', fontSize: '0.82rem' }}>
                         {item.itemCategory === 'plywood'
                           ? `8 × 4 (${item.brand || 'Red Tag'})`
-                          : `${item.boardSize || ('8 × ' + (item.widthInches || 9))} (${item.brand || 'Red Tag'})`}
+                          : `${item.boardSize || ('8 × ' + (item.widthInches || 9))} (${item.brand || 'Mine Gold'})`}
                       </td>
                     ) : (
                       <>
@@ -1563,7 +1624,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary-800)', whiteSpace: 'nowrap' }}>
                         {item.itemCategory === 'plywood'
                           ? `8 × 4 (${item.brand || 'Red Tag'})`
-                          : `${item.boardSize || ('8 × ' + (item.widthInches || 9))} (${item.brand || 'Red Tag'})`}
+                          : `${item.boardSize || ('8 × ' + (item.widthInches || 9))} (${item.brand || 'Mine Gold'})`}
                       </span>
                       <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
                       <input

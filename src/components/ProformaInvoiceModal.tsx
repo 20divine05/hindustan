@@ -254,7 +254,11 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
     let displaySl = 1;
 
     sourceItems.forEach((it, sourceIdx) => {
-      const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS';
+      const itDesc = (it.remarks || '').toUpperCase();
+      const itWood = (it.woodType || '').toUpperCase();
+      const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
+      const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
+      const isSheet = isPlywood || isReady || it.rateUnit === 'PCS';
 
       if (isSheet) {
         const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
@@ -265,8 +269,9 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
             : (customRates[sourceIdx] !== undefined ? customRates[sourceIdx] : itemRate);
           const hsn = (it.id && customHsn[it.id] !== undefined) ? customHsn[it.id] : (customHsn[sourceIdx] ?? '4412');
           const disc = (it.id && customDisc[it.id] !== undefined) ? customDisc[it.id] : (customDisc[sourceIdx] ?? '');
-          const wood = (it.woodType || (it.itemCategory === 'plywood' ? 'PLYWOOD' : 'READY BOARD')).toUpperCase();
-          const desc = getCutLogItemDescription(it);
+          const wood = isPlywood ? 'PLYWOOD' : 'READY BOARD';
+          const brand = it.brand || (isPlywood ? 'Red Tag' : 'Mine Gold');
+          const desc = getCutLogItemDescription({ ...it, brand, itemCategory: isPlywood ? 'plywood' : 'ready_board', woodType: wood });
           const amount = Math.round(p * rate * 100) / 100;
 
           validItems.push({
@@ -275,12 +280,12 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
             slNo: displaySl++,
             description: desc,
             woodType: wood,
-            itemCategory: it.itemCategory,
-            brand: it.brand,
+            itemCategory: isPlywood ? 'plywood' : 'ready_board',
+            brand,
             hsn,
             cft: 0,
             sqft: 0,
-            widthInches: typeof it.widthInches === 'number' ? it.widthInches : 0,
+            widthInches: typeof it.widthInches === 'number' ? it.widthInches : (isPlywood ? 4 : 12),
             rateUnit: 'PCS',
             pieces: p,
             rate,
@@ -511,10 +516,15 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
     const map = new Map<string, InvoiceItemRow[]>();
 
     for (const it of invoiceItems) {
-      const isSheet = it.rateUnit === 'PCS' || it.per === 'PCS' || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board';
+      const itDesc = (it.description || '').toUpperCase();
+      const itWood = (it.woodType || '').toUpperCase();
+      const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
+      const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
       let wood = 'MAHAGONY';
-      if (isSheet) {
-        wood = (it.woodType || (it.itemCategory === 'plywood' ? 'PLYWOOD' : 'READY BOARD')).trim().toUpperCase();
+      if (isPlywood) {
+        wood = 'PLYWOOD';
+      } else if (isReady) {
+        wood = 'READY BOARD';
       } else if (it.woodType) {
         wood = it.woodType.trim().toUpperCase();
       } else {
@@ -1325,10 +1335,11 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
                       {/* Measurements of that wood */}
                       {group.items.map((item, itemIdx) => {
-                        const isSheet = item.rateUnit === 'PCS' || item.per === 'PCS' || item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || (item.woodType && (item.woodType.toUpperCase() === 'PLYWOOD' || item.woodType.toUpperCase() === 'READY BOARD'));
-                        const dimOnly = isSheet ? item.description : (item.description.split(/\s+/)[0] || item.description);
+                        const isSheet = group.wood.includes('PLYWOOD') || group.wood.includes('READY') || item.rateUnit === 'PCS' || item.per === 'PCS' || item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || (item.woodType && (item.woodType.toUpperCase() === 'PLYWOOD' || item.woodType.toUpperCase() === 'READY BOARD'));
+                        const dimOnly = isSheet ? getCutLogItemDescription({ ...item, woodType: group.wood || item.woodType } as any) : (item.description.split(/\s+/)[0] || item.description);
                         const isSqftBilled = !isSheet && item.rateUnit !== 'CFT' && (item.widthInches || 0) >= 7;
                         const slStr = String(item.slNo);
+                        const perUnit = isSheet ? 'PCS' : item.per;
                         return (
                           <tr key={item.slNo} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                             <td className="text-center">{slStr}</td>
@@ -1356,7 +1367,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                                 }}
                               />
                             </td>
-                            <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{item.per}</td>
+                            <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{perUnit}</td>
                             <td className="text-left p-mono font-bold" style={{ paddingLeft: '8px' }}>
                               {renderWithSmallDecimalHtml(formatIndianCurrency(item.amount))}
                             </td>

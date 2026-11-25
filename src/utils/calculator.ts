@@ -267,22 +267,38 @@ export function getCutLogItemDescription(it: {
   thicknessInches?: number | '';
   description?: string;
 }): string {
-  const isPlywood = it.itemCategory === 'plywood' || (it.woodType && it.woodType.trim().toUpperCase().includes('PLYWOOD'));
-  const isReady = it.itemCategory === 'ready_board' || (it.woodType && it.woodType.trim().toUpperCase().includes('READY'));
+  const descUpper = (it.description || '').toUpperCase();
+  const woodUpper = (it.woodType || '').toUpperCase();
+  const isPlywood = it.itemCategory === 'plywood' || woodUpper.includes('PLYWOOD') || descUpper.includes('PLYWOOD');
+  const isReady = it.itemCategory === 'ready_board' || woodUpper.includes('READY') || descUpper.includes('READY');
 
   if (isPlywood) {
-    const b = it.brand || 'Red Tag';
-    return `8 × 4 (${b})`;
+    let b = it.brand;
+    if (!b && it.description) {
+      const match = it.description.match(/\(([^)]+)\)/);
+      if (match) b = match[1];
+    }
+    const brandName = b || 'Red Tag';
+    return `8 × 4 (${brandName})`;
   }
   if (isReady) {
-    const b = it.brand || 'Red Tag';
+    let b = it.brand;
+    if (!b && it.description) {
+      const match = it.description.match(/\(([^)]+)\)/);
+      if (match) b = match[1];
+    }
+    const brandName = b || 'Mine Gold';
     let size = it.boardSize;
     if (!size) {
-      const w = it.widthInches && Number(it.widthInches) > 0 ? it.widthInches : 9;
-      size = `8 × ${w}`;
+      let w = it.widthInches && Number(it.widthInches) > 0 ? it.widthInches : 0;
+      if (!w && it.description) {
+        const match = it.description.match(/8\s*[xX×*]\s*(\d+)/);
+        if (match) w = parseInt(match[1], 10);
+      }
+      size = `8 × ${w || 12}`;
     }
     const cleanSize = size.replace(/\s*[*xX×]\s*/, ' × ');
-    return `${cleanSize} (${b})`;
+    return `${cleanSize} (${brandName})`;
   }
   if (it.description) {
     if (it.description.includes('(') && it.description.includes(')')) {
@@ -324,12 +340,22 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
   const blankItems: MeasurementItem[] = [];
 
   for (const it of items) {
-    if (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board') {
+    const itDesc = (it.remarks || '').toUpperCase();
+    const itWood = (it.woodType || '').toUpperCase();
+    const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
+    const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
+    const isSheet = isPlywood || isReady || it.rateUnit === 'PCS';
+
+    if (isSheet) {
       const p = typeof it.pieces === 'number' ? it.pieces : parseFloat(String(it.pieces));
       if (!isNaN(p) && p > 0) {
         validItems.push({
           ...it,
+          itemCategory: isPlywood ? 'plywood' : 'ready_board',
+          brand: it.brand || (isPlywood ? 'Red Tag' : 'Mine Gold'),
+          woodType: isPlywood ? 'Plywood' : 'Ready Board',
           cft: 0,
+          sqft: 0,
           rateUnit: 'PCS'
         });
         continue;

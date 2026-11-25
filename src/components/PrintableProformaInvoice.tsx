@@ -16,7 +16,10 @@ export const renderDimensionHtml = (dim: string) => {
   if (!dim) return null;
   const brandMatch = dim.match(/\(([^)]+)\)/);
   const brandSuffix = brandMatch ? ` (${brandMatch[1]})` : '';
-  const pureDim = dim.replace(/\s*\([^)]+\)/, '').trim();
+  let pureDim = dim.replace(/\s*\([^)]+\)/, '').trim();
+
+  // If pureDim ends with x0 or ×0, strip it! (e.g. 8x4x0 -> 8x4, 8x12x0 -> 8x12)
+  pureDim = pureDim.replace(/([xX×*]\s*0+)+$/, '').trim();
 
   const parts = pureDim.split(/([xX×*])/);
   if (parts.length <= 1) {
@@ -217,7 +220,9 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
 
   const validItems = items.filter(
     (it) => {
-      const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS';
+      const itDesc = (it.remarks || (it as any).description || '').toUpperCase();
+      const itWood = (it.woodType || '').toUpperCase();
+      const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD') || itWood.includes('READY') || itDesc.includes('READY') || it.rateUnit === 'PCS';
       if (isSheet) {
         return typeof it.pieces === 'number' && it.pieces > 0;
       }
@@ -230,10 +235,15 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
   const woodMap = new Map<string, typeof validItems>();
 
   for (const it of validItems) {
-    const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS';
-    const wood = isSheet
-      ? (it.woodType || (it.itemCategory === 'plywood' ? 'PLYWOOD' : 'READY BOARD')).trim().toUpperCase()
-      : (it.woodType || 'MAHAGONY').trim().toUpperCase();
+    const itDesc = (it.remarks || (it as any).description || '').toUpperCase();
+    const itWood = (it.woodType || '').toUpperCase();
+    const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
+    const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
+    const wood = isPlywood
+      ? 'PLYWOOD'
+      : (isReady
+          ? 'READY BOARD'
+          : (it.woodType || 'MAHAGONY').trim().toUpperCase());
     if (!woodMap.has(wood)) {
       const arr: typeof validItems = [];
       woodMap.set(wood, arr);
@@ -799,15 +809,18 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       {/* Measurements of that wood (with zebra striping and small decimals) */}
                       {group.items.map((it, itemIdx) => {
                         const currentSl = runningSl++;
-                        const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS';
+                        const isSheet = group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || it.rateUnit === 'PCS' || ((it as any).remarks && ((it as any).remarks.toUpperCase().includes('PLYWOOD') || (it as any).remarks.toUpperCase().includes('READY'))) || ((it as any).description && ((it as any).description.toUpperCase().includes('PLYWOOD') || (it as any).description.toUpperCase().includes('READY')));
                         const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
                         const isSqftBilled = !isSheet && w >= 7 && it.rateUnit !== 'CFT';
                         const defaultRowRate = isSheet ? 0 : (isSqftBilled ? 120 : ratePerCft);
                         const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
-                        const mult = isSheet ? (typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0)) : (isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft);
-                        const amount = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * itemRate * 100) / 100;
+                        const itPieces = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
+                        const mult = isSheet ? itPieces : (isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft);
+                        const amount = (isSheet && typeof it.amount === 'number' && it.amount > 0 && it.rateUnit === 'PCS')
+                          ? it.amount
+                          : Math.round(mult * itemRate * 100) / 100;
                         const slStr = String(currentSl);
-                        const descStr = isSheet ? getCutLogItemDescription(it) : `${it.lengthFeet}X${it.widthInches}X${it.thicknessInches}`;
+                        const descStr = isSheet ? getCutLogItemDescription({ ...it, woodType: group.wood || it.woodType }) : `${it.lengthFeet}X${it.widthInches}X${it.thicknessInches}`;
                         const perUnit = isSheet ? 'PCS' : (isSqftBilled ? 'SQFT' : 'CFT');
 
                         return (
@@ -816,7 +829,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                             <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 700 }}>
                               {renderDimensionHtml(descStr)}
                             </td>
-                            <td className="text-right p-mono">{Number(it.pieces) > 0 ? `${it.pieces} PCS` : ''}</td>
+                            <td className="text-right p-mono">{itPieces > 0 ? `${itPieces} PCS` : ''}</td>
                             <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : '')}</td>
                             <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && isSqftBilled ? (it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : '') : '')}</td>
                             <td className="text-right p-mono">{renderWithSmallDecimalHtml(itemRate.toFixed(2))}</td>

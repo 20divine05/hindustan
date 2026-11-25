@@ -50,7 +50,7 @@ import { RoundLogSlabPricing } from '../components/RoundLogSlabPricing';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ProformaInvoiceModal } from '../components/ProformaInvoiceModal';
 import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice';
-import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood, calculateRow } from '../utils/calculator';
+import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood, calculateRow, getCutLogItemDescription } from '../utils/calculator';
 import {
   calculateRoundLogTotals,
   getRoundLogUnitConfig,
@@ -1261,8 +1261,56 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
     // Map items including additional charges as line items if present
     const cutInvoiceItems = sortedCurrentItems
-      .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)
+      .filter((it) => {
+        const itDesc = (it.remarks || '').toUpperCase();
+        const itWood = (it.woodType || '').toUpperCase();
+        const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
+        const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
+        const isSheet = isPlywood || isReady || it.rateUnit === 'PCS';
+        if (isSheet) {
+          const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
+          return p > 0;
+        }
+        return typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0;
+      })
       .map((it, idx) => {
+        const itDesc = (it.remarks || '').toUpperCase();
+        const itWood = (it.woodType || '').toUpperCase();
+        const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
+        const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
+        const isSheet = isPlywood || isReady || it.rateUnit === 'PCS';
+
+        if (isSheet) {
+          const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
+          const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
+          const rowAmount = (typeof it.amount === 'number' && it.amount > 0 && it.rateUnit === 'PCS')
+            ? it.amount
+            : Math.round(p * rowRate * 100) / 100;
+          const brand = it.brand || (isPlywood ? 'Red Tag' : 'Mine Gold');
+          const woodType = (isPlywood ? 'PLYWOOD' : 'READY BOARD');
+          const desc = getCutLogItemDescription({ ...it, brand, itemCategory: isPlywood ? 'plywood' : 'ready_board', woodType });
+
+          return {
+            id: it.id,
+            sourceIndex: idx,
+            slNo: idx + 1,
+            description: desc,
+            woodType,
+            itemCategory: isPlywood ? ('plywood' as const) : ('ready_board' as const),
+            brand,
+            hsn: '4412',
+            cft: 0,
+            sqft: 0,
+            widthInches: typeof it.widthInches === 'number' ? it.widthInches : (isPlywood ? 4 : 12),
+            rateUnit: 'PCS' as const,
+            pieces: p,
+            rate: rowRate,
+            per: 'PCS',
+            discPercent: '',
+            amount: rowAmount
+          };
+        }
+
         const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
         const isSqftBilled = w >= 7 && it.rateUnit !== 'CFT';
         const defaultRowRate = isSqftBilled ? 120 : ratePerCft;

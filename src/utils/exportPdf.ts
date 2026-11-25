@@ -242,15 +242,22 @@ export function createProformaInvoiceDoc(
     totalAmount = roundOverallTotals.totalAmount;
   } else {
     for (const it of items) {
-      const isSheet = (it as any).itemCategory === 'plywood' || (it as any).itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || (it as any).rateUnit === 'PCS' || it.per === 'PCS';
+      const itDesc = (it.description || (it as any).remarks || '').toUpperCase();
+      const itWood = (it.woodType || '').toUpperCase();
+      const isPlywood = (it as any).itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
+      const isReady = (it as any).itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
+      const isSheet = isPlywood || isReady || (it as any).rateUnit === 'PCS' || it.per === 'PCS';
+
       if (!isSheet) {
         totalCft += (typeof it.cft === 'number' ? it.cft : 0);
       }
       totalPieces += (typeof it.pieces === 'number' ? it.pieces : 0);
       if (isSheet) {
-        const p = typeof it.pieces === 'number' ? it.pieces : 0;
+        const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
         const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
-        const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(p * r * 100) / 100;
+        const amt = (typeof it.amount === 'number' && it.amount > 0 && ((it as any).rateUnit === 'PCS' || it.per === 'PCS'))
+          ? it.amount
+          : Math.round(p * r * 100) / 100;
         totalAmount += amt;
       } else {
         const isSqftBilled = it.rateUnit === 'SQFT' || it.per === 'SQFT';
@@ -717,10 +724,16 @@ export function createProformaInvoiceDoc(
     const woodMap = new Map<string, typeof items>();
 
     for (const it of items) {
-      const isSheet = (it as any).itemCategory === 'plywood' || (it as any).itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || (it as any).rateUnit === 'PCS' || it.per === 'PCS';
+      const itDesc = (it.description || '').toUpperCase();
+      const itWood = (it.woodType || '').toUpperCase();
+      const isPlywood = (it as any).itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
+      const isReady = (it as any).itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
+
       let wood = 'MAHAGONY';
-      if (isSheet) {
-        wood = (it.woodType || ((it as any).itemCategory === 'plywood' ? 'PLYWOOD' : 'READY BOARD')).toUpperCase();
+      if (isPlywood) {
+        wood = 'PLYWOOD';
+      } else if (isReady) {
+        wood = 'READY BOARD';
       } else if (it.woodType) {
         wood = it.woodType.toUpperCase();
       } else {
@@ -798,10 +811,10 @@ export function createProformaInvoiceDoc(
       let itemIdx = 0;
 
       for (const it of group.items) {
-        const isSheet = (it as any).itemCategory === 'plywood' || (it as any).itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || (it as any).rateUnit === 'PCS' || it.per === 'PCS';
+        const isSheet = group.wood.includes('PLYWOOD') || group.wood.includes('READY') || (it as any).itemCategory === 'plywood' || (it as any).itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready') || (it as any).rateUnit === 'PCS' || it.per === 'PCS' || ((it as any).remarks && ((it as any).remarks.toUpperCase().includes('PLYWOOD') || (it as any).remarks.toUpperCase().includes('READY'))) || (it.description && (it.description.toUpperCase().includes('PLYWOOD') || it.description.toUpperCase().includes('READY')));
         let dimOnly = '';
         if (isSheet) {
-          dimOnly = getCutLogItemDescription(it as any);
+          dimOnly = getCutLogItemDescription({ ...it, woodType: group.wood || it.woodType } as any);
         } else {
           const rawDim = (it.description || '').split(/\s+/)[0] || it.description;
           dimOnly = rawDim.split(/([xX×])/).map(p => p.trim().replace(/^0+(\d)/, '$1')).join('');
@@ -810,11 +823,17 @@ export function createProformaInvoiceDoc(
         const perText = isSheet ? 'PCS' : (isSqftBilled ? 'SQFT' : 'CFT');
         const zebraBg = (itemIdx++ % 2 === 0) ? [243, 244, 246] : [255, 255, 255];
 
-        groupPieces += (typeof it.pieces === 'number' ? it.pieces : 0);
+        const itPieces = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
+        const itRate = typeof it.rate === 'number' ? it.rate : 0;
+        const rowAmount = (isSheet && typeof it.amount === 'number' && it.amount > 0 && ((it as any).rateUnit === 'PCS' || it.per === 'PCS'))
+          ? it.amount
+          : (isSheet ? Math.round(itPieces * itRate * 100) / 100 : (typeof it.amount === 'number' ? it.amount : 0));
+
+        groupPieces += itPieces;
         if (!isSheet) {
           groupCft += (typeof it.cft === 'number' ? it.cft : 0);
         }
-        groupAmount += (typeof it.amount === 'number' ? it.amount : 0);
+        groupAmount += rowAmount;
 
         if (isSqftBilled) {
           groupSqftBilled += (typeof it.sqft === 'number' ? it.sqft : (it.cft || 0) * 12);
@@ -831,12 +850,12 @@ export function createProformaInvoiceDoc(
         tableBody.push([
           { content: slStr, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: `   ${dimOnly}`, styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-          { content: it.pieces > 0 ? `${it.pieces} PCS` : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: itPieces > 0 ? `${itPieces} PCS` : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: cftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: sqftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-          { content: it.rate !== 0 ? formatIndianCurrency(it.rate) : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: itRate !== 0 ? formatIndianCurrency(itRate) : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: perText, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-          { content: formatIndianCurrency(it.amount), styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'normal', textColor: [75, 85, 99], fillColor: zebraBg, cellPadding: { left: 2.2, top: 0.45, bottom: 0.45 } } }
+          { content: formatIndianCurrency(rowAmount), styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'normal', textColor: [75, 85, 99], fillColor: zebraBg, cellPadding: { left: 2.2, top: 0.45, bottom: 0.45 } } }
         ]);
       }
 
