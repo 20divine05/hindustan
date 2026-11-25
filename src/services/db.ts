@@ -29,7 +29,7 @@ export function sanitizeAndComputeSheet(
     const calc = calculateRow(l, w, t, p);
 
     const isSqftBilled = typeof w === 'number' && w >= 7 && item.rateUnit !== 'CFT';
-    const rateUnit: 'CFT' | 'SQFT' = isSqftBilled ? 'SQFT' : 'CFT';
+    const rateUnit: 'CFT' | 'SQFT' | 'PCS' = isSqftBilled ? 'SQFT' : (item.rateUnit || 'CFT');
     const r = typeof item.rate === 'number' ? item.rate : (typeof item.rate === 'string' && item.rate !== '' ? parseFloat(item.rate) : '');
     const defaultRowRate = isSqftBilled ? 120 : 1200;
     const rateNum = typeof r === 'number' && !isNaN(r) && r > 0 ? r : defaultRowRate;
@@ -342,12 +342,12 @@ export const dbService = {
             const rate = (typeof it.rate === 'number' && it.rate > 0)
               ? it.rate
               : (backup && typeof backup.rate === 'number' && backup.rate > 0 ? backup.rate : undefined);
-            const rateUnit: 'CFT' | 'SQFT' = it.rateUnit || backup?.rateUnit || (isWide ? 'SQFT' : 'CFT');
+            const rateUnit: 'CFT' | 'SQFT' | 'PCS' = it.rateUnit || backup?.rateUnit || (isWide ? 'SQFT' : 'CFT');
             const amount = (typeof it.amount === 'number' && it.amount > 0)
               ? it.amount
               : (backup && typeof backup.amount === 'number' && backup.amount > 0
                   ? backup.amount
-                  : (rate && rate > 0 ? Math.round((rateUnit === 'SQFT' ? it.sqft : it.cft) * rate * 100) / 100 : undefined));
+                  : (rate && rate > 0 ? Math.round((rateUnit === 'SQFT' ? it.sqft : rateUnit === 'PCS' ? (it.pieces || 0) : it.cft) * rate * 100) / 100 : undefined));
 
             return {
               ...it,

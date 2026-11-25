@@ -141,6 +141,20 @@ export function calculateTotals(
   let validEntries = 0;
 
   for (const item of items) {
+    if (item.itemCategory === 'plywood' || item.itemCategory === 'ready_board') {
+      const p = typeof item.pieces === 'number' ? item.pieces : parseFloat(String(item.pieces)) || 0;
+      if (p > 0) {
+        validEntries++;
+        totalPieces += p;
+        const rowSqft = typeof item.sqft === 'number' ? item.sqft : 0;
+        totalSqft += rowSqft;
+        // Do NOT compute or add CFT for Plywood or Ready Board (cft = 0)
+        const amt = typeof item.amount === 'number' && item.amount > 0 ? item.amount : 0;
+        totalAmount += amt;
+      }
+      continue;
+    }
+
     const l = typeof item.lengthFeet === 'number' ? item.lengthFeet : 0;
     const w = typeof item.widthInches === 'number' ? item.widthInches : 0;
     const t = typeof item.thicknessInches === 'number' ? item.thicknessInches : 0;
@@ -200,6 +214,84 @@ export function formatCompact(value: number): string {
 }
 
 /**
+ * Returns clean Wood Section Heading for Proforma Invoice and sorting:
+ * - TEAK WOOD (1st Teak), TEAK WOOD (Medium Teak), TEAK WOOD (2nd Teak)
+ * - PLYWOOD (all plywood)
+ * - READY BOARD (all ready boards)
+ * - Other wood species (SILVER WOOD, MAHAGONY, PINE, NEEM, JUNGLE, etc.)
+ */
+export function getCutLogItemSectionHeading(it: {
+  woodType?: string;
+  itemCategory?: 'timber' | 'plywood' | 'ready_board';
+  teakGrade?: string;
+  brand?: string;
+  description?: string;
+}): string {
+  if (it.itemCategory === 'plywood' || (it.woodType && it.woodType.trim().toUpperCase() === 'PLYWOOD')) {
+    return 'PLYWOOD';
+  }
+  if (it.itemCategory === 'ready_board' || (it.woodType && it.woodType.trim().toUpperCase() === 'READY BOARD')) {
+    return 'READY BOARD';
+  }
+  if (it.description) {
+    const descUp = it.description.toUpperCase();
+    if (descUp.includes('PLYWOOD')) return 'PLYWOOD';
+    if (descUp.includes('READY BOARD')) return 'READY BOARD';
+    const teakMatch = descUp.match(/TEAK WOOD\s*\(([^)]+)\)/);
+    if (teakMatch) return `TEAK WOOD (${teakMatch[1].trim()})`;
+  }
+  if (it.teakGrade) {
+    return `TEAK WOOD (${it.teakGrade})`;
+  }
+  const wt = (it.woodType || 'MAHAGONY').trim().toUpperCase();
+  if (wt.includes('TEAK')) {
+    if (wt.includes('(')) return wt;
+    return 'TEAK WOOD (1st Teak)';
+  }
+  return wt;
+}
+
+/**
+ * Returns formatted Description of Goods:
+ * - Plywood: 8 × 4 (Red Tag) / 8 × 4 (Mine Gold) / 8 × 4 (Magnus)
+ * - Ready Board: 8 × 9 (Red Tag) / 8 × 12 (Mine Gold) / 8 × 24 (Magnus) etc.
+ * - Timber: Length × Width × Thick
+ */
+export function getCutLogItemDescription(it: {
+  itemCategory?: 'timber' | 'plywood' | 'ready_board';
+  woodType?: string;
+  brand?: string;
+  boardSize?: string;
+  lengthFeet?: number | '';
+  widthInches?: number | '';
+  thicknessInches?: number | '';
+  description?: string;
+}): string {
+  if (it.itemCategory === 'plywood' || (it.woodType && it.woodType.trim().toUpperCase() === 'PLYWOOD')) {
+    const b = it.brand || 'Red Tag';
+    return `8 × 4 (${b})`;
+  }
+  if (it.itemCategory === 'ready_board' || (it.woodType && it.woodType.trim().toUpperCase() === 'READY BOARD')) {
+    const b = it.brand || 'Red Tag';
+    const size = it.boardSize || (it.widthInches ? `8 × ${it.widthInches}` : '8 × 9');
+    return `${size} (${b})`;
+  }
+  if (it.description) {
+    if (it.description.includes('(') && it.description.includes(')')) {
+      return it.description;
+    }
+    const match = it.description.match(/^([\d.]+)[X|x]([\d.]+)[X|x]([\d.]+)/);
+    if (match) {
+      return `${match[1]} × ${match[2]} × ${match[3]}`;
+    }
+  }
+  if (it.lengthFeet && it.widthInches && it.thicknessInches) {
+    return `${it.lengthFeet} × ${it.widthInches} × ${it.thicknessInches}`;
+  }
+  return it.description || '';
+}
+
+/**
  * Sorts timber entries according to standard mill order:
  * 1. Wood Species Grouping: Keeps all entries of the same wood species together,
  *    preserving the initial sequence in which each wood species was introduced in the sheet.
@@ -217,6 +309,18 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
   const blankItems: MeasurementItem[] = [];
 
   for (const it of items) {
+    if (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board') {
+      const p = typeof it.pieces === 'number' ? it.pieces : parseFloat(String(it.pieces));
+      if (!isNaN(p) && p > 0) {
+        validItems.push({
+          ...it,
+          cft: 0,
+          rateUnit: it.rateUnit || 'SQFT'
+        });
+        continue;
+      }
+    }
+
     const l = typeof it.lengthFeet === 'number' ? it.lengthFeet : parseFloat(String(it.lengthFeet));
     const w = typeof it.widthInches === 'number' ? it.widthInches : parseFloat(String(it.widthInches));
     if (!isNaN(l) && l > 0 && !isNaN(w) && w > 0) {
@@ -241,7 +345,7 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
   const woodMap = new Map<string, MeasurementItem[]>();
 
   for (const it of validItems) {
-    const woodKey = (it.woodType || 'MAHAGONY').trim().toUpperCase();
+    const woodKey = getCutLogItemSectionHeading(it);
     if (!woodMap.has(woodKey)) {
       woodOrder.push(woodKey);
       woodMap.set(woodKey, []);
@@ -254,19 +358,52 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
   for (const woodKey of woodOrder) {
     const groupItems = woodMap.get(woodKey) || [];
 
-    // Combine rows with exact same dimensions (Length, Width, Thick) and Rate + RateUnit
+    // Combine rows with exact same dimensions and Rate + RateUnit
     const consolidatedMap = new Map<string, MeasurementItem>();
     const consolidatedList: MeasurementItem[] = [];
 
     for (const it of groupItems) {
+      const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board';
       const l = typeof it.lengthFeet === 'number' ? it.lengthFeet : parseFloat(String(it.lengthFeet)) || 0;
       const w = typeof it.widthInches === 'number' ? it.widthInches : parseFloat(String(it.widthInches)) || 0;
       const t = typeof it.thicknessInches === 'number' ? it.thicknessInches : parseFloat(String(it.thicknessInches)) || 0;
       const p = typeof it.pieces === 'number' ? it.pieces : parseFloat(String(it.pieces)) || 1;
       const isWide = w >= 7;
-      const unit = isWide ? (it.rateUnit === 'CFT' ? 'CFT' : 'SQFT') : 'CFT';
+      const unit = isSheet ? (it.rateUnit || 'SQFT') : (isWide ? (it.rateUnit === 'CFT' ? 'CFT' : 'SQFT') : 'CFT');
       const defaultRateVal = unit === 'SQFT' ? 120 : 1200;
       const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRateVal;
+
+      if (isSheet) {
+        const boardKey = it.itemCategory === 'plywood' ? '8x4' : (it.boardSize || `${l}x${w}`);
+        const brandKey = it.brand || 'Red Tag';
+        const key = `sheet_${it.itemCategory}_${boardKey}_${brandKey}_${r}_${unit}`;
+
+        if (consolidatedMap.has(key)) {
+          const existing = consolidatedMap.get(key)!;
+          const oldPieces = typeof existing.pieces === 'number' ? existing.pieces : parseFloat(String(existing.pieces)) || 0;
+          const newPieces = oldPieces + p;
+          const sqftPerUnit = (existing.sqft || 0) / (oldPieces || 1);
+          const newSqft = sqftPerUnit * newPieces;
+          const newAmt = unit === 'PCS' ? Math.round(newPieces * r * 100) / 100 : Math.round(newSqft * r * 100) / 100;
+
+          existing.pieces = newPieces;
+          existing.sqft = newSqft;
+          existing.cft = 0;
+          existing.amount = newAmt;
+        } else {
+          const clone: MeasurementItem = {
+            ...it,
+            cft: 0,
+            rate: r,
+            rateUnit: unit,
+            amount: typeof it.amount === 'number' && it.amount > 0 ? it.amount : (unit === 'PCS' ? Math.round(p * r * 100) / 100 : Math.round((it.sqft || 0) * r * 100) / 100)
+          };
+          consolidatedMap.set(key, clone);
+          consolidatedList.push(clone);
+        }
+        continue;
+      }
+
       const calc = calculateRow(l, w, t, p);
       const isSqft = w >= 7 && unit !== 'CFT';
       const mult = isSqft ? calc.sqft : calc.cft;
@@ -352,7 +489,7 @@ export function groupTimberByWood(items: MeasurementItem[], defaultRate = 1200):
   const woodOrder: string[] = [];
 
   for (const it of sorted) {
-    const wood = (it.woodType || 'MAHAGONY').trim().toUpperCase();
+    const wood = getCutLogItemSectionHeading(it);
     if (!groupsMap.has(wood)) {
       woodOrder.push(wood);
       groupsMap.set(wood, []);
@@ -362,8 +499,10 @@ export function groupTimberByWood(items: MeasurementItem[], defaultRate = 1200):
 
   return woodOrder.map((wood) => {
     const groupItems = groupsMap.get(wood) || [];
+    const isSheet = wood === 'PLYWOOD' || wood === 'READY BOARD';
     const totalPieces = groupItems.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
-    const totalCft = groupItems.reduce((acc, it) => acc + (it.cft || 0), 0);
+    // Plywood and Ready Board have 0 CFT
+    const totalCft = isSheet ? 0 : groupItems.reduce((acc, it) => acc + (it.cft || 0), 0);
     const totalAmount = groupItems.reduce((acc, it) => {
       if (typeof it.amount === 'number' && it.amount > 0) {
         return acc + it.amount;

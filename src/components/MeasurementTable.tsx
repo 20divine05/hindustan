@@ -6,19 +6,22 @@ import { calculateRow, calculateTotals, formatValue } from '../utils/calculator'
 import { formatIndianCurrency } from '../utils/indianNumberWords';
 import { generateId } from '../services/db';
 
-export const WOOD_SPECIES_OPTIONS = [
-  'Mahagony',
-  'Teak Wood',
-  'Sal Wood',
-  'Honne',
-  'Rosewood',
-  'Pine Wood',
-  'Neem Wood',
-  'Acacia / Babool',
+export const CUT_LOG_WOOD_OPTIONS = [
   'Silver Wood',
-  'Jungle Wood',
+  'Teak Wood',
+  'Mahogany',
+  'Pine',
+  'Neem',
+  'Jungle',
+  'Plywood',
+  'Ready Board',
   'Other (Custom...)'
 ];
+export const WOOD_SPECIES_OPTIONS = CUT_LOG_WOOD_OPTIONS;
+
+export const TEAK_GRADES = ['1st Teak', 'Medium Teak', '2nd Teak'] as const;
+export const SHEET_BRANDS = ['Red Tag', 'Mine Gold', 'Magnus'] as const;
+export const READY_BOARD_SIZES = ['8 × 9', '8 × 12', '8 × 18', '8 × 24', '8 × 48'] as const;
 
 interface MeasurementTableProps {
   items: MeasurementItem[];
@@ -43,9 +46,15 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const [quickRateCft, setQuickRateCft] = useState<string>('');
   const [quickRateSqft, setQuickRateSqft] = useState<string>('');
 
+  // Plywood & Ready Board & Teak Grade States
+  const [selectedTeakGrade, setSelectedTeakGrade] = useState<'1st Teak' | 'Medium Teak' | '2nd Teak'>('1st Teak');
+  const [selectedBrand, setSelectedBrand] = useState<'Red Tag' | 'Mine Gold' | 'Magnus'>('Red Tag');
+  const [selectedReadyBoardSize, setSelectedReadyBoardSize] = useState<'8 × 9' | '8 × 12' | '8 × 18' | '8 × 24' | '8 × 48'>('8 × 9');
+  const [sheetRateUnit, setSheetRateUnit] = useState<'SQFT' | 'PCS'>('SQFT');
+
   // Modal state for editing price / rate of a row
   const [editPriceRowIndex, setEditPriceRowIndex] = useState<number | null>(null);
-  const [priceModalUnit, setPriceModalUnit] = useState<'CFT' | 'SQFT'>('CFT');
+  const [priceModalUnit, setPriceModalUnit] = useState<'CFT' | 'SQFT' | 'PCS'>('CFT');
   const [priceModalRate, setPriceModalRate] = useState<string>('');
   const [priceModalAmount, setPriceModalAmount] = useState<string>('');
 
@@ -60,7 +69,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     };
   }, [editPriceRowIndex]);
 
-  const [selectedWoodOption, setSelectedWoodOption] = useState<string>('Mahagony');
+  const [selectedWoodOption, setSelectedWoodOption] = useState<string>('Mahogany');
   const [customWoodType, setCustomWoodType] = useState<string>('');
   const [quickError, setQuickError] = useState<string | null>(null);
 
@@ -119,18 +128,39 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   };
 
   // Live calculation for quick entry preview
+  const isPlywood = selectedWoodOption === 'Plywood';
+  const isReadyBoard = selectedWoodOption === 'Ready Board';
+  const isSheetCategory = isPlywood || isReadyBoard;
+
   const lVal = parseFloat(quickLength) || 0;
   const wVal = parseFloat(quickWidth) || 0;
   const tVal = parseFloat(quickThickness) || 0;
   const pVal = parseFloat(quickPieces) || 0;
-  const isQuickSqft = wVal >= 7 && quickRateUnit !== 'CFT';
-  const liveCft = lVal > 0 && wVal > 0 && tVal > 0 && pVal > 0 ? (lVal * wVal * tVal * pVal) / 144 : 0;
-  const liveSqft = liveCft * 12;
-  const rawEnteredRate = isQuickSqft
-    ? parseFloat(quickRateSqft)
-    : (parseFloat(quickRateCft) || parseFloat(quickRate));
+  const isQuickSqft = isSheetCategory ? (sheetRateUnit === 'SQFT') : (wVal >= 7 && quickRateUnit !== 'CFT');
+
+  let liveCft = 0;
+  let liveSqft = 0;
+  if (isPlywood) {
+    liveCft = 0;
+    liveSqft = 32 * pVal;
+  } else if (isReadyBoard) {
+    liveCft = 0;
+    const rbW = parseInt(selectedReadyBoardSize.split('×')[1]?.trim() || '9', 10);
+    liveSqft = ((8 * rbW) / 12) * pVal;
+  } else {
+    liveCft = lVal > 0 && wVal > 0 && tVal > 0 && pVal > 0 ? (lVal * wVal * tVal * pVal) / 144 : 0;
+    liveSqft = liveCft * 12;
+  }
+
+  const rawEnteredRate = isSheetCategory
+    ? parseFloat(quickRate)
+    : (isQuickSqft ? parseFloat(quickRateSqft) : (parseFloat(quickRateCft) || parseFloat(quickRate)));
   const currentRateVal = !isNaN(rawEnteredRate) && rawEnteredRate > 0 ? rawEnteredRate : 0;
-  const liveAmount = currentRateVal > 0 ? (isQuickSqft ? (liveSqft * currentRateVal) : (liveCft * currentRateVal)) : 0;
+  const liveAmount = currentRateVal > 0
+    ? (isSheetCategory
+        ? (sheetRateUnit === 'PCS' ? pVal * currentRateVal : liveSqft * currentRateVal)
+        : (isQuickSqft ? liveSqft * currentRateVal : liveCft * currentRateVal))
+    : 0;
 
   // Real-time table totals
   const totals = calculateTotals(items, sqftConvention, defaultRate);
@@ -218,6 +248,30 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     const updated = [...items];
     const target = { ...updated[index] };
 
+    if (target.itemCategory === 'plywood' || target.itemCategory === 'ready_board') {
+      if (field === 'woodType' || field === 'remarks' || field === 'brand' || field === 'boardSize') {
+        (target as any)[field] = rawValue;
+      } else {
+        const parsed = rawValue === '' ? '' : parseFloat(rawValue);
+        (target as any)[field] = isNaN(parsed as number) ? '' : parsed;
+        const p = typeof target.pieces === 'number' && target.pieces > 0 ? target.pieces : 0;
+        let sqft = 0;
+        if (target.itemCategory === 'plywood') {
+          sqft = 32 * p;
+        } else {
+          const rbW = typeof target.widthInches === 'number' ? target.widthInches : parseInt((target.boardSize || '8 × 9').split('×')[1]?.trim() || '9', 10);
+          sqft = ((8 * rbW) / 12) * p;
+        }
+        target.cft = 0;
+        target.sqft = sqft;
+        const r = typeof target.rate === 'number' && target.rate > 0 ? target.rate : 0;
+        target.amount = target.rateUnit === 'PCS' ? Math.round(p * r * 100) / 100 : Math.round(sqft * r * 100) / 100;
+      }
+      updated[index] = target;
+      onChange(updated);
+      return;
+    }
+
     if (field === 'woodType' || field === 'remarks') {
       target[field] = rawValue;
     } else {
@@ -288,6 +342,19 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const rateFocusedAtRef = useRef<number>(0);
 
   const advanceFrom = (source: 'length' | 'width' | 'thick' | 'pieces' | 'rate') => {
+    if (isSheetCategory) {
+      if (source === 'pieces') {
+        rateFocusedAtRef.current = Date.now();
+        rateInputRef.current?.focus();
+        return;
+      }
+      if (source === 'rate') {
+        if (Date.now() - rateFocusedAtRef.current < 450) return;
+        handleQuickAdd();
+        return;
+      }
+    }
+
     if (source === 'rate') {
       if (Date.now() - rateFocusedAtRef.current < 450) {
         return; // Ignore ghost Enter keystrokes transitioning from pieces
@@ -333,6 +400,17 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
     const active = document.activeElement;
 
+    if (isSheetCategory) {
+      if (active === piecesInputRef.current) {
+        advanceFrom('pieces');
+        return;
+      }
+      if (active === rateInputRef.current) {
+        handleQuickAdd();
+        return;
+      }
+    }
+
     if (active === lengthInputRef.current) {
       advanceFrom('length');
       return;
@@ -361,11 +439,114 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     if (e) e.preventDefault();
     setQuickError(null);
 
+    const directRateInput = rateInputRef.current?.value?.trim();
+    const domRateVal = directRateInput !== undefined && directRateInput !== '' ? parseFloat(directRateInput) : NaN;
+    const pRaw = parseFloat(quickPieces);
+    const p = !isNaN(pRaw) && pRaw > 0 ? pRaw : 1;
+
+    // Handle Plywood
+    if (selectedWoodOption === 'Plywood') {
+      const parsedRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : parseFloat(quickRate);
+      if (!parsedRate || isNaN(parsedRate) || parsedRate <= 0) {
+        setQuickError('Please enter price / rate for Plywood');
+        rateInputRef.current?.focus();
+        return;
+      }
+      const rowSqft = 32 * p;
+      const rowAmount = sheetRateUnit === 'PCS'
+        ? Math.round(p * parsedRate * 100) / 100
+        : Math.round(rowSqft * parsedRate * 100) / 100;
+
+      const newItem: MeasurementItem = {
+        id: generateId(),
+        serialNumber: items.length + 1,
+        itemCategory: 'plywood',
+        brand: selectedBrand,
+        woodType: 'Plywood',
+        lengthFeet: 8,
+        widthInches: 48,
+        thicknessInches: 0,
+        pieces: p,
+        cft: 0,
+        sqft: rowSqft,
+        rate: parsedRate,
+        rateUnit: sheetRateUnit,
+        amount: rowAmount
+      };
+
+      const updated = [...items, newItem];
+      const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
+      onChange(reindexed);
+
+      setQuickPieces('');
+      setQuickRate('');
+      if (rateInputRef.current) rateInputRef.current.value = '';
+
+      setTimeout(() => {
+        listBottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 60);
+
+      setTimeout(() => {
+        piecesInputRef.current?.focus();
+      }, 60);
+      return;
+    }
+
+    // Handle Ready Board
+    if (selectedWoodOption === 'Ready Board') {
+      const parsedRate = !isNaN(domRateVal) && domRateVal > 0 ? domRateVal : parseFloat(quickRate);
+      if (!parsedRate || isNaN(parsedRate) || parsedRate <= 0) {
+        setQuickError('Please enter price / rate for Ready Board');
+        rateInputRef.current?.focus();
+        return;
+      }
+      const rbW = parseInt(selectedReadyBoardSize.split('×')[1]?.trim() || '9', 10);
+      const sqftPerBoard = (8 * rbW) / 12;
+      const rowSqft = sqftPerBoard * p;
+      const rowAmount = sheetRateUnit === 'PCS'
+        ? Math.round(p * parsedRate * 100) / 100
+        : Math.round(rowSqft * parsedRate * 100) / 100;
+
+      const newItem: MeasurementItem = {
+        id: generateId(),
+        serialNumber: items.length + 1,
+        itemCategory: 'ready_board',
+        brand: selectedBrand,
+        boardSize: selectedReadyBoardSize,
+        woodType: 'Ready Board',
+        lengthFeet: 8,
+        widthInches: rbW,
+        thicknessInches: 0,
+        pieces: p,
+        cft: 0,
+        sqft: rowSqft,
+        rate: parsedRate,
+        rateUnit: sheetRateUnit,
+        amount: rowAmount
+      };
+
+      const updated = [...items, newItem];
+      const reindexed = updated.map((it, idx) => ({ ...it, serialNumber: idx + 1 }));
+      onChange(reindexed);
+
+      setQuickPieces('');
+      setQuickRate('');
+      if (rateInputRef.current) rateInputRef.current.value = '';
+
+      setTimeout(() => {
+        listBottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 60);
+
+      setTimeout(() => {
+        piecesInputRef.current?.focus();
+      }, 60);
+      return;
+    }
+
+    // Standard Timber logic
     const l = parseFloat(quickLength);
     const w = parseFloat(quickWidth);
     const t = parseFloat(quickThickness);
-    const pRaw = parseFloat(quickPieces);
-    const p = !isNaN(pRaw) && pRaw > 0 ? pRaw : 1;
 
     if (isNaN(l) || l <= 0) {
       setQuickError('Length must be greater than 0 feet');
@@ -382,10 +563,6 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
     const isWide = w >= 7;
     const finalRateUnit: 'CFT' | 'SQFT' = (isWide && quickRateUnit === 'SQFT') ? 'SQFT' : 'CFT';
-
-    // Check direct input value in DOM to ensure no React state lag on mobile
-    const directRateInput = rateInputRef.current?.value?.trim();
-    const domRateVal = directRateInput !== undefined && directRateInput !== '' ? parseFloat(directRateInput) : NaN;
 
     let enteredRate: number | null = null;
     if (!isNaN(domRateVal) && domRateVal > 0) {
@@ -405,7 +582,6 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     }
 
     const itemRate = enteredRate;
-
     const calc = calculateRow(l, w, t, p, sqftConvention);
     const multiplier = (isWide && finalRateUnit === 'SQFT') ? calc.sqft : calc.cft;
     const itemAmount = Math.round(multiplier * itemRate * 100) / 100;
@@ -416,6 +592,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     const newItem: MeasurementItem = {
       id: generateId(),
       serialNumber: items.length + 1,
+      itemCategory: 'timber',
+      teakGrade: selectedWoodOption === 'Teak Wood' ? selectedTeakGrade : undefined,
       lengthFeet: l,
       widthInches: w,
       thicknessInches: t,
@@ -496,214 +674,431 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             <span>Quick Dimension Entry:</span>
           </div>
 
-        <div className="quick-add-dims">
-          <div className="quick-dim-col">
-            <label className="quick-dim-label">
-              <span className="dim-label-desktop">Length (ft)</span>
-              <span className="dim-label-mobile">Length</span>
-            </label>
-            <input
-              ref={lengthInputRef}
-              type="number"
-              inputMode="decimal"
-              step="any"
-              min="0"
-              placeholder=""
-              className="calc-input"
-              value={quickLength}
-              onChange={(e) => setQuickLength(e.target.value)}
-              onKeyDown={(e) => handleKeyNav(e, 'length')}
-              enterKeyHint="next"
-              tabIndex={1}
-            />
-          </div>
-
-          <div className="quick-dim-col">
-            <label className="quick-dim-label">
-              <span className="dim-label-desktop">Width (in)</span>
-              <span className="dim-label-mobile">Width</span>
-            </label>
-            <input
-              ref={widthInputRef}
-              type="number"
-              inputMode="decimal"
-              step="any"
-              min="0"
-              placeholder=""
-              className="calc-input"
-              value={quickWidth}
-              onChange={(e) => {
-                const val = e.target.value;
-                setQuickWidth(val);
-                const w = parseFloat(val);
-                if (!isNaN(w) && w >= 7) {
-                  setQuickRateUnit('SQFT');
-                } else if (!isNaN(w) && w > 0 && w < 7) {
-                  setQuickRateUnit('CFT');
-                }
-              }}
-              onKeyDown={(e) => handleKeyNav(e, 'width')}
-              enterKeyHint="next"
-              tabIndex={2}
-            />
-          </div>
-
-          <div className="quick-dim-col">
-            <label className="quick-dim-label">
-              <span className="dim-label-desktop">Thick (in)</span>
-              <span className="dim-label-mobile">Thick</span>
-            </label>
-            <input
-              ref={thickInputRef}
-              type="number"
-              inputMode="decimal"
-              step="any"
-              min="0"
-              placeholder=""
-              className="calc-input"
-              value={quickThickness}
-              onChange={(e) => setQuickThickness(e.target.value)}
-              onKeyDown={(e) => handleKeyNav(e, 'thick')}
-              enterKeyHint="next"
-              tabIndex={3}
-            />
-          </div>
-
-          <div className="quick-dim-col">
-            <label className="quick-dim-label">
-              <span className="dim-label-desktop">Pieces</span>
-              <span className="dim-label-mobile">Pieces</span>
-            </label>
-            <input
-              ref={piecesInputRef}
-              type="number"
-              inputMode="numeric"
-              step="1"
-              min="1"
-              placeholder=""
-              className="calc-input"
-              value={quickPieces}
-              onChange={(e) => setQuickPieces(e.target.value)}
-              onKeyDown={(e) => handleKeyNav(e, 'pieces')}
-              enterKeyHint="next"
-              tabIndex={4}
-            />
-          </div>
-
-          <div className="quick-dim-col quick-dim-col-rate">
-            <label className="quick-dim-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-              <span className="dim-label-desktop">
-                {wVal >= 7 ? `Rate (${quickRateUnit})` : 'Rate (₹)'}
-              </span>
-              <span className="dim-label-mobile">
-                {wVal >= 7 ? `${quickRateUnit}` : 'Rate'}
-              </span>
-              {wVal >= 7 && (
+          {/* Sub-options for Teak Wood */}
+          {selectedWoodOption === 'Teak Wood' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.45rem', padding: '0.1rem 0', overflowX: 'auto' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-800)', whiteSpace: 'nowrap' }}>Teak Grade:</span>
+              {TEAK_GRADES.map((grade) => (
                 <button
+                  key={grade}
                   type="button"
                   tabIndex={-1}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setQuickRateUnit(prev => (prev === 'SQFT' ? 'CFT' : 'SQFT'));
-                  }}
-                  className="rate-unit-toggle-btn"
-                  title="Switch between SQFT and CFT rate"
+                  onClick={() => setSelectedTeakGrade(grade)}
                   style={{
-                    fontSize: '0.65rem',
-                    padding: '0 3px',
-                    borderRadius: '3px',
-                    border: '1px solid var(--primary-400)',
-                    background: 'var(--primary-100)',
-                    color: 'var(--primary-800)',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    padding: '0.2rem 0.55rem',
+                    borderRadius: '16px',
+                    border: selectedTeakGrade === grade ? '1.5px solid var(--primary-700)' : '1px solid var(--border-medium)',
+                    backgroundColor: selectedTeakGrade === grade ? 'var(--primary-700)' : 'var(--bg-surface, #fff)',
+                    color: selectedTeakGrade === grade ? '#fff' : 'var(--text-main)',
                     cursor: 'pointer',
-                    fontWeight: 700,
-                    lineHeight: '1.2'
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  ⇄
+                  {grade}
                 </button>
-              )}
-            </label>
-            <input
-              ref={rateInputRef}
-              type="number"
-              inputMode="decimal"
-              step="any"
-              min="0"
-              placeholder=""
-              className="calc-input"
-              value={wVal >= 7 && quickRateUnit === 'SQFT' ? quickRateSqft : (quickRateCft || quickRate)}
-              onFocus={() => {
-                rateFocusedAtRef.current = Date.now();
-              }}
-              onChange={(e) => {
-                const val = e.target.value;
-                setQuickRate(val);
-                if (wVal >= 7 && quickRateUnit === 'SQFT') {
-                  setQuickRateSqft(val);
-                } else {
-                  setQuickRateCft(val);
-                }
-              }}
-              onKeyDown={(e) => handleKeyNav(e, 'rate')}
-              enterKeyHint="go"
-              tabIndex={5}
-              style={{ fontWeight: 700, color: 'var(--primary-800)', textAlign: 'center' }}
-            />
-          </div>
-        </div>
+              ))}
+            </div>
+          )}
 
-        <div className="quick-add-row-bottom">
-          <div className="quick-add-species">
-            <select
-              className="calc-input"
+          {/* Sub-options for Plywood */}
+          {selectedWoodOption === 'Plywood' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.45rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflowX: 'auto', padding: '0.1rem 0' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-800)', whiteSpace: 'nowrap' }}>Brand:</span>
+                {SHEET_BRANDS.map((brand) => (
+                  <button
+                    key={brand}
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setSelectedBrand(brand)}
+                    style={{
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      padding: '0.2rem 0.55rem',
+                      borderRadius: '16px',
+                      border: selectedBrand === brand ? '1.5px solid var(--primary-700)' : '1px solid var(--border-medium)',
+                      backgroundColor: selectedBrand === brand ? 'var(--primary-700)' : 'var(--bg-surface, #fff)',
+                      color: selectedBrand === brand ? '#fff' : 'var(--text-main)',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {brand}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: 'var(--primary-50, #fcf9f2)',
+                border: '1.5px dashed var(--primary-300, #c4a47c)',
+                borderRadius: '6px',
+                padding: '0.3rem 0.6rem'
+              }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-800)' }}>
+                  Fixed Size: <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--primary-900)' }}>8 × 4</span>
+                </span>
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                  32 SQFT / Sheet
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Sub-options for Ready Board */}
+          {selectedWoodOption === 'Ready Board' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.45rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflowX: 'auto', padding: '0.1rem 0' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-800)', whiteSpace: 'nowrap' }}>Brand:</span>
+                {SHEET_BRANDS.map((brand) => (
+                  <button
+                    key={brand}
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setSelectedBrand(brand)}
+                    style={{
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      padding: '0.2rem 0.55rem',
+                      borderRadius: '16px',
+                      border: selectedBrand === brand ? '1.5px solid var(--primary-700)' : '1px solid var(--border-medium)',
+                      backgroundColor: selectedBrand === brand ? 'var(--primary-700)' : 'var(--bg-surface, #fff)',
+                      color: selectedBrand === brand ? '#fff' : 'var(--text-main)',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {brand}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflowX: 'auto', padding: '0.1rem 0' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-800)', whiteSpace: 'nowrap' }}>Size:</span>
+                {READY_BOARD_SIZES.map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setSelectedReadyBoardSize(size)}
+                    style={{
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      padding: '0.2rem 0.55rem',
+                      borderRadius: '16px',
+                      border: selectedReadyBoardSize === size ? '1.5px solid var(--primary-700)' : '1px solid var(--border-medium)',
+                      backgroundColor: selectedReadyBoardSize === size ? 'var(--primary-700)' : 'var(--bg-surface, #fff)',
+                      color: selectedReadyBoardSize === size ? '#fff' : 'var(--text-main)',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Input boxes: If Plywood or Ready Board, only PIECES and RATE boxes */}
+          {isSheetCategory ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.45rem' }}>
+              <div className="quick-dim-col">
+                <label className="quick-dim-label">
+                  <span className="dim-label-desktop">Pieces (Sheets)</span>
+                  <span className="dim-label-mobile">Pieces</span>
+                </label>
+                <input
+                  ref={piecesInputRef}
+                  type="number"
+                  inputMode="numeric"
+                  step="1"
+                  min="1"
+                  placeholder="Pcs"
+                  className="calc-input"
+                  value={quickPieces}
+                  onChange={(e) => setQuickPieces(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                      e.preventDefault();
+                      rateFocusedAtRef.current = Date.now();
+                      rateInputRef.current?.focus();
+                    }
+                  }}
+                  enterKeyHint="next"
+                  tabIndex={1}
+                  style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.95rem' }}
+                />
+              </div>
+
+              <div className="quick-dim-col">
+                <label className="quick-dim-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                  <span className="dim-label-desktop">Rate ({sheetRateUnit})</span>
+                  <span className="dim-label-mobile">{sheetRateUnit}</span>
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSheetRateUnit(prev => (prev === 'SQFT' ? 'PCS' : 'SQFT'));
+                    }}
+                    className="rate-unit-toggle-btn"
+                    title="Switch between per-SQFT and per-Piece rate"
+                    style={{
+                      fontSize: '0.65rem',
+                      padding: '0 4px',
+                      borderRadius: '3px',
+                      border: '1px solid var(--primary-400)',
+                      background: 'var(--primary-100)',
+                      color: 'var(--primary-800)',
+                      cursor: 'pointer',
+                      fontWeight: 800,
+                      lineHeight: '1.2'
+                    }}
+                  >
+                    ⇄
+                  </button>
+                </label>
+                <input
+                  ref={rateInputRef}
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  min="0"
+                  placeholder="Rate"
+                  className="calc-input"
+                  value={quickRate}
+                  onFocus={() => {
+                    rateFocusedAtRef.current = Date.now();
+                  }}
+                  onChange={(e) => setQuickRate(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                      e.preventDefault();
+                      if (Date.now() - rateFocusedAtRef.current < 450) return;
+                      handleQuickAdd();
+                    }
+                  }}
+                  enterKeyHint="go"
+                  tabIndex={2}
+                  style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.95rem', color: 'var(--primary-800)' }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="quick-add-dims">
+              <div className="quick-dim-col">
+                <label className="quick-dim-label">
+                  <span className="dim-label-desktop">Length (ft)</span>
+                  <span className="dim-label-mobile">Length</span>
+                </label>
+                <input
+                  ref={lengthInputRef}
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  min="0"
+                  placeholder=""
+                  className="calc-input"
+                  value={quickLength}
+                  onChange={(e) => setQuickLength(e.target.value)}
+                  onKeyDown={(e) => handleKeyNav(e, 'length')}
+                  enterKeyHint="next"
+                  tabIndex={1}
+                />
+              </div>
+
+              <div className="quick-dim-col">
+                <label className="quick-dim-label">
+                  <span className="dim-label-desktop">Width (in)</span>
+                  <span className="dim-label-mobile">Width</span>
+                </label>
+                <input
+                  ref={widthInputRef}
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  min="0"
+                  placeholder=""
+                  className="calc-input"
+                  value={quickWidth}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setQuickWidth(val);
+                    const w = parseFloat(val);
+                    if (!isNaN(w) && w >= 7) {
+                      setQuickRateUnit('SQFT');
+                    } else if (!isNaN(w) && w > 0 && w < 7) {
+                      setQuickRateUnit('CFT');
+                    }
+                  }}
+                  onKeyDown={(e) => handleKeyNav(e, 'width')}
+                  enterKeyHint="next"
+                  tabIndex={2}
+                />
+              </div>
+
+              <div className="quick-dim-col">
+                <label className="quick-dim-label">
+                  <span className="dim-label-desktop">Thick (in)</span>
+                  <span className="dim-label-mobile">Thick</span>
+                </label>
+                <input
+                  ref={thickInputRef}
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  min="0"
+                  placeholder=""
+                  className="calc-input"
+                  value={quickThickness}
+                  onChange={(e) => setQuickThickness(e.target.value)}
+                  onKeyDown={(e) => handleKeyNav(e, 'thick')}
+                  enterKeyHint="next"
+                  tabIndex={3}
+                />
+              </div>
+
+              <div className="quick-dim-col">
+                <label className="quick-dim-label">
+                  <span className="dim-label-desktop">Pieces</span>
+                  <span className="dim-label-mobile">Pieces</span>
+                </label>
+                <input
+                  ref={piecesInputRef}
+                  type="number"
+                  inputMode="numeric"
+                  step="1"
+                  min="1"
+                  placeholder=""
+                  className="calc-input"
+                  value={quickPieces}
+                  onChange={(e) => setQuickPieces(e.target.value)}
+                  onKeyDown={(e) => handleKeyNav(e, 'pieces')}
+                  enterKeyHint="next"
+                  tabIndex={4}
+                />
+              </div>
+
+              <div className="quick-dim-col quick-dim-col-rate">
+                <label className="quick-dim-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                  <span className="dim-label-desktop">
+                    {wVal >= 7 ? `Rate (${quickRateUnit})` : 'Rate (₹)'}
+                  </span>
+                  <span className="dim-label-mobile">
+                    {wVal >= 7 ? `${quickRateUnit}` : 'Rate'}
+                  </span>
+                  {wVal >= 7 && (
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setQuickRateUnit(prev => (prev === 'SQFT' ? 'CFT' : 'SQFT'));
+                      }}
+                      className="rate-unit-toggle-btn"
+                      title="Switch between SQFT and CFT rate"
+                      style={{
+                        fontSize: '0.65rem',
+                        padding: '0 3px',
+                        borderRadius: '3px',
+                        border: '1px solid var(--primary-400)',
+                        background: 'var(--primary-100)',
+                        color: 'var(--primary-800)',
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        lineHeight: '1.2'
+                      }}
+                    >
+                      ⇄
+                    </button>
+                  )}
+                </label>
+                <input
+                  ref={rateInputRef}
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  min="0"
+                  placeholder=""
+                  className="calc-input"
+                  value={wVal >= 7 && quickRateUnit === 'SQFT' ? quickRateSqft : (quickRateCft || quickRate)}
+                  onFocus={() => {
+                    rateFocusedAtRef.current = Date.now();
+                  }}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setQuickRate(val);
+                    if (wVal >= 7 && quickRateUnit === 'SQFT') {
+                      setQuickRateSqft(val);
+                    } else {
+                      setQuickRateCft(val);
+                    }
+                  }}
+                  onKeyDown={(e) => handleKeyNav(e, 'rate')}
+                  enterKeyHint="go"
+                  tabIndex={5}
+                  style={{ fontWeight: 700, color: 'var(--primary-800)', textAlign: 'center' }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="quick-add-row-bottom">
+            <div className="quick-add-species">
+              <select
+                className="calc-input"
+                tabIndex={-1}
+                value={selectedWoodOption}
+                onChange={(e) => {
+                  setSelectedWoodOption(e.target.value);
+                }}
+                style={{
+                  fontWeight: 800,
+                  color: 'var(--primary-800)',
+                  fontSize: '0.85rem',
+                  padding: '0.4rem 1.4rem 0.4rem 0.45rem',
+                  cursor: 'pointer',
+                  backgroundColor: 'var(--bg-surface, #ffffff)',
+                  border: '1.5px solid var(--primary-300, #c4a47c)',
+                  width: '100%',
+                  height: '38px',
+                  borderRadius: '6px'
+                }}
+              >
+                {WOOD_SPECIES_OPTIONS.map((species) => (
+                  <option key={species} value={species}>
+                    🪵{species}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="submit"
               tabIndex={-1}
-              value={selectedWoodOption}
-              onChange={(e) => {
-                setSelectedWoodOption(e.target.value);
+              onClick={() => {
+                isNavigatingRef.current = false;
+                handleQuickAdd();
               }}
+              className="btn btn-primary btn-sm quick-add-btn"
+              title="Add measurement row (Enter)"
               style={{
-                fontWeight: 800,
-                color: 'var(--primary-800)',
-                fontSize: '0.85rem',
-                padding: '0.4rem 1.4rem 0.4rem 0.45rem',
-                cursor: 'pointer',
-                backgroundColor: 'var(--bg-surface, #ffffff)',
-                border: '1.5px solid var(--primary-300, #c4a47c)',
-                width: '100%',
                 height: '38px',
-                borderRadius: '6px'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.25rem',
+                fontWeight: 800,
+                fontSize: '0.84rem',
+                whiteSpace: 'nowrap'
               }}
             >
-              {WOOD_SPECIES_OPTIONS.map((species) => (
-                <option key={species} value={species}>
-                  🪵{species}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            tabIndex={-1}
-            onClick={() => {
-              isNavigatingRef.current = false;
-              handleQuickAdd();
-            }}
-            className="btn btn-primary btn-sm quick-add-btn"
-            title="Add measurement row (Enter)"
-            style={{
-              height: '38px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.25rem',
-              fontWeight: 800,
-              fontSize: '0.84rem',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <Plus size={15} /> <span>Add Row</span>
+              <Plus size={15} /> <span>Add Row</span>
           </button>
         </div>
 
@@ -813,12 +1208,13 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               </tr>
             ) : (
               items.map((item, index) => {
+                const isSheet = item.itemCategory === 'plywood' || item.itemCategory === 'ready_board';
                 const l = typeof item.lengthFeet === 'number' ? item.lengthFeet : 0;
                 const w = typeof item.widthInches === 'number' ? item.widthInches : 0;
                 const t = typeof item.thicknessInches === 'number' ? item.thicknessInches : 0;
                 const p = typeof item.pieces === 'number' ? item.pieces : 0;
-                const isRowValid = l > 0 && w > 0 && t > 0 && p > 0;
-                const isSqft = w >= 7 && item.rateUnit !== 'CFT';
+                const isRowValid = isSheet ? p > 0 : (l > 0 && w > 0 && t > 0 && p > 0);
+                const isSqft = isSheet ? (item.rateUnit === 'SQFT') : (w >= 7 && item.rateUnit !== 'CFT');
                 const defaultRowRate = isSqft ? 120 : defaultRate;
                 const rowRate = typeof item.rate === 'number' && item.rate > 0 ? item.rate : (parseFloat(quickRate) || defaultRowRate);
                 const multiplier = isSqft ? item.sqft : item.cft;
@@ -837,7 +1233,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
                     <td className="col-hide-mobile">
                       <select
-                        value={item.woodType || selectedWoodOption || 'Mahagony'}
+                        value={item.woodType || selectedWoodOption || 'Mahogany'}
                         onChange={(e) => handleUpdateItem(index, 'woodType', e.target.value)}
                         style={{
                           fontSize: '0.8rem',
@@ -859,41 +1255,51 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       </select>
                     </td>
 
-                    <td style={{ textAlign: 'center', padding: '0.25rem 0.1rem' }}>
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        placeholder=""
-                        className="calc-input tally-cell-input"
-                        value={item.lengthFeet}
-                        onChange={(e) => handleUpdateItem(index, 'lengthFeet', e.target.value)}
-                      />
-                    </td>
+                    {isSheet ? (
+                      <td colSpan={3} style={{ textAlign: 'center', padding: '0.25rem 0.1rem', fontWeight: 800, color: 'var(--primary-800)', fontSize: '0.82rem' }}>
+                        {item.itemCategory === 'plywood'
+                          ? `8 × 4 (${item.brand || 'Red Tag'})`
+                          : `${item.boardSize || ('8 × ' + (item.widthInches || 9))} (${item.brand || 'Red Tag'})`}
+                      </td>
+                    ) : (
+                      <>
+                        <td style={{ textAlign: 'center', padding: '0.25rem 0.1rem' }}>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            placeholder=""
+                            className="calc-input tally-cell-input"
+                            value={item.lengthFeet}
+                            onChange={(e) => handleUpdateItem(index, 'lengthFeet', e.target.value)}
+                          />
+                        </td>
 
-                    <td style={{ textAlign: 'center', padding: '0.25rem 0.1rem' }}>
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        placeholder=""
-                        className="calc-input tally-cell-input"
-                        value={item.widthInches}
-                        onChange={(e) => handleUpdateItem(index, 'widthInches', e.target.value)}
-                      />
-                    </td>
+                        <td style={{ textAlign: 'center', padding: '0.25rem 0.1rem' }}>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            placeholder=""
+                            className="calc-input tally-cell-input"
+                            value={item.widthInches}
+                            onChange={(e) => handleUpdateItem(index, 'widthInches', e.target.value)}
+                          />
+                        </td>
 
-                    <td style={{ textAlign: 'center', padding: '0.25rem 0.1rem' }}>
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        placeholder=""
-                        className="calc-input tally-cell-input"
-                        value={item.thicknessInches}
-                        onChange={(e) => handleUpdateItem(index, 'thicknessInches', e.target.value)}
-                      />
-                    </td>
+                        <td style={{ textAlign: 'center', padding: '0.25rem 0.1rem' }}>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            placeholder=""
+                            className="calc-input tally-cell-input"
+                            value={item.thicknessInches}
+                            onChange={(e) => handleUpdateItem(index, 'thicknessInches', e.target.value)}
+                          />
+                        </td>
+                      </>
+                    )}
 
                     <td style={{ textAlign: 'center', padding: '0.25rem 0.05rem' }}>
                       <input
@@ -957,11 +1363,11 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                     {/* Volume & Amount stacked on Mobile (Separate CFT on Desktop) */}
                     <td className="col-numeric col-cft" style={{ textAlign: 'right', padding: '0.25rem 0.15rem', whiteSpace: 'nowrap' }}>
                       <span className="mobile-hide" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
-                        {formatValue(item.cft, 3)}
+                        {isSheet ? '-' : formatValue(item.cft, 3)}
                       </span>
                       <div className="mobile-show" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.15 }}>
                         <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--primary-700)' }}>
-                          {isSqft ? `${formatValue(item.sqft, 2)} SQFT` : `${formatValue(item.cft, 3)} CFT`}
+                          {isSheet ? `${formatValue(item.sqft, 2)} SQFT` : (isSqft ? `${formatValue(item.sqft, 2)} SQFT` : `${formatValue(item.cft, 3)} CFT`)}
                         </span>
                         <strong style={{ fontSize: '0.76rem', fontWeight: 900, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
                           ₹ {formatIndianCurrency(rowAmount)}
@@ -1105,12 +1511,13 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             </div>
 
             {items.map((item, index) => {
+              const isSheet = item.itemCategory === 'plywood' || item.itemCategory === 'ready_board';
               const l = typeof item.lengthFeet === 'number' ? item.lengthFeet : 0;
               const w = typeof item.widthInches === 'number' ? item.widthInches : 0;
               const t = typeof item.thicknessInches === 'number' ? item.thicknessInches : 0;
               const p = typeof item.pieces === 'number' ? item.pieces : 0;
-              const isRowValid = l > 0 && w > 0 && t > 0 && p > 0;
-              const isSqft = w >= 7 && item.rateUnit !== 'CFT';
+              const isRowValid = isSheet ? p > 0 : (l > 0 && w > 0 && t > 0 && p > 0);
+              const isSqft = isSheet ? (item.rateUnit === 'SQFT') : (w >= 7 && item.rateUnit !== 'CFT');
               const defaultRowRate = isSqft ? 120 : defaultRate;
               const rowRate = (item.rate as any) === '' ? '' : (typeof item.rate === 'number' && item.rate > 0 ? item.rate : defaultRowRate);
 
@@ -1149,56 +1556,77 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                   </div>
 
                   {/* Measurements */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', flex: 1, justifyContent: 'center' }}>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      placeholder=""
-                      className="calc-input tally-cell-input"
-                      value={item.lengthFeet}
-                      onChange={(e) => handleUpdateItem(index, 'lengthFeet', e.target.value)}
-                      style={{ width: '34px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
-                    />
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      placeholder=""
-                      className="calc-input tally-cell-input"
-                      value={item.widthInches}
-                      onChange={(e) => handleUpdateItem(index, 'widthInches', e.target.value)}
-                      style={{ width: '34px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
-                    />
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      placeholder=""
-                      className="calc-input tally-cell-input"
-                      value={item.thicknessInches}
-                      onChange={(e) => handleUpdateItem(index, 'thicknessInches', e.target.value)}
-                      style={{ width: '34px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
-                    />
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
-                    <input
-                      type="number"
-                      step="1"
-                      min="1"
-                      placeholder=""
-                      className="calc-input tally-cell-input"
-                      value={item.pieces}
-                      onChange={(e) => handleUpdateItem(index, 'pieces', e.target.value)}
-                      style={{ width: '28px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
-                    />
-                  </div>
+                  {isSheet ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flex: 1, justifyContent: 'center' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary-800)', whiteSpace: 'nowrap' }}>
+                        {item.itemCategory === 'plywood'
+                          ? `8 × 4 (${item.brand || 'Red Tag'})`
+                          : `${item.boardSize || ('8 × ' + (item.widthInches || 9))} (${item.brand || 'Red Tag'})`}
+                      </span>
+                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
+                      <input
+                        type="number"
+                        step="1"
+                        min="1"
+                        placeholder=""
+                        className="calc-input tally-cell-input"
+                        value={item.pieces}
+                        onChange={(e) => handleUpdateItem(index, 'pieces', e.target.value)}
+                        style={{ width: '28px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', flex: 1, justifyContent: 'center' }}>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        placeholder=""
+                        className="calc-input tally-cell-input"
+                        value={item.lengthFeet}
+                        onChange={(e) => handleUpdateItem(index, 'lengthFeet', e.target.value)}
+                        style={{ width: '34px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
+                      />
+                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        placeholder=""
+                        className="calc-input tally-cell-input"
+                        value={item.widthInches}
+                        onChange={(e) => handleUpdateItem(index, 'widthInches', e.target.value)}
+                        style={{ width: '34px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
+                      />
+                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        placeholder=""
+                        className="calc-input tally-cell-input"
+                        value={item.thicknessInches}
+                        onChange={(e) => handleUpdateItem(index, 'thicknessInches', e.target.value)}
+                        style={{ width: '34px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
+                      />
+                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>×</span>
+                      <input
+                        type="number"
+                        step="1"
+                        min="1"
+                        placeholder=""
+                        className="calc-input tally-cell-input"
+                        value={item.pieces}
+                        onChange={(e) => handleUpdateItem(index, 'pieces', e.target.value)}
+                        style={{ width: '28px', padding: '0.25rem 0.04rem', textAlign: 'center', fontWeight: 800 }}
+                      />
+                    </div>
+                  )}
 
                   {/* Volume with SQFT / CFT mention */}
                   <div
                     onClick={() => handleOpenPriceModal(index)}
-                    title={isSqft ? `${formatValue(item.sqft, 2)} SQFT - Click to edit rate/unit` : `${formatValue(item.cft, 3)} CFT - Click to edit rate/unit`}
+                    title={isSheet ? `${formatValue(item.sqft, 2)} SQFT` : (isSqft ? `${formatValue(item.sqft, 2)} SQFT - Click to edit rate/unit` : `${formatValue(item.cft, 3)} CFT - Click to edit rate/unit`)}
                     style={{
                       width: '56px',
                       minWidth: '56px',
@@ -1211,20 +1639,20 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                     <span style={{
                       fontSize: '0.72rem',
                       fontWeight: 800,
-                      color: isSqft ? '#b45309' : 'var(--primary-800)',
+                      color: (isSheet || isSqft) ? '#b45309' : 'var(--primary-800)',
                       fontFamily: 'var(--font-mono, monospace)',
                       whiteSpace: 'nowrap'
                     }}>
-                      {!isRowValid ? '-' : (isSqft ? formatValue(item.sqft, 1) : formatValue(item.cft, 2))}
+                      {!isRowValid ? '-' : (isSheet || isSqft ? formatValue(item.sqft, 1) : formatValue(item.cft, 2))}
                     </span>
                     <span style={{
                       fontSize: '0.58rem',
                       fontWeight: 800,
-                      color: isSqft ? '#b45309' : 'var(--text-muted)',
+                      color: (isSheet || isSqft) ? '#b45309' : 'var(--text-muted)',
                       marginLeft: '2px',
                       textTransform: 'uppercase'
                     }}>
-                      {isSqft ? 'SQFT' : 'CFT'}
+                      {isSheet || isSqft ? 'SQFT' : 'CFT'}
                     </span>
                   </div>
 

@@ -1,3 +1,19 @@
+export type WoodSpeciesCutLog =
+  | 'Silver Wood'
+  | 'Teak Wood'
+  | 'Mahogany'
+  | 'Mahagony'
+  | 'Pine'
+  | 'Neem'
+  | 'Jungle'
+  | 'Plywood'
+  | 'Ready Board'
+  | 'Other (Custom...)';
+
+export type TeakGrade = '1st Teak' | 'Medium Teak' | '2nd Teak';
+export type SheetBrand = 'Red Tag' | 'Mine Gold' | 'Magnus';
+export type ReadyBoardSize = '8 × 9' | '8 × 12' | '8 × 18' | '8 × 24' | '8 × 48';
+
 export interface MeasurementItem {
   id: string;
   serialNumber: number;
@@ -8,10 +24,14 @@ export interface MeasurementItem {
   cft: number;
   sqft: number;
   rate?: number | '';
-  rateUnit?: 'CFT' | 'SQFT';
+  rateUnit?: 'CFT' | 'SQFT' | 'PCS';
   amount?: number;
   woodType?: string;
   remarks?: string;
+  itemCategory?: 'timber' | 'plywood' | 'ready_board';
+  brand?: SheetBrand | string;
+  boardSize?: ReadyBoardSize | string;
+  teakGrade?: TeakGrade;
 }
 
 export type LogType = 'cut' | 'round';

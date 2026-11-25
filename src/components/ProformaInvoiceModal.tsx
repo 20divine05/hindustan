@@ -27,12 +27,17 @@ export interface InvoiceItemRow {
   cft: number;
   sqft?: number;
   widthInches?: number;
-  rateUnit?: 'CFT' | 'SQFT';
+  rateUnit?: 'CFT' | 'SQFT' | 'PCS';
   pieces: number;
   rate: number;
   per: string;
   discPercent: string;
   amount: number;
+  itemCategory?: 'timber' | 'plywood' | 'ready_board';
+  brand?: string;
+  boardSize?: string;
+  teakGrade?: string;
+  woodType?: string;
 }
 
 const STORAGE_KEY = 'timberpro_invoice_meta_draft';
@@ -357,23 +362,52 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
     const sourceItems = sheet?.items && sheet.items.length > 0 ? sheet.items : [];
 
     return sourceItems
-      .filter((it) => (typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0))
+      .filter((it) => (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' ? (typeof it.pieces === 'number' && it.pieces > 0) : (typeof it.lengthFeet === 'number' && it.lengthFeet > 0 && typeof it.pieces === 'number' && it.pieces > 0)))
       .map((it, idx) => {
-        const l = it.lengthFeet;
+        const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board';
+        const pcs = typeof it.pieces === 'number' ? it.pieces : 0;
+        const l = it.lengthFeet || 8;
         const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
-        const t = it.thicknessInches;
-        const isSqftBilled = (typeof w === 'number' ? w : 0) >= 7 && it.rateUnit !== 'CFT';
-        const defaultItemRate = isSqftBilled ? 120 : globalRate;
+        const t = it.thicknessInches || 0;
+        const disc = customDisc[idx] ?? '';
+        const hsn = customHsn[idx] ?? (isSheet ? '4412' : '4407');
+
+        let wood = (it.woodType || 'TIMBER').toUpperCase();
+        let desc = `${l}X${w}X${t} ${wood}`;
+        let cft = isSheet ? 0 : (it.cft || 0);
+        let sqft = it.sqft || 0;
+        let perUnit = 'CFT';
+
+        if (it.itemCategory === 'plywood') {
+          wood = 'PLYWOOD';
+          desc = `8 × 4 (${it.brand || 'Red Tag'})`;
+          cft = 0;
+          sqft = it.sqft || (32 * pcs);
+          perUnit = it.rateUnit === 'PCS' ? 'PCS' : 'SQFT';
+        } else if (it.itemCategory === 'ready_board') {
+          wood = 'READY BOARD';
+          desc = `${it.boardSize || ('8 × ' + (w || 9))} (${it.brand || 'Red Tag'})`;
+          cft = 0;
+          const rbW = w || parseInt((it.boardSize || '8 × 9').split('×')[1]?.trim() || '9', 10);
+          sqft = it.sqft || (((8 * rbW) / 12) * pcs);
+          perUnit = it.rateUnit === 'PCS' ? 'PCS' : 'SQFT';
+        } else {
+          if (it.teakGrade) {
+            wood = `TEAK WOOD (${it.teakGrade})`;
+          } else if (wood.includes('TEAK') && !wood.includes('(')) {
+            wood = 'TEAK WOOD (1st Teak)';
+          }
+          const isSqftBilled = (typeof w === 'number' ? w : 0) >= 7 && it.rateUnit !== 'CFT';
+          perUnit = isSqftBilled ? 'SQFT' : 'CFT';
+          sqft = it.sqft || (cft * 12);
+        }
+
+        const isSqftBilled = perUnit === 'SQFT';
+        const defaultItemRate = isSheet ? (perUnit === 'PCS' ? 800 : 45) : (isSqftBilled ? 120 : globalRate);
         const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultItemRate;
         const rate = (it.id && customRates[it.id] !== undefined) ? customRates[it.id] : (customRates[idx] ?? itemRate);
-        const hsn = customHsn[idx] ?? '4407';
-        const disc = customDisc[idx] ?? '';
-        const wood = (it.woodType || 'TIMBER').toUpperCase();
-        const desc = `${l}X${w}X${t} ${wood}`;
-        const cft = it.cft;
-        const sqft = it.sqft || (it.cft * 12);
-        const pcs = typeof it.pieces === 'number' ? it.pieces : 0;
-        const multiplier = isSqftBilled ? sqft : cft;
+
+        const multiplier = perUnit === 'PCS' ? pcs : (perUnit === 'SQFT' ? sqft : cft);
         const amount = Math.round(multiplier * rate * 100) / 100;
 
         return {
@@ -388,9 +422,14 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
           rateUnit: it.rateUnit,
           pieces: pcs,
           rate,
-          per: isSqftBilled ? 'SQFT' : 'CFT',
+          per: perUnit,
           discPercent: disc,
-          amount
+          amount,
+          itemCategory: it.itemCategory,
+          brand: it.brand,
+          boardSize: it.boardSize,
+          teakGrade: it.teakGrade,
+          woodType: wood
         };
       });
   }, [sheet, useSampleData, customRates, customHsn, customDisc, globalRate]);
@@ -404,11 +443,11 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
     let sqftBilled = 0;
 
     for (const it of invoiceItems) {
-      cftSum += it.cft;
+      cftSum += (it.cft || 0); // Plywood and Ready Board have cft = 0, so not included in total CFT
       sqftSum += (it.sqft || (it.cft * 12));
       pcsSum += it.pieces;
       amtSum += it.amount;
-      if (it.rateUnit !== 'CFT' && (it.widthInches || 0) >= 7) {
+      if (it.per === 'SQFT' || (it.rateUnit !== 'CFT' && (it.widthInches || 0) >= 7)) {
         sqftBilled += (it.sqft || (it.cft * 12));
       }
     }
@@ -476,9 +515,24 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
     for (const it of invoiceItems) {
       let wood = 'MAHAGONY';
-      const parts = it.description.trim().split(/\s+/);
-      if (parts.length > 1) {
-        wood = parts.slice(1).join(' ').toUpperCase();
+      if (it.itemCategory === 'plywood') {
+        wood = 'PLYWOOD';
+      } else if (it.itemCategory === 'ready_board') {
+        wood = 'READY BOARD';
+      } else if (it.teakGrade) {
+        wood = `TEAK WOOD (${it.teakGrade})`;
+      } else if (it.woodType) {
+        const wt = it.woodType.toUpperCase();
+        if (wt.includes('TEAK')) {
+          wood = wt.includes('(') ? wt : 'TEAK WOOD (1st Teak)';
+        } else {
+          wood = wt;
+        }
+      } else {
+        const parts = it.description.trim().split(/\s+/);
+        if (parts.length > 1) {
+          wood = parts.slice(1).join(' ').toUpperCase();
+        }
       }
       if (!map.has(wood)) {
         const arr: InvoiceItemRow[] = [];
@@ -488,8 +542,11 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
       map.get(wood)!.push(it);
     }
 
-    // Sort items within each wood group strictly by mill specification: Width Asc -> Length Desc -> Thickness Desc
+    // Sort items within each timber group strictly by mill specification: Width Asc -> Length Desc -> Thickness Desc
     for (const group of groups) {
+      if (group.wood === 'PLYWOOD' || group.wood === 'READY BOARD') {
+        continue; // Keep sheet entries in order
+      }
       group.items.sort((a, b) => {
         const parseDims = (item: InvoiceItemRow) => {
           let w = typeof item.widthInches === 'number' ? item.widthInches : 0;
@@ -1241,10 +1298,11 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
               </thead>
               <tbody>
                 {woodGroups.map((group, gIdx) => {
+                  const isGroupSheet = group.wood === 'PLYWOOD' || group.wood === 'READY BOARD';
                   const groupPieces = group.items.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
-                  const groupCft = group.items.reduce((acc, it) => acc + (typeof it.cft === 'number' ? it.cft : 0), 0);
+                  const groupCft = isGroupSheet ? 0 : group.items.reduce((acc, it) => acc + (typeof it.cft === 'number' ? it.cft : 0), 0);
                   const groupAmount = group.items.reduce((acc, it) => acc + (typeof it.amount === 'number' ? it.amount : 0), 0);
-                  const groupSqftBilled = group.items.filter(it => it.rateUnit === 'SQFT' && (it.widthInches || 0) >= 7).reduce((acc, it) => acc + (typeof it.sqft === 'number' ? it.sqft : (it.cft * 12)), 0);
+                  const groupSqftBilled = group.items.filter(it => it.per === 'SQFT' || (it.rateUnit === 'SQFT' && (it.widthInches || 0) >= 7)).reduce((acc, it) => acc + (typeof it.sqft === 'number' ? it.sqft : (it.cft * 12)), 0);
 
                   return (
                     <React.Fragment key={`wood-grp-${gIdx}`}>
@@ -1264,19 +1322,24 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
                       {/* Measurements of that wood */}
                       {group.items.map((item, itemIdx) => {
-                        const dimOnly = item.description.split(/\s+/)[0] || item.description;
+                        const isSheet = item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || isGroupSheet;
+                        const displayDesc = isSheet
+                          ? (item.itemCategory === 'plywood'
+                              ? `8 × 4 (${item.brand || 'Red Tag'})`
+                              : `${item.boardSize || ('8 × ' + (item.widthInches || 9))} (${item.brand || 'Red Tag'})`)
+                          : (item.description.split(/\s+/)[0] || item.description);
                         const originalIdx = item.sourceIndex !== undefined ? item.sourceIndex : (item.slNo - 1);
-                        const isSqftBilled = item.rateUnit !== 'CFT' && (item.widthInches || 0) >= 7;
+                        const isSqftBilled = item.per === 'SQFT' || (item.rateUnit !== 'CFT' && (item.widthInches || 0) >= 7);
                         const slStr = String(item.slNo);
                         return (
                           <tr key={item.id || item.slNo} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                             <td className="text-center">{slStr}</td>
                             <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 700 }}>
-                              {renderDimensionHtml(dimOnly)}
+                              {renderDimensionHtml(displayDesc)}
                             </td>
                             <td className="text-right p-mono">{item.pieces} PCS</td>
-                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(item.cft > 0 ? `${item.cft.toFixed(4)} CFT` : '')}</td>
-                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled ? `${(item.sqft || item.cft * 12).toFixed(2)} SQFT` : '')}</td>
+                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && item.cft > 0 ? `${item.cft.toFixed(4)} CFT` : '-')}</td>
+                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSheet || isSqftBilled ? `${(item.sqft || item.cft * 12).toFixed(2)} SQFT` : '')}</td>
                             <td className="text-right p-mono">
                               <input
                                 type="number"
@@ -1307,7 +1370,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                           {groupPieces} PCS
                         </td>
                         <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                          {renderWithSmallDecimalHtml(groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '')}
+                          {renderWithSmallDecimalHtml(isGroupSheet ? '-' : (groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '-'))}
                         </td>
                         <td className="text-right p-mono" style={{ fontWeight: 800 }}>
                           {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '')}
