@@ -14,7 +14,8 @@ import './ProformaInvoice.css';
 
 export const renderDimensionHtml = (dim: string) => {
   if (!dim) return null;
-  const parts = dim.trim().split(/([xX×])/);
+  const sanitized = dim.replace(/\s*[xX×*]\s*0+(?:\.0+)?(?=\s|\(|$)/g, '');
+  const parts = sanitized.trim().split(/([xX×])/);
   if (parts.length <= 1) {
     const clean = dim.trim().replace(/^0+(\d)/, '$1');
     return <span className="p-dim-num">{clean}</span>;
@@ -787,14 +788,14 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         const currentSl = runningSl++;
                         const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || isSheetGroup;
                         const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
-                        const isSqftBilled = isSheet ? (it.rateUnit === 'SQFT') : (w >= 7 && it.rateUnit !== 'CFT');
-                        const defaultRowRate = isSheet ? (it.rateUnit === 'PCS' ? 800 : 45) : (isSqftBilled ? 120 : ratePerCft);
+                        const isSqftBilled = isSheet ? false : (w >= 7 && it.rateUnit !== 'CFT');
+                        const defaultRowRate = isSheet ? 800 : (isSqftBilled ? 120 : ratePerCft);
                         const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
-                        const mult = isSheet ? (it.rateUnit === 'PCS' ? (it.pieces || 0) : (it.sqft || 0)) : (isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft);
+                        const mult = isSheet ? (it.pieces || 0) : (isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft);
                         const amount = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * itemRate * 100) / 100;
                         const slStr = String(currentSl);
                         const displayDesc = getCutLogItemDescription(it);
-                        const unitLabel = isSheet ? (it.rateUnit || 'SQFT') : (isSqftBilled ? 'SQFT' : 'CFT');
+                        const unitLabel = isSheet ? 'PCS' : (isSqftBilled ? 'SQFT' : 'CFT');
 
                         return (
                           <tr key={`item-${currentSl}`} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
@@ -804,7 +805,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                             </td>
                             <td className="text-right p-mono">{Number(it.pieces) > 0 ? `${it.pieces} PCS` : ''}</td>
                             <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : '-')}</td>
-                            <td className="text-right p-mono">{renderWithSmallDecimalHtml((isSheet || isSqftBilled) && (it.sqft || 0) > 0 ? `${(it.sqft || 0).toFixed(2)} SQFT` : '')}</td>
+                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && isSqftBilled && (it.sqft || 0) > 0 ? `${(it.sqft || 0).toFixed(2)} SQFT` : (isSheet ? '-' : ''))}</td>
                             <td className="text-right p-mono">{renderWithSmallDecimalHtml(itemRate.toFixed(2))}</td>
                             <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{unitLabel}</td>
                             <td className="text-left p-mono p-item-amount" style={{ paddingLeft: '8px', fontWeight: 500, color: '#4b5563' }}>
@@ -827,7 +828,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                           {renderWithSmallDecimalHtml(!isSheetGroup && groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '-')}
                         </td>
                         <td className="text-right p-mono" style={{ fontWeight: 800, color: '#000000' }}>
-                          {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '')}
+                          {renderWithSmallDecimalHtml(!isSheetGroup && groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : (isSheetGroup ? '-' : ''))}
                         </td>
                         <td className="text-right p-mono"></td>
                         <td className="text-center"></td>

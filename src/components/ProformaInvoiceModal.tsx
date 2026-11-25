@@ -382,15 +382,14 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
           wood = 'PLYWOOD';
           desc = `8 × 4 (${it.brand || 'Red Tag'})`;
           cft = 0;
-          sqft = it.sqft || (32 * pcs);
-          perUnit = it.rateUnit === 'PCS' ? 'PCS' : 'SQFT';
+          sqft = 0;
+          perUnit = 'PCS';
         } else if (it.itemCategory === 'ready_board') {
           wood = 'READY BOARD';
-          desc = `${it.boardSize || ('8 × ' + (w || 9))} (${it.brand || 'Red Tag'})`;
+          desc = `${it.boardSize || ('8 × ' + (w || 12))} (${it.brand || 'Red Tag'})`;
           cft = 0;
-          const rbW = w || parseInt((it.boardSize || '8 × 9').split('×')[1]?.trim() || '9', 10);
-          sqft = it.sqft || (((8 * rbW) / 12) * pcs);
-          perUnit = it.rateUnit === 'PCS' ? 'PCS' : 'SQFT';
+          sqft = 0;
+          perUnit = 'PCS';
         } else {
           if (it.teakGrade) {
             wood = `TEAK WOOD (${it.teakGrade})`;
@@ -1347,7 +1346,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                             </td>
                             <td className="text-right p-mono">{item.pieces} PCS</td>
                             <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && item.cft > 0 ? `${item.cft.toFixed(4)} CFT` : '-')}</td>
-                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSheet || isSqftBilled ? `${(item.sqft || item.cft * 12).toFixed(2)} SQFT` : '')}</td>
+                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && isSqftBilled ? `${(item.sqft || item.cft * 12).toFixed(2)} SQFT` : (isSheet ? '-' : ''))}</td>
                             <td className="text-right p-mono">
                               <input
                                 type="number"
@@ -1360,7 +1359,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                                 }}
                               />
                             </td>
-                            <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{item.per}</td>
+                            <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{isSheet ? 'PCS' : item.per}</td>
                             <td className="text-left p-mono font-bold" style={{ paddingLeft: '8px' }}>
                               {renderWithSmallDecimalHtml(formatIndianCurrency(item.amount))}
                             </td>
@@ -1381,7 +1380,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                           {renderWithSmallDecimalHtml(isGroupSheet ? '-' : (groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '-'))}
                         </td>
                         <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                          {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '')}
+                          {renderWithSmallDecimalHtml(!isGroupSheet && groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : (isGroupSheet ? '-' : ''))}
                         </td>
                         <td className="text-right p-mono"></td>
                         <td className="text-center"></td>

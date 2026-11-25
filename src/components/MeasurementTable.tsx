@@ -49,8 +49,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   // Plywood & Ready Board & Teak Grade States
   const [selectedTeakGrade, setSelectedTeakGrade] = useState<'1st Teak' | 'Medium Teak' | '2nd Teak'>('1st Teak');
   const [selectedBrand, setSelectedBrand] = useState<'Red Tag' | 'Mine Gold' | 'Magnus'>('Red Tag');
-  const [selectedReadyBoardSize, setSelectedReadyBoardSize] = useState<'8 × 9' | '8 × 12' | '8 × 18' | '8 × 24' | '8 × 48'>('8 × 9');
-  const [sheetRateUnit, setSheetRateUnit] = useState<'SQFT' | 'PCS'>('SQFT');
+  const [selectedReadyBoardSize, setSelectedReadyBoardSize] = useState<'8 × 9' | '8 × 12' | '8 × 18' | '8 × 24' | '8 × 48'>('8 × 12');
 
   // Modal state for editing price / rate of a row
   const [editPriceRowIndex, setEditPriceRowIndex] = useState<number | null>(null);
@@ -136,17 +135,13 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const wVal = parseFloat(quickWidth) || 0;
   const tVal = parseFloat(quickThickness) || 0;
   const pVal = parseFloat(quickPieces) || 0;
-  const isQuickSqft = isSheetCategory ? (sheetRateUnit === 'SQFT') : (wVal >= 7 && quickRateUnit !== 'CFT');
+  const isQuickSqft = isSheetCategory ? false : (wVal >= 7 && quickRateUnit !== 'CFT');
 
   let liveCft = 0;
   let liveSqft = 0;
-  if (isPlywood) {
+  if (isPlywood || isReadyBoard) {
     liveCft = 0;
-    liveSqft = 32 * pVal;
-  } else if (isReadyBoard) {
-    liveCft = 0;
-    const rbW = parseInt(selectedReadyBoardSize.split('×')[1]?.trim() || '9', 10);
-    liveSqft = ((8 * rbW) / 12) * pVal;
+    liveSqft = 0;
   } else {
     liveCft = lVal > 0 && wVal > 0 && tVal > 0 && pVal > 0 ? (lVal * wVal * tVal * pVal) / 144 : 0;
     liveSqft = liveCft * 12;
@@ -158,7 +153,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const currentRateVal = !isNaN(rawEnteredRate) && rawEnteredRate > 0 ? rawEnteredRate : 0;
   const liveAmount = currentRateVal > 0
     ? (isSheetCategory
-        ? (sheetRateUnit === 'PCS' ? pVal * currentRateVal : liveSqft * currentRateVal)
+        ? pVal * currentRateVal
         : (isQuickSqft ? liveSqft * currentRateVal : liveCft * currentRateVal))
     : 0;
 
@@ -255,17 +250,11 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         const parsed = rawValue === '' ? '' : parseFloat(rawValue);
         (target as any)[field] = isNaN(parsed as number) ? '' : parsed;
         const p = typeof target.pieces === 'number' && target.pieces > 0 ? target.pieces : 0;
-        let sqft = 0;
-        if (target.itemCategory === 'plywood') {
-          sqft = 32 * p;
-        } else {
-          const rbW = typeof target.widthInches === 'number' ? target.widthInches : parseInt((target.boardSize || '8 × 9').split('×')[1]?.trim() || '9', 10);
-          sqft = ((8 * rbW) / 12) * p;
-        }
         target.cft = 0;
-        target.sqft = sqft;
+        target.sqft = 0;
+        target.rateUnit = 'PCS';
         const r = typeof target.rate === 'number' && target.rate > 0 ? target.rate : 0;
-        target.amount = target.rateUnit === 'PCS' ? Math.round(p * r * 100) / 100 : Math.round(sqft * r * 100) / 100;
+        target.amount = Math.round(p * r * 100) / 100;
       }
       updated[index] = target;
       onChange(updated);
@@ -452,10 +441,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         rateInputRef.current?.focus();
         return;
       }
-      const rowSqft = 32 * p;
-      const rowAmount = sheetRateUnit === 'PCS'
-        ? Math.round(p * parsedRate * 100) / 100
-        : Math.round(rowSqft * parsedRate * 100) / 100;
+      const rowAmount = Math.round(p * parsedRate * 100) / 100;
 
       const newItem: MeasurementItem = {
         id: generateId(),
@@ -465,12 +451,12 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         woodType: 'Plywood',
         lengthFeet: 8,
         widthInches: 48,
-        thicknessInches: 0,
+        thicknessInches: '',
         pieces: p,
         cft: 0,
-        sqft: rowSqft,
+        sqft: 0,
         rate: parsedRate,
-        rateUnit: sheetRateUnit,
+        rateUnit: 'PCS',
         amount: rowAmount
       };
 
@@ -500,12 +486,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         rateInputRef.current?.focus();
         return;
       }
-      const rbW = parseInt(selectedReadyBoardSize.split('×')[1]?.trim() || '9', 10);
-      const sqftPerBoard = (8 * rbW) / 12;
-      const rowSqft = sqftPerBoard * p;
-      const rowAmount = sheetRateUnit === 'PCS'
-        ? Math.round(p * parsedRate * 100) / 100
-        : Math.round(rowSqft * parsedRate * 100) / 100;
+      const rbW = parseInt(selectedReadyBoardSize.split('×')[1]?.trim() || '12', 10);
+      const rowAmount = Math.round(p * parsedRate * 100) / 100;
 
       const newItem: MeasurementItem = {
         id: generateId(),
@@ -516,12 +498,12 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
         woodType: 'Ready Board',
         lengthFeet: 8,
         widthInches: rbW,
-        thicknessInches: 0,
+        thicknessInches: '',
         pieces: p,
         cft: 0,
-        sqft: rowSqft,
+        sqft: 0,
         rate: parsedRate,
-        rateUnit: sheetRateUnit,
+        rateUnit: 'PCS',
         amount: rowAmount
       };
 
@@ -743,7 +725,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                   Fixed Size: <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--primary-900)' }}>8 × 4</span>
                 </span>
                 <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                  32 SQFT / Sheet
+                  Per Sheet Billing (PCS)
                 </span>
               </div>
             </div>
@@ -809,7 +791,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.45rem' }}>
               <div className="quick-dim-col">
                 <label className="quick-dim-label">
-                  <span className="dim-label-desktop">Pieces (Sheets)</span>
+                  <span className="dim-label-desktop">{isPlywood ? 'Pieces (Sheets)' : 'Pieces (Boards)'}</span>
                   <span className="dim-label-mobile">Pieces</span>
                 </label>
                 <input
@@ -836,32 +818,9 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
               </div>
 
               <div className="quick-dim-col">
-                <label className="quick-dim-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                  <span className="dim-label-desktop">Rate ({sheetRateUnit})</span>
-                  <span className="dim-label-mobile">{sheetRateUnit}</span>
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setSheetRateUnit(prev => (prev === 'SQFT' ? 'PCS' : 'SQFT'));
-                    }}
-                    className="rate-unit-toggle-btn"
-                    title="Switch between per-SQFT and per-Piece rate"
-                    style={{
-                      fontSize: '0.65rem',
-                      padding: '0 4px',
-                      borderRadius: '3px',
-                      border: '1px solid var(--primary-400)',
-                      background: 'var(--primary-100)',
-                      color: 'var(--primary-800)',
-                      cursor: 'pointer',
-                      fontWeight: 800,
-                      lineHeight: '1.2'
-                    }}
-                  >
-                    ⇄
-                  </button>
+                <label className="quick-dim-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="dim-label-desktop">Rate (₹/pc)</span>
+                  <span className="dim-label-mobile">Rate (₹)</span>
                 </label>
                 <input
                   ref={rateInputRef}
@@ -1115,7 +1074,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           </div>
         )}
 
-        {liveCft > 0 && (
+        {(liveCft > 0 || (isSheetCategory && liveAmount > 0)) && (
           <div
             className="quick-add-live-est"
             style={{
@@ -1132,7 +1091,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           >
             <span style={{ color: 'var(--text-muted)' }}>Estimated:</span>
             <strong style={{ color: 'var(--primary-800)' }}>
-              {isQuickSqft ? `${formatValue(liveSqft, 2)} SQFT` : `${formatValue(liveCft, 3)} CFT`}
+              {isSheetCategory ? `${pVal} PCS` : (isQuickSqft ? `${formatValue(liveSqft, 2)} SQFT` : `${formatValue(liveCft, 3)} CFT`)}
             </strong>
             {liveAmount > 0 && (
               <>
@@ -1367,7 +1326,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       </span>
                       <div className="mobile-show" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.15 }}>
                         <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--primary-700)' }}>
-                          {isSheet ? `${formatValue(item.sqft, 2)} SQFT` : (isSqft ? `${formatValue(item.sqft, 2)} SQFT` : `${formatValue(item.cft, 3)} CFT`)}
+                          {isSheet ? '-' : (isSqft ? `${formatValue(item.sqft, 2)} SQFT` : `${formatValue(item.cft, 3)} CFT`)}
                         </span>
                         <strong style={{ fontSize: '0.76rem', fontWeight: 900, color: 'var(--primary-800)', fontFamily: 'var(--font-mono)' }}>
                           ₹ {formatIndianCurrency(rowAmount)}
@@ -1377,7 +1336,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
 
                     {/* Total SQFT (Desktop only) */}
                     <td className="col-numeric col-sqft col-hide-mobile" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
-                      {formatValue(item.sqft, 2)}
+                      {isSheet ? '-' : formatValue(item.sqft, 2)}
                     </td>
 
                     {/* Amount (Desktop only) */}
@@ -1643,17 +1602,19 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                       fontFamily: 'var(--font-mono, monospace)',
                       whiteSpace: 'nowrap'
                     }}>
-                      {!isRowValid ? '-' : (isSheet || isSqft ? formatValue(item.sqft, 1) : formatValue(item.cft, 2))}
+                      {!isRowValid ? '-' : (isSheet ? '-' : (isSqft ? formatValue(item.sqft, 1) : formatValue(item.cft, 2)))}
                     </span>
-                    <span style={{
-                      fontSize: '0.58rem',
-                      fontWeight: 800,
-                      color: (isSheet || isSqft) ? '#b45309' : 'var(--text-muted)',
-                      marginLeft: '2px',
-                      textTransform: 'uppercase'
-                    }}>
-                      {isSheet || isSqft ? 'SQFT' : 'CFT'}
-                    </span>
+                    {!isSheet && (
+                      <span style={{
+                        fontSize: '0.58rem',
+                        fontWeight: 800,
+                        color: isSqft ? '#b45309' : 'var(--text-muted)',
+                        marginLeft: '2px',
+                        textTransform: 'uppercase'
+                      }}>
+                        {isSqft ? 'SQFT' : 'CFT'}
+                      </span>
+                    )}
                   </div>
 
                   {/* Individual Price (Rate) Edit Option */}
