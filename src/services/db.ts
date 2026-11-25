@@ -25,14 +25,14 @@ export function sanitizeAndComputeSheet(
     const itWood = (item.woodType || '').toUpperCase();
     const isPlywood = item.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
     const isReady = item.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
-    const isSheet = isPlywood || isReady || item.rateUnit === 'PCS';
+    const isSheet = isPlywood || isReady || item.rateUnit === 'PCS' || item.rateUnit === 'SQFT';
 
     if (isSheet) {
       const p = typeof item.pieces === 'number' ? item.pieces : (parseFloat(String(item.pieces)) || 0);
       const r = typeof item.rate === 'number' ? item.rate : (typeof item.rate === 'string' && item.rate !== '' ? parseFloat(item.rate) : 0);
-      const amount = (typeof item.amount === 'number' && item.amount > 0 && item.rateUnit === 'PCS')
-        ? item.amount
-        : Math.round(p * r * 100) / 100;
+      const sheetW = typeof item.widthInches === 'number' && item.widthInches > 0 ? item.widthInches : (isPlywood ? 4 : 12);
+      const sqft = isPlywood ? (32 * p) : ((8 * sheetW * p) / 12);
+      const amount = Math.round(sqft * r * 100) / 100;
       return {
         id: item.id || generateId(),
         serialNumber: index + 1,
@@ -41,13 +41,13 @@ export function sanitizeAndComputeSheet(
         boardSize: item.boardSize || (isReady ? (typeof item.widthInches === 'number' ? `8 × ${item.widthInches}` : '8 × 12') : undefined),
         teakGrade: item.teakGrade,
         lengthFeet: 8,
-        widthInches: typeof item.widthInches === 'number' ? item.widthInches : (isPlywood ? 4 : 12),
+        widthInches: sheetW,
         thicknessInches: 0,
         pieces: p,
         cft: 0,
-        sqft: 0,
+        sqft,
         rate: r,
-        rateUnit: 'PCS',
+        rateUnit: 'SQFT',
         amount,
         woodType: isPlywood ? 'Plywood' : 'Ready Board',
         remarks: item.remarks || ''

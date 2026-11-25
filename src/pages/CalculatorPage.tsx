@@ -1266,7 +1266,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         const itWood = (it.woodType || '').toUpperCase();
         const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
         const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
-        const isSheet = isPlywood || isReady || it.rateUnit === 'PCS';
+        const isSheet = isPlywood || isReady || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
         if (isSheet) {
           const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
           return p > 0;
@@ -1278,17 +1278,17 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         const itWood = (it.woodType || '').toUpperCase();
         const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
         const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
-        const isSheet = isPlywood || isReady || it.rateUnit === 'PCS';
+        const isSheet = isPlywood || isReady || it.rateUnit === 'PCS' || it.rateUnit === 'SQFT';
 
         if (isSheet) {
           const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
           const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
-          const rowAmount = (typeof it.amount === 'number' && it.amount > 0 && it.rateUnit === 'PCS')
-            ? it.amount
-            : Math.round(p * rowRate * 100) / 100;
           const brand = it.brand || (isPlywood ? 'Red Tag' : 'Mine Gold');
           const woodType = (isPlywood ? 'PLYWOOD' : 'READY BOARD');
           const desc = getCutLogItemDescription({ ...it, brand, itemCategory: isPlywood ? 'plywood' : 'ready_board', woodType });
+          const sheetW = typeof it.widthInches === 'number' && it.widthInches > 0 ? it.widthInches : (isPlywood ? 4 : 12);
+          const sqft = isPlywood ? (32 * p) : ((8 * sheetW * p) / 12);
+          const rowAmount = Math.round(sqft * rowRate * 100) / 100;
 
           return {
             id: it.id,
@@ -1300,12 +1300,12 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             brand,
             hsn: '4412',
             cft: 0,
-            sqft: 0,
-            widthInches: typeof it.widthInches === 'number' ? it.widthInches : (isPlywood ? 4 : 12),
-            rateUnit: 'PCS' as const,
+            sqft,
+            widthInches: sheetW,
+            rateUnit: 'SQFT' as const,
             pieces: p,
             rate: rowRate,
-            per: 'PCS',
+            per: 'SQFT',
             discPercent: '',
             amount: rowAmount
           };
