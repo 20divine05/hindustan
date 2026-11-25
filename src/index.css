@@ -774,15 +774,29 @@ input[type="number"] {
   }
 
   .calcy-elevation-dismiss {
-    font-size: 0.72rem;
-    font-weight: 800;
-    color: var(--text-muted);
-    background: var(--bg-subtle, #f1f5f9);
-    border: 1px solid var(--border-medium, #cbd5e1);
+    font-size: 0.8rem;
+    font-weight: 900;
+    color: #ffffff !important;
+    background: #0284c7 !important;
+    border: 1.5px solid #0369a1 !important;
     border-radius: 6px;
-    padding: 0.15rem 0.55rem;
+    padding: 0.25rem 0.75rem;
     cursor: pointer;
     line-height: 1.2;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.45);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transition: all 0.15s ease;
+  }
+
+  .calcy-elevation-dismiss:hover,
+  .calcy-elevation-dismiss:active {
+    background: #0369a1 !important;
+    box-shadow: 0 3px 10px rgba(2, 132, 199, 0.6) !important;
+    transform: translateY(-1px);
   }
 
   .quick-add-bar {

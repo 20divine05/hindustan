@@ -224,31 +224,16 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const [isGstSearching, setIsGstSearching] = useState(false);
   const [gstSearchNotice, setGstSearchNotice] = useState<string | null>(null);
 
-  // Step 3: Consignee (Ship to) Details
-  const [consigneeName, setConsigneeName] = useState<string>(
-    sheetToEdit?.consigneeName || sheetToEdit?.customerName || ''
-  );
-  const [consigneePhone, setConsigneePhone] = useState<string>(
-    sheetToEdit?.consigneePhone || sheetToEdit?.customerPhone || ''
-  );
-  const [consigneeAddress, setConsigneeAddress] = useState<string>(
-    sheetToEdit?.consigneeAddress || sheetToEdit?.customerAddress || ''
-  );
-  const [consigneeGstin, setConsigneeGstin] = useState<string>(
-    sheetToEdit?.consigneeGstin || sheetToEdit?.customerGstin || ''
-  );
-  const [consigneeDistrict, setConsigneeDistrict] = useState<string>(
-    sheetToEdit?.consigneeDistrict || ''
-  );
-  const [consigneeStateCode, setConsigneeStateCode] = useState<string>(
-    sheetToEdit?.consigneeStateCode || sheetToEdit?.customerStateCode || ''
-  );
-  const [consigneeState, setConsigneeState] = useState<string>(
-    sheetToEdit?.consigneeState || sheetToEdit?.destination || 'Karnataka'
-  );
-  const [isShipToTouched, setIsShipToTouched] = useState<boolean>(
-    Boolean(sheetToEdit?.consigneeName && sheetToEdit.consigneeName !== sheetToEdit.customerName)
-  );
+  // Step 4: Consignee (Ship to) Details
+  const [consigneeName, setConsigneeName] = useState<string>(sheetToEdit?.consigneeName || '');
+  const [consigneePhone, setConsigneePhone] = useState<string>(sheetToEdit?.consigneePhone || '');
+  const [consigneeAddress, setConsigneeAddress] = useState<string>(sheetToEdit?.consigneeAddress || '');
+  const [consigneeGstin, setConsigneeGstin] = useState<string>(sheetToEdit?.consigneeGstin || '');
+  const [consigneeDistrict, setConsigneeDistrict] = useState<string>(sheetToEdit?.consigneeDistrict || '');
+  const [consigneeStateCode, setConsigneeStateCode] = useState<string>(sheetToEdit?.consigneeStateCode || '');
+  const [consigneeState, setConsigneeState] = useState<string>(sheetToEdit?.consigneeState || '');
+  const [, setIsShipToTouched] = useState<boolean>(Boolean(sheetToEdit?.consigneeName));
+  const [showShipToDetails, setShowShipToDetails] = useState<boolean>(Boolean(sheetToEdit?.consigneeName || sheetToEdit?.consigneeAddress));
   const [isShipToGstSearching, setIsShipToGstSearching] = useState<boolean>(false);
   const [shipToGstNotice, setShipToGstNotice] = useState<string | null>(null);
   const [shipToCopyNotice, setShipToCopyNotice] = useState<string | null>(null);
@@ -286,7 +271,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     sheetToEdit?.customGstTaxableAmount || 0
   );
 
-  const [gstPercent, setGstPercent] = useState<number>(sheetToEdit?.gstPercent !== undefined ? sheetToEdit.gstPercent : 18);
+  const [gstPercent, setGstPercent] = useState<number>(sheetToEdit?.gstPercent !== undefined ? sheetToEdit.gstPercent : 0);
   const [isCustomGstRate, setIsCustomGstRate] = useState<boolean>(
     sheetToEdit?.gstPercent !== undefined && ![0, 5, 12, 18, 28].includes(sheetToEdit.gstPercent)
   );
@@ -372,18 +357,19 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       setCustomGstTaxableAmount(sheetToEdit.customGstTaxableAmount || 0);
       const isCustomRate = sheetToEdit.gstPercent !== undefined && ![0, 5, 12, 18, 28].includes(sheetToEdit.gstPercent);
       setIsCustomGstRate(isCustomRate);
-      setGstPercent(sheetToEdit.gstPercent !== undefined ? sheetToEdit.gstPercent : 18);
+      setGstPercent(sheetToEdit.gstPercent !== undefined ? sheetToEdit.gstPercent : 0);
       setInvoiceNo(sheetToEdit.referenceNumber ? sheetToEdit.referenceNumber.replace('REF-', '') : '8');
       setInvoiceDate(formatToInvoiceDate(sheetToEdit.measurementDate));
       setDestination(sheetToEdit.destination || 'Karnataka');
-      setConsigneeName(sheetToEdit.consigneeName || sheetToEdit.customerName || '');
-      setConsigneePhone(sheetToEdit.consigneePhone || sheetToEdit.customerPhone || '');
-      setConsigneeAddress(sheetToEdit.consigneeAddress || sheetToEdit.customerAddress || '');
-      setConsigneeGstin(sheetToEdit.consigneeGstin || sheetToEdit.customerGstin || '');
+      setConsigneeName(sheetToEdit.consigneeName || '');
+      setConsigneePhone(sheetToEdit.consigneePhone || '');
+      setConsigneeAddress(sheetToEdit.consigneeAddress || '');
+      setConsigneeGstin(sheetToEdit.consigneeGstin || '');
       setConsigneeDistrict(sheetToEdit.consigneeDistrict || '');
-      setConsigneeStateCode(sheetToEdit.consigneeStateCode || sheetToEdit.customerStateCode || '');
-      setConsigneeState(sheetToEdit.consigneeState || sheetToEdit.destination || 'Karnataka');
-      setIsShipToTouched(Boolean(sheetToEdit.consigneeName && sheetToEdit.consigneeName !== sheetToEdit.customerName));
+      setConsigneeStateCode(sheetToEdit.consigneeStateCode || '');
+      setConsigneeState(sheetToEdit.consigneeState || '');
+      setIsShipToTouched(Boolean(sheetToEdit.consigneeName));
+      setShowShipToDetails(Boolean(sheetToEdit.consigneeName || sheetToEdit.consigneeAddress));
       setLogType(sheetToEdit.logType || 'cut');
       setRoundLogOutputUnit(sheetToEdit.roundLogOutputUnit || 'CFT');
       setRoundLogInputUnit(sheetToEdit.roundLogInputUnit || 'girth_in_length_ft');
@@ -459,6 +445,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     if (c.address) setCustomerAddress(c.address);
     if (c.gstin) {
       setCustomerGstin(c.gstin);
+      setCustomerType('b2b');
       if (c.gstin.length >= 2) {
         const code = c.gstin.slice(0, 2);
         if (INDIAN_GST_STATES[code]) {
@@ -1230,6 +1217,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setConsigneeStateCode('');
     setConsigneeState('Karnataka');
     setIsShipToTouched(false);
+    setShowShipToDetails(false);
     setProjectName('');
     const newRef = `REF-${Math.floor(100000 + Math.random() * 900000)}`;
     setReferenceNumber(newRef);
@@ -1252,7 +1240,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setDiscountValue(0);
     setCustomGstTaxableAmount(0);
     setIsCustomGstRate(false);
-    setGstPercent(18);
+    setGstPercent(0);
     setVoucherType('sales');
     setCurrentStep(1);
     setSaveStatus('saved');
@@ -1640,6 +1628,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               {/* 1. B2C Card */}
               <div
                 className={`calc-type-card ${customerType === 'b2c' ? 'selected' : ''}`}
+                style={{ cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
                 onClick={() => {
                   setCustomerType('b2c');
                   setCurrentStep(3);
@@ -1656,6 +1645,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               {/* 2. B2B Card */}
               <div
                 className={`calc-type-card ${customerType === 'b2b' ? 'selected' : ''}`}
+                style={{ cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
                 onClick={() => {
                   setCustomerType('b2b');
                   setCurrentStep(3);
@@ -1677,24 +1667,73 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             ========================================================================= */}
         {currentStep === 3 && (
           <div className="card calc-step-card">
-            {/* Top Indicator: Bill to (Centered, Highlighted & Bold) */}
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem' }}>
+            {/* Top Indicator: Bill to with instant B2C / B2B toggle */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingBottom: '0.45rem',
+              borderBottom: '1px solid var(--border-light, #e2e8f0)',
+              marginBottom: '0.65rem',
+              flexWrap: 'wrap',
+              gap: '0.5rem'
+            }}>
               <span style={{
                 fontSize: '0.88rem',
                 fontWeight: 900,
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
-                color: '#1d4ed8',
-                background: '#dbeafe',
-                padding: '4px 18px',
+                color: customerType === 'b2b' ? '#1d4ed8' : '#0284c7',
+                background: customerType === 'b2b' ? '#dbeafe' : '#e0f2fe',
+                padding: '4px 16px',
                 borderRadius: '6px',
-                border: '1.5px solid #60a5fa',
+                border: `1.5px solid ${customerType === 'b2b' ? '#60a5fa' : '#38bdf8'}`,
                 whiteSpace: 'nowrap',
                 lineHeight: 1.25,
-                boxShadow: '0 1px 3px rgba(29, 78, 216, 0.15)'
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)'
               }}>
-                BILL TO
+                BILL TO ({customerType.toUpperCase()})
               </span>
+
+              {/* Instant B2C / B2B toggle switcher */}
+              <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1.5px solid #cbd5e1', gap: '3px' }}>
+                <button
+                  type="button"
+                  onClick={() => setCustomerType('b2c')}
+                  style={{
+                    padding: '3px 12px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    background: customerType === 'b2c' ? '#0284c7' : 'transparent',
+                    color: customerType === 'b2c' ? '#ffffff' : '#64748b',
+                    boxShadow: customerType === 'b2c' ? '0 1px 3px rgba(2, 132, 199, 0.35)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  👤 B2C
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCustomerType('b2b')}
+                  style={{
+                    padding: '3px 12px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    background: customerType === 'b2b' ? '#1d4ed8' : 'transparent',
+                    color: customerType === 'b2b' ? '#ffffff' : '#64748b',
+                    boxShadow: customerType === 'b2b' ? '0 1px 3px rgba(29, 78, 216, 0.35)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  🏢 B2B
+                </button>
+              </div>
             </div>
 
             {/* Customer Inputs Form */}
@@ -1742,36 +1781,37 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         top: '100%',
                         left: 0,
                         right: 0,
-                        zIndex: 99,
-                        backgroundColor: 'var(--bg-card, #ffffff)',
-                        border: '1.5px solid var(--border-medium, #cbd5e1)',
+                        zIndex: 9999,
+                        backgroundColor: '#ffffff',
+                        border: '1.5px solid #94a3b8',
                         borderRadius: '6px',
-                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.16)',
-                        maxHeight: '200px',
+                        boxShadow: '0 12px 28px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.12)',
+                        maxHeight: '220px',
                         overflowY: 'auto',
                         marginTop: '4px'
                       }}
                     >
-                      <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #f1f5f9)', borderBottom: '1px solid var(--border-light)' }}>
+                      <div style={{ padding: '0.35rem 0.65rem', fontSize: '0.72rem', fontWeight: 800, color: '#475569', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                         Saved Contacts (Click to auto-fill)
                       </div>
                       {phoneSuggestions.map((c, i) => (
                         <div
                           key={i}
                           onMouseDown={() => handleSelectCustomer(c)}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--primary-50, #f1f5f9)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ffffff')}
                           style={{
                             padding: '0.5rem 0.65rem',
                             cursor: 'pointer',
-                            borderBottom: i < phoneSuggestions.length - 1 ? '1px solid var(--border-light, #eee)' : 'none',
+                            backgroundColor: '#ffffff',
+                            borderBottom: i < phoneSuggestions.length - 1 ? '1px solid #e2e8f0' : 'none',
                             transition: 'background 0.15s ease'
                           }}
                         >
-                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
                             {c.name}
                           </div>
-                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', gap: '0.65rem', marginTop: '0.1rem', flexWrap: 'wrap', fontWeight: 600 }}>
+                          <div style={{ fontSize: '0.74rem', color: '#64748b', display: 'flex', gap: '0.65rem', marginTop: '0.1rem', flexWrap: 'wrap', fontWeight: 600 }}>
                             {c.phone && <span>📞 {c.phone}</span>}
                             {c.gstin && <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>GST: {c.gstin}</span>}
                           </div>
@@ -1867,36 +1907,37 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         top: '100%',
                         left: 0,
                         right: 0,
-                        zIndex: 99,
-                        backgroundColor: 'var(--bg-card, #ffffff)',
-                        border: '1.5px solid var(--border-medium, #cbd5e1)',
+                        zIndex: 9999,
+                        backgroundColor: '#ffffff',
+                        border: '1.5px solid #94a3b8',
                         borderRadius: '6px',
-                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.16)',
-                        maxHeight: '200px',
+                        boxShadow: '0 12px 28px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.12)',
+                        maxHeight: '220px',
                         overflowY: 'auto',
                         marginTop: '4px'
                       }}
                     >
-                      <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #f1f5f9)', borderBottom: '1px solid var(--border-light)' }}>
+                      <div style={{ padding: '0.35rem 0.65rem', fontSize: '0.72rem', fontWeight: 800, color: '#475569', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                         Saved Companies (Click to auto-fill)
                       </div>
                       {customerSuggestions.map((c, i) => (
                         <div
                           key={i}
                           onMouseDown={() => handleSelectCustomer(c)}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--primary-50, #f1f5f9)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ffffff')}
                           style={{
                             padding: '0.5rem 0.65rem',
                             cursor: 'pointer',
-                            borderBottom: i < customerSuggestions.length - 1 ? '1px solid var(--border-light, #eee)' : 'none',
+                            backgroundColor: '#ffffff',
+                            borderBottom: i < customerSuggestions.length - 1 ? '1px solid #e2e8f0' : 'none',
                             transition: 'background 0.15s ease'
                           }}
                         >
-                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
                             {c.name}
                           </div>
-                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', gap: '0.65rem', marginTop: '0.1rem', flexWrap: 'wrap', fontWeight: 600 }}>
+                          <div style={{ fontSize: '0.74rem', color: '#64748b', display: 'flex', gap: '0.65rem', marginTop: '0.1rem', flexWrap: 'wrap', fontWeight: 600 }}>
                             {c.phone && <span>📞 {c.phone}</span>}
                             {c.gstin && <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>GST: {c.gstin}</span>}
                           </div>
@@ -2024,36 +2065,37 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         top: '100%',
                         left: 0,
                         right: 0,
-                        zIndex: 99,
-                        backgroundColor: 'var(--bg-card, #ffffff)',
-                        border: '1.5px solid var(--border-medium, #cbd5e1)',
+                        zIndex: 9999,
+                        backgroundColor: '#ffffff',
+                        border: '1.5px solid #94a3b8',
                         borderRadius: '6px',
-                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.16)',
-                        maxHeight: '200px',
+                        boxShadow: '0 12px 28px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.12)',
+                        maxHeight: '220px',
                         overflowY: 'auto',
                         marginTop: '4px'
                       }}
                     >
-                      <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #f1f5f9)', borderBottom: '1px solid var(--border-light)' }}>
+                      <div style={{ padding: '0.35rem 0.65rem', fontSize: '0.72rem', fontWeight: 800, color: '#475569', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                         Saved Contacts (Click to auto-fill)
                       </div>
                       {phoneSuggestions.map((c, i) => (
                         <div
                           key={i}
                           onMouseDown={() => handleSelectCustomer(c)}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--primary-50, #f1f5f9)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ffffff')}
                           style={{
                             padding: '0.5rem 0.65rem',
                             cursor: 'pointer',
-                            borderBottom: i < phoneSuggestions.length - 1 ? '1px solid var(--border-light, #eee)' : 'none',
+                            backgroundColor: '#ffffff',
+                            borderBottom: i < phoneSuggestions.length - 1 ? '1px solid #e2e8f0' : 'none',
                             transition: 'background 0.15s ease'
                           }}
                         >
-                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
                             {c.name}
                           </div>
-                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', gap: '0.65rem', marginTop: '0.1rem', flexWrap: 'wrap', fontWeight: 600 }}>
+                          <div style={{ fontSize: '0.74rem', color: '#64748b', display: 'flex', gap: '0.65rem', marginTop: '0.1rem', flexWrap: 'wrap', fontWeight: 600 }}>
                             {c.phone && <span>📞 {c.phone}</span>}
                             {c.gstin && <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>GST: {c.gstin}</span>}
                           </div>
@@ -2098,36 +2140,37 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         top: '100%',
                         left: 0,
                         right: 0,
-                        zIndex: 99,
-                        backgroundColor: 'var(--bg-card, #ffffff)',
-                        border: '1.5px solid var(--border-medium, #cbd5e1)',
+                        zIndex: 9999,
+                        backgroundColor: '#ffffff',
+                        border: '1.5px solid #94a3b8',
                         borderRadius: '6px',
-                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.16)',
-                        maxHeight: '200px',
+                        boxShadow: '0 12px 28px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.12)',
+                        maxHeight: '220px',
                         overflowY: 'auto',
                         marginTop: '4px'
                       }}
                     >
-                      <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #f1f5f9)', borderBottom: '1px solid var(--border-light)' }}>
+                      <div style={{ padding: '0.35rem 0.65rem', fontSize: '0.72rem', fontWeight: 800, color: '#475569', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                         Saved Customers (Click to auto-fill)
                       </div>
                       {customerSuggestions.map((c, i) => (
                         <div
                           key={i}
                           onMouseDown={() => handleSelectCustomer(c)}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--primary-50, #f1f5f9)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ffffff')}
                           style={{
                             padding: '0.5rem 0.65rem',
                             cursor: 'pointer',
-                            borderBottom: i < customerSuggestions.length - 1 ? '1px solid var(--border-light, #eee)' : 'none',
+                            backgroundColor: '#ffffff',
+                            borderBottom: i < customerSuggestions.length - 1 ? '1px solid #e2e8f0' : 'none',
                             transition: 'background 0.15s ease'
                           }}
                         >
-                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
                             {c.name}
                           </div>
-                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', gap: '0.65rem', marginTop: '0.1rem', flexWrap: 'wrap', fontWeight: 600 }}>
+                          <div style={{ fontSize: '0.74rem', color: '#64748b', display: 'flex', gap: '0.65rem', marginTop: '0.1rem', flexWrap: 'wrap', fontWeight: 600 }}>
                             {c.phone && <span>📞 {c.phone}</span>}
                             {c.gstin && <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>GST: {c.gstin}</span>}
                           </div>
@@ -2236,51 +2279,158 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             ========================================================================= */}
         {currentStep === 4 && (
           <div className="card calc-step-card">
-            {/* Top Indicator: Ship to (Centered, Highlighted & Bold) with Copy from Bill To beside it */}
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '0.65rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem', flexWrap: 'wrap' }}>
-              <span style={{
-                fontSize: '0.88rem',
-                fontWeight: 900,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: '#0284c7',
-                background: '#e0f2fe',
-                padding: '4px 18px',
-                borderRadius: '6px',
-                border: '1.5px solid #38bdf8',
-                whiteSpace: 'nowrap',
-                lineHeight: 1.25,
-                boxShadow: '0 1px 3px rgba(2, 132, 199, 0.15)'
-              }}>
-                SHIP TO
-              </span>
+            {!showShipToDetails ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '1.75rem 1rem', gap: '0.9rem' }}>
+                <span style={{
+                  fontSize: '0.88rem',
+                  fontWeight: 900,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: '#0284c7',
+                  background: '#e0f2fe',
+                  padding: '4px 18px',
+                  borderRadius: '6px',
+                  border: '1.5px solid #38bdf8',
+                  boxShadow: '0 1px 3px rgba(2, 132, 199, 0.15)'
+                }}>
+                  SHIP TO / CONSIGNEE
+                </span>
 
-              {/* Action: Copy from Bill To Button */}
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  setConsigneeName(customerName);
-                  setConsigneePhone(customerPhone);
-                  setConsigneeAddress(customerAddress);
-                  setConsigneeGstin(customerGstin);
-                  setConsigneeStateCode(customerStateCode || '29');
-                  setConsigneeState(destination || customerState || 'Karnataka');
-                  setIsShipToTouched(true);
-                  setShipToCopyNotice('✓ Copied from Bill To');
-                  setTimeout(() => setShipToCopyNotice(null), 2500);
-                }}
-                style={{ fontSize: '0.74rem', padding: '3px 10px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap', height: '28px', minHeight: '28px', borderRadius: '6px', border: '1.5px solid #93c5fd', color: '#0369a1', backgroundColor: '#ffffff', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-              >
-                <span>📋 Copy from Bill To</span>
-              </button>
-            </div>
+                <div style={{ maxWidth: '360px', marginTop: '0.25rem' }}>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                    Shipping address is currently not specified.
+                  </p>
+                  <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                    Click below to copy details from <strong>Bill To</strong>, or enter a separate delivery address.
+                  </p>
+                </div>
 
-            {shipToCopyNotice && (
-              <div style={{ padding: '0.4rem 0.7rem', background: '#dcfce7', color: '#15803d', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800 }}>
-                {shipToCopyNotice}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', width: '100%', maxWidth: '320px', marginTop: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setConsigneeName(customerName);
+                      setConsigneePhone(customerPhone);
+                      setConsigneeAddress(customerAddress);
+                      setConsigneeGstin(customerGstin);
+                      setConsigneeStateCode(customerStateCode || '29');
+                      setConsigneeState(destination || customerState || 'Karnataka');
+                      setIsShipToTouched(true);
+                      setShowShipToDetails(true);
+                      setShipToCopyNotice('✓ Copied from Bill To');
+                      setTimeout(() => setShipToCopyNotice(null), 2500);
+                    }}
+                    style={{
+                      padding: '0.7rem 1rem',
+                      fontWeight: 800,
+                      fontSize: '0.9rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.45rem',
+                      background: '#0284c7',
+                      color: '#ffffff',
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 6px rgba(2, 132, 199, 0.35)',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span>📋 Copy from Bill To</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowShipToDetails(true);
+                      setIsShipToTouched(true);
+                    }}
+                    style={{
+                      padding: '0.65rem 1rem',
+                      fontWeight: 800,
+                      fontSize: '0.86rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.45rem',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      background: '#ffffff',
+                      color: 'var(--text-main)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span>✍️ Enter Different Shipping Details</span>
+                  </button>
+                </div>
               </div>
-            )}
+            ) : (
+              <>
+                {/* Top Indicator: Ship to (Centered, Highlighted & Bold) with Copy from Bill To beside it */}
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '0.65rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-light, #e2e8f0)', marginBottom: '0.45rem', flexWrap: 'wrap' }}>
+                  <span style={{
+                    fontSize: '0.88rem',
+                    fontWeight: 900,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    color: '#0284c7',
+                    background: '#e0f2fe',
+                    padding: '4px 18px',
+                    borderRadius: '6px',
+                    border: '1.5px solid #38bdf8',
+                    whiteSpace: 'nowrap',
+                    lineHeight: 1.25,
+                    boxShadow: '0 1px 3px rgba(2, 132, 199, 0.15)'
+                  }}>
+                    SHIP TO
+                  </span>
+
+                  {/* Action: Copy from Bill To Button */}
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      setConsigneeName(customerName);
+                      setConsigneePhone(customerPhone);
+                      setConsigneeAddress(customerAddress);
+                      setConsigneeGstin(customerGstin);
+                      setConsigneeStateCode(customerStateCode || '29');
+                      setConsigneeState(destination || customerState || 'Karnataka');
+                      setIsShipToTouched(true);
+                      setShipToCopyNotice('✓ Copied from Bill To');
+                      setTimeout(() => setShipToCopyNotice(null), 2500);
+                    }}
+                    style={{ fontSize: '0.74rem', padding: '3px 10px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap', height: '28px', minHeight: '28px', borderRadius: '6px', border: '1.5px solid #93c5fd', color: '#0369a1', backgroundColor: '#ffffff', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                  >
+                    <span>📋 Copy from Bill To</span>
+                  </button>
+
+                  {/* Action: Clear / Hide Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConsigneeName('');
+                      setConsigneePhone('');
+                      setConsigneeAddress('');
+                      setConsigneeGstin('');
+                      setConsigneeDistrict('');
+                      setConsigneeStateCode('');
+                      setConsigneeState('');
+                      setShowShipToDetails(false);
+                      setIsShipToTouched(false);
+                    }}
+                    style={{ fontSize: '0.74rem', padding: '3px 8px', fontWeight: 700, borderRadius: '6px', border: '1px solid #e2e8f0', color: '#64748b', background: '#f8fafc', cursor: 'pointer' }}
+                  >
+                    <span>✕ Clear</span>
+                  </button>
+                </div>
+
+                {shipToCopyNotice && (
+                  <div style={{ padding: '0.4rem 0.7rem', background: '#dcfce7', color: '#15803d', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800 }}>
+                    {shipToCopyNotice}
+                  </div>
+                )}
 
             {customerType === 'b2b' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -2555,8 +2705,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </div>
               </div>
             )}
-          </div>
+          </>
         )}
+      </div>
+    )}
 
         {/* =========================================================================
             STEP 5: SELECT TIMBER LOG TYPE (CUT LOGS vs ROUND LOGS)
@@ -4532,14 +4684,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 onClick={() => {
                   if (currentStep === 3) {
                     persistCurrentCustomer();
-                    if (!isShipToTouched && !consigneeName && !consigneeAddress) {
-                      setConsigneeName(customerName);
-                      setConsigneePhone(customerPhone);
-                      setConsigneeAddress(customerAddress);
-                      setConsigneeGstin(customerGstin);
-                      setConsigneeStateCode(customerStateCode || '29');
-                      setConsigneeState(destination || customerState || 'Karnataka');
-                    }
                   }
 
                   if (currentStep === 6 && logType === 'round') {
