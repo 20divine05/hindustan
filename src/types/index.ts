@@ -179,3 +179,26 @@ export interface BusinessSettings {
   currencySymbol: string;
   ratePerCft?: number;
 }
+
+export type VisitorStatus = 'pending' | 'approved' | 'blocked';
+
+export interface AppVisitor {
+  id: string;
+  deviceId: string;
+  ipAddress: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  isp?: string;
+  deviceType?: string;
+  browser?: string;
+  os?: string;
+  userAgent?: string;
+  status: VisitorStatus;
+  label?: string;
+  firstSeen: string;
+  lastSeen: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
