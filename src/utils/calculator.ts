@@ -416,7 +416,7 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
 
       if (isSheet) {
         const boardKey = it.itemCategory === 'plywood' ? '8x4' : (it.boardSize || `${l}x${w}`);
-        const brandKey = it.brand || 'Red Tag';
+        const brandKey = it.brand || (it.itemCategory === 'plywood' ? 'Red Tag' : 'Mine Gold');
         const key = `sheet_${it.itemCategory}_${boardKey}_${brandKey}_${r}_PCS`;
 
         if (consolidatedMap.has(key)) {
@@ -430,9 +430,12 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
           existing.cft = 0;
           existing.rateUnit = 'PCS';
           existing.amount = newAmt;
+          existing.brand = it.brand || existing.brand;
         } else {
           const clone: MeasurementItem = {
             ...it,
+            brand: it.brand || brandKey,
+            boardSize: it.boardSize || (it.itemCategory === 'ready_board' ? `8 × ${w || 12}` : undefined),
             cft: 0,
             sqft: 0,
             rate: r,
@@ -481,6 +484,26 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
     }
 
     consolidatedList.sort((a, b) => {
+      const isSheetA = a.itemCategory === 'plywood' || a.itemCategory === 'ready_board';
+      const isSheetB = b.itemCategory === 'plywood' || b.itemCategory === 'ready_board';
+      if (isSheetA || isSheetB) {
+        const wA = typeof a.widthInches === 'number' ? a.widthInches : parseFloat(String(a.widthInches)) || 0;
+        const wB = typeof b.widthInches === 'number' ? b.widthInches : parseFloat(String(b.widthInches)) || 0;
+        if (wA !== wB) return wA - wB;
+
+        const brandA = a.brand || '';
+        const brandB = b.brand || '';
+        if (brandA !== brandB) return brandA.localeCompare(brandB);
+
+        const rA = typeof a.rate === 'number' ? a.rate : 0;
+        const rB = typeof b.rate === 'number' ? b.rate : 0;
+        if (rA !== rB) return rA - rB;
+
+        const pA = typeof a.pieces === 'number' ? a.pieces : parseFloat(String(a.pieces)) || 0;
+        const pB = typeof b.pieces === 'number' ? b.pieces : parseFloat(String(b.pieces)) || 0;
+        return pB - pA;
+      }
+
       const wA = typeof a.widthInches === 'number' ? a.widthInches : parseFloat(String(a.widthInches)) || 0;
       const wB = typeof b.widthInches === 'number' ? b.widthInches : parseFloat(String(b.widthInches)) || 0;
       if (wA !== wB) return wA - wB;

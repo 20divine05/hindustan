@@ -21,6 +21,39 @@ export function sanitizeAndComputeSheet(
   userId: string
 ): MeasurementSheet {
   const items: MeasurementItem[] = (sheet.items || []).map((item, index) => {
+    const itDesc = (item.remarks || '').toUpperCase();
+    const itWood = (item.woodType || '').toUpperCase();
+    const isPlywood = item.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
+    const isReady = item.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
+    const isSheet = isPlywood || isReady || item.rateUnit === 'PCS';
+
+    if (isSheet) {
+      const p = typeof item.pieces === 'number' ? item.pieces : (parseFloat(String(item.pieces)) || 0);
+      const r = typeof item.rate === 'number' ? item.rate : (typeof item.rate === 'string' && item.rate !== '' ? parseFloat(item.rate) : 0);
+      const amount = (typeof item.amount === 'number' && item.amount > 0 && item.rateUnit === 'PCS')
+        ? item.amount
+        : Math.round(p * r * 100) / 100;
+      return {
+        id: item.id || generateId(),
+        serialNumber: index + 1,
+        itemCategory: isPlywood ? 'plywood' : 'ready_board',
+        brand: item.brand || (isPlywood ? 'Red Tag' : 'Mine Gold'),
+        boardSize: item.boardSize || (isReady ? (typeof item.widthInches === 'number' ? `8 × ${item.widthInches}` : '8 × 12') : undefined),
+        teakGrade: item.teakGrade,
+        lengthFeet: 8,
+        widthInches: typeof item.widthInches === 'number' ? item.widthInches : (isPlywood ? 4 : 12),
+        thicknessInches: 0,
+        pieces: p,
+        cft: 0,
+        sqft: 0,
+        rate: r,
+        rateUnit: 'PCS',
+        amount,
+        woodType: isPlywood ? 'Plywood' : 'Ready Board',
+        remarks: item.remarks || ''
+      };
+    }
+
     const l = typeof item.lengthFeet === 'number' ? item.lengthFeet : '';
     const w = typeof item.widthInches === 'number' ? item.widthInches : '';
     const t = typeof item.thicknessInches === 'number' ? item.thicknessInches : '';
@@ -39,6 +72,10 @@ export function sanitizeAndComputeSheet(
     return {
       id: item.id || generateId(),
       serialNumber: index + 1,
+      itemCategory: item.itemCategory,
+      brand: item.brand,
+      boardSize: item.boardSize,
+      teakGrade: item.teakGrade,
       lengthFeet: l,
       widthInches: w,
       thicknessInches: t,
@@ -351,6 +388,10 @@ export const dbService = {
 
             return {
               ...it,
+              itemCategory: it.itemCategory || backup?.itemCategory,
+              brand: it.brand || backup?.brand,
+              boardSize: it.boardSize || backup?.boardSize,
+              teakGrade: it.teakGrade || backup?.teakGrade,
               rate,
               rateUnit,
               amount,

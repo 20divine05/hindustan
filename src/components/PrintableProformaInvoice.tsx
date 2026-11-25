@@ -255,6 +255,26 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
   // Ensure items within each wood species group are sorted strictly by mill specification: Width Asc -> Thickness Desc -> Length Desc
   for (const group of woodGroups) {
     group.items.sort((a, b) => {
+      const isSheetA = a.itemCategory === 'plywood' || a.itemCategory === 'ready_board' || (a.woodType && (a.woodType.toUpperCase().includes('PLYWOOD') || a.woodType.toUpperCase().includes('READY')));
+      const isSheetB = b.itemCategory === 'plywood' || b.itemCategory === 'ready_board' || (b.woodType && (b.woodType.toUpperCase().includes('PLYWOOD') || b.woodType.toUpperCase().includes('READY')));
+      if (isSheetA || isSheetB) {
+        const wA = typeof a.widthInches === 'number' ? a.widthInches : parseFloat(String(a.widthInches)) || 0;
+        const wB = typeof b.widthInches === 'number' ? b.widthInches : parseFloat(String(b.widthInches)) || 0;
+        if (wA !== wB) return wA - wB;
+
+        const brandA = a.brand || '';
+        const brandB = b.brand || '';
+        if (brandA !== brandB) return brandA.localeCompare(brandB);
+
+        const rA = typeof a.rate === 'number' ? a.rate : 0;
+        const rB = typeof b.rate === 'number' ? b.rate : 0;
+        if (rA !== rB) return rA - rB;
+
+        const pA = typeof a.pieces === 'number' ? a.pieces : parseFloat(String(a.pieces)) || 0;
+        const pB = typeof b.pieces === 'number' ? b.pieces : parseFloat(String(b.pieces)) || 0;
+        return pB - pA;
+      }
+
       const wA = typeof a.widthInches === 'number' ? a.widthInches : parseFloat(String(a.widthInches)) || 0;
       const wB = typeof b.widthInches === 'number' ? b.widthInches : parseFloat(String(b.widthInches)) || 0;
       if (wA !== wB) return wA - wB;

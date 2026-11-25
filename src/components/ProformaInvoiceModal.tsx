@@ -550,6 +550,12 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
           const wA = typeof a.widthInches === 'number' ? a.widthInches : 0;
           const wB = typeof b.widthInches === 'number' ? b.widthInches : 0;
           if (wA !== wB) return wA - wB;
+          const brandA = a.brand || '';
+          const brandB = b.brand || '';
+          if (brandA !== brandB) return brandA.localeCompare(brandB);
+          const rA = typeof a.rate === 'number' ? a.rate : 0;
+          const rB = typeof b.rate === 'number' ? b.rate : 0;
+          if (rA !== rB) return rA - rB;
           return (b.pieces || 0) - (a.pieces || 0);
         }
 
