@@ -334,11 +334,13 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       return;
     }
 
-    if (field === 'woodType' || field === 'remarks') {
-      target[field] = rawValue;
+    if (field === 'woodType' || field === 'remarks' || field === 'teakGrade') {
+      (target as any)[field] = rawValue;
       if (field === 'woodType') {
         const valUpper = (rawValue || '').toUpperCase();
-        if (valUpper.includes('PLYWOOD')) {
+        if (valUpper.includes('TEAK')) {
+          target.teakGrade = target.teakGrade || selectedTeakGrade || '1st Teak';
+        } else if (valUpper.includes('PLYWOOD')) {
           target.itemCategory = 'plywood';
           target.woodType = 'Plywood';
           target.brand = target.brand || selectedBrand || 'Red Tag';
@@ -679,7 +681,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
       id: generateId(),
       serialNumber: items.length + 1,
       itemCategory: 'timber',
-      teakGrade: selectedWoodOption === 'Teak Wood' ? selectedTeakGrade : undefined,
+      teakGrade: selectedWoodOption.toLowerCase().includes('teak') ? selectedTeakGrade : undefined,
       lengthFeet: l,
       widthInches: w,
       thicknessInches: t,
@@ -1288,8 +1290,11 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                     <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--primary-700)', padding: '0.25rem 0.1rem' }}>
                       #{item.serialNumber}
                       {item.woodType && (
-                        <div className="mobile-show" style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 700, lineHeight: 1, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '32px' }}>
+                        <div className="mobile-show" style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 700, lineHeight: 1, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '48px' }}>
                           {item.woodType}
+                          {item.woodType.toLowerCase().includes('teak') && item.teakGrade && (
+                            <div style={{ color: '#1d4ed8', fontSize: '0.52rem' }}>({item.teakGrade})</div>
+                          )}
                         </div>
                       )}
                     </td>
@@ -1316,6 +1321,29 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                           </option>
                         ))}
                       </select>
+                      {item.woodType?.toLowerCase().includes('teak') && (
+                        <select
+                          value={item.teakGrade || selectedTeakGrade || '1st Teak'}
+                          onChange={(e) => handleUpdateItem(index, 'teakGrade', e.target.value)}
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            padding: '0.15rem 0.25rem',
+                            borderRadius: '4px',
+                            border: '1px solid #3b82f6',
+                            backgroundColor: '#eff6ff',
+                            color: '#1d4ed8',
+                            width: '100%',
+                            marginTop: '0.2rem'
+                          }}
+                        >
+                          {TEAK_GRADES.map((g) => (
+                            <option key={g} value={g}>
+                              {g}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </td>
 
                     {isSheet ? (

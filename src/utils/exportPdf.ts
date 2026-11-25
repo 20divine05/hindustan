@@ -742,6 +742,14 @@ export function createProformaInvoiceDoc(
           wood = parts.slice(1).join(' ').toUpperCase();
         }
       }
+      if (wood.includes('TEAK')) {
+        const grade = (it as any).teakGrade || (it.description?.match(/TEAK WOOD\s*\(([^)]+)\)/)?.[1]);
+        if (grade) {
+          wood = `TEAK WOOD (${grade.toUpperCase()})`;
+        } else if (!wood.includes('(')) {
+          wood = 'TEAK WOOD';
+        }
+      }
       if (!woodMap.has(wood)) {
         const arr: typeof items = [];
         woodMap.set(wood, arr);

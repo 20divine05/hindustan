@@ -50,7 +50,7 @@ import { RoundLogSlabPricing } from '../components/RoundLogSlabPricing';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ProformaInvoiceModal } from '../components/ProformaInvoiceModal';
 import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice';
-import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood, calculateRow, getCutLogItemDescription } from '../utils/calculator';
+import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood, calculateRow, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
 import {
   calculateRoundLogTotals,
   getRoundLogUnitConfig,
@@ -1317,9 +1317,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
         const mult = isSqftBilled ? (typeof it.sqft === 'number' ? it.sqft : 0) : it.cft;
         const rowAmount = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * rowRate * 100) / 100;
+        const woodKey = getCutLogItemSectionHeading(it);
         return {
+          id: it.id,
+          sourceIndex: idx,
           slNo: idx + 1,
-          description: `${it.lengthFeet}X${it.widthInches}X${it.thicknessInches} ${(it.woodType || 'MAHAGONY').toUpperCase()}`,
+          description: `${it.lengthFeet}X${it.widthInches}X${it.thicknessInches} ${woodKey}`,
+          woodType: woodKey,
+          teakGrade: it.teakGrade,
           hsn: '4407',
           cft: it.cft,
           sqft: it.sqft,

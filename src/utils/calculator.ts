@@ -240,13 +240,11 @@ export function getCutLogItemSectionHeading(it: {
     const teakMatch = descUp.match(/TEAK WOOD\s*\(([^)]+)\)/);
     if (teakMatch) return `TEAK WOOD (${teakMatch[1].trim()})`;
   }
-  if (it.teakGrade) {
-    return `TEAK WOOD (${it.teakGrade})`;
-  }
   const wt = (it.woodType || 'MAHAGONY').trim().toUpperCase();
   if (wt.includes('TEAK')) {
     if (wt.includes('(')) return wt;
-    return 'TEAK WOOD (1st Teak)';
+    if (it.teakGrade) return `TEAK WOOD (${it.teakGrade.toUpperCase()})`;
+    return 'TEAK WOOD';
   }
   return wt;
 }

@@ -239,11 +239,19 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
     const itWood = (it.woodType || '').toUpperCase();
     const isPlywood = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
     const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY');
-    const wood = isPlywood
+    let wood = isPlywood
       ? 'PLYWOOD'
       : (isReady
           ? 'READY BOARD'
           : (it.woodType || 'MAHAGONY').trim().toUpperCase());
+    if (wood.includes('TEAK')) {
+      const grade = it.teakGrade || ((it as any).description?.match(/TEAK WOOD\s*\(([^)]+)\)/)?.[1]);
+      if (grade) {
+        wood = `TEAK WOOD (${grade.toUpperCase()})`;
+      } else if (!wood.includes('(')) {
+        wood = 'TEAK WOOD';
+      }
+    }
     if (!woodMap.has(wood)) {
       const arr: typeof validItems = [];
       woodMap.set(wood, arr);

@@ -7,7 +7,7 @@ import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
 import { exportSheetToPdf, printProformaInvoicePdf } from '../utils/exportPdf';
 import { renderDimensionHtml, renderWithSmallDecimalHtml } from './PrintableProformaInvoice';
 import { groupRoundLogsBySpeciesFirst, getRoundLogUnitConfig } from '../utils/roundLogCalculator';
-import { formatValue, getCutLogItemDescription } from '../utils/calculator';
+import { formatValue, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
 import './ProformaInvoice.css';
 
 export interface ProformaInvoiceProps {
@@ -26,6 +26,7 @@ export interface InvoiceItemRow {
   woodType?: string;
   itemCategory?: string;
   brand?: string;
+  teakGrade?: string;
   hsn: string;
   cft: number;
   sqft?: number;
@@ -309,7 +310,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
           : (customRates[sourceIdx] !== undefined ? customRates[sourceIdx] : itemRate);
         const hsn = (it.id && customHsn[it.id] !== undefined) ? customHsn[it.id] : (customHsn[sourceIdx] ?? '4407');
         const disc = (it.id && customDisc[it.id] !== undefined) ? customDisc[it.id] : (customDisc[sourceIdx] ?? '');
-        const wood = (it.woodType || 'TIMBER').toUpperCase();
+        const wood = getCutLogItemSectionHeading(it);
         const desc = `${l}X${w}X${t} ${wood}`;
         const cft = it.cft;
         const sqft = it.sqft || (it.cft * 12);
@@ -323,6 +324,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
           slNo: displaySl++,
           description: desc,
           woodType: wood,
+          teakGrade: it.teakGrade,
           hsn,
           cft,
           sqft,
@@ -527,6 +529,12 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
         wood = 'READY BOARD';
       } else if (it.woodType) {
         wood = it.woodType.trim().toUpperCase();
+        if (wood.includes('TEAK')) {
+          const grade = it.teakGrade || it.description?.match(/TEAK WOOD\s*\(([^)]+)\)/)?.[1];
+          if (grade) {
+            wood = `TEAK WOOD (${grade.toUpperCase()})`;
+          }
+        }
       } else {
         const parts = it.description.trim().split(/\s+/);
         if (parts.length > 1) {
