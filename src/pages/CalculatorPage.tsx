@@ -3434,7 +3434,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             {/* Input Card */}
             <div className="calc-charge-card">
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
-                {/* Mode Toggle: Target Payable vs Flat Discount vs Percentage */}
+                {/* Mode Toggle: Target Payable vs Flat Discount */}
                 <div style={{ display: 'inline-flex', borderRadius: '6px', border: '1px solid var(--border-medium)', overflow: 'hidden' }}>
                   <button
                     type="button"
@@ -3446,8 +3446,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       }
                     }}
                     style={{
-                      padding: '0.35rem 0.85rem',
-                      fontSize: '0.82rem',
+                      padding: '0.4rem 1.15rem',
+                      fontSize: '0.85rem',
                       fontWeight: 700,
                       backgroundColor: discountMode === 'target_payable' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
                       color: discountMode === 'target_payable' ? '#fff' : 'var(--text-main)',
@@ -3465,8 +3465,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       setDiscountValue(discountAmount);
                     }}
                     style={{
-                      padding: '0.35rem 0.85rem',
-                      fontSize: '0.82rem',
+                      padding: '0.4rem 1.15rem',
+                      fontSize: '0.85rem',
                       fontWeight: 700,
                       backgroundColor: discountMode === 'rupees' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
                       color: discountMode === 'rupees' ? '#fff' : 'var(--text-main)',
@@ -3476,25 +3476,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     }}
                   >
                     Flat Discount ₹
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDiscountMode('percentage');
-                      setDiscountType('percentage');
-                    }}
-                    style={{
-                      padding: '0.35rem 0.85rem',
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
-                      backgroundColor: discountMode === 'percentage' ? 'var(--primary-800, #1e3a8a)' : 'var(--bg-subtle)',
-                      color: discountMode === 'percentage' ? '#fff' : 'var(--text-main)',
-                      border: 'none',
-                      borderLeft: '1px solid var(--border-medium)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    % Percentage
                   </button>
                 </div>
               </div>
@@ -3531,54 +3512,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                     />
                   </div>
-                  <p style={{ margin: '0.35rem 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    💡 Enter agreed payable amount (e.g. if total is ₹3,300, enter <strong>3000</strong> → <strong>₹300</strong> discount is detected automatically).
-                  </p>
-
-                  {/* Quick Chips for Target Payable */}
-                  <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.55rem', flexWrap: 'wrap' }}>
-                    {[500, 1000, 2000, 5000, 10000].map(amt => (
-                      <button
-                        key={amt}
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => {
-                          const newTarget = Math.max(0, Math.round((totalBeforeDiscount - amt) * 100) / 100);
-                          setTargetPayableAmount(String(newTarget));
-                          setDiscountValue(amt);
-                        }}
-                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
-                        title={`Reduce ₹${amt} (Target: ₹${formatIndianCurrency(Math.max(0, totalBeforeDiscount - amt))})`}
-                      >
-                        -₹{amt}
-                      </button>
-                    ))}
-                    {totalBeforeDiscount > 100 && (
-                      (() => {
-                        const r100 = Math.floor(totalBeforeDiscount / 100) * 100;
-                        const r500 = Math.floor(totalBeforeDiscount / 500) * 500;
-                        const r1000 = Math.floor(totalBeforeDiscount / 1000) * 1000;
-                        const roundChips: number[] = [];
-                        if (r100 > 0 && r100 < totalBeforeDiscount) roundChips.push(r100);
-                        if (r500 > 0 && r500 < totalBeforeDiscount && !roundChips.includes(r500)) roundChips.push(r500);
-                        if (r1000 > 0 && r1000 < totalBeforeDiscount && !roundChips.includes(r1000)) roundChips.push(r1000);
-                        return roundChips.map(chipVal => (
-                          <button
-                            key={`round-${chipVal}`}
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => {
-                              setTargetPayableAmount(String(chipVal));
-                              setDiscountValue(Math.round((totalBeforeDiscount - chipVal) * 100) / 100);
-                            }}
-                            style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--primary-50, #eff6ff)', color: 'var(--primary-800)', border: '1px solid var(--primary-200)', borderRadius: '6px' }}
-                          >
-                            Round to ₹{formatIndianCurrency(chipVal)}
-                          </button>
-                        ));
-                      })()
-                    )}
-                    {(targetPayableAmount !== '' || discountAmount > 0) && (
+                  {(targetPayableAmount !== '' || discountAmount > 0) && (
+                    <div style={{ marginTop: '0.4rem', textAlign: 'right' }}>
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
@@ -3586,16 +3521,16 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                           setTargetPayableAmount('');
                           setDiscountValue(0);
                         }}
-                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.2rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
                       >
                         Clear
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {discountMode === 'rupees' && (
+              {discountMode !== 'target_payable' && (
                 <div>
                   <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.3rem' }}>
                     Direct Discount Deduction Amount (₹):
@@ -3613,73 +3548,18 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
                     />
                   </div>
-                  <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
-                    {[500, 1000, 2000, 5000, 10000].map(amt => (
-                      <button
-                        key={amt}
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setDiscountValue(amt)}
-                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
-                      >
-                        -₹{amt}
-                      </button>
-                    ))}
-                    {discountValue > 0 && (
+                  {discountValue > 0 && (
+                    <div style={{ marginTop: '0.4rem', textAlign: 'right' }}>
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
                         onClick={() => setDiscountValue(0)}
-                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.2rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
                       >
                         Clear
                       </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {discountMode === 'percentage' && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.3rem' }}>
-                    Discount Percentage (%):
-                  </label>
-                  <div style={{ position: 'relative', width: '100%' }}>
-                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
-                      %
-                    </span>
-                    <input
-                      type="number"
-                      className="calc-prefixed-input"
-                      value={discountValue === 0 ? '' : discountValue}
-                      placeholder="Enter percentage (e.g. 5)"
-                      onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value) || 0))}
-                      style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
-                    />
-                  </div>
-                  <div className="calc-charge-quick-chips" style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
-                    {[2, 5, 10, 15, 20].map(pct => (
-                      <button
-                        key={pct}
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setDiscountValue(pct)}
-                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '6px' }}
-                      >
-                        {pct}%
-                      </button>
-                    ))}
-                    {discountValue > 0 && (
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setDiscountValue(0)}
-                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.25rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
