@@ -1,6 +1,6 @@
 import { getSupabase, getSupabaseCredentials } from '../lib/supabase';
 import type { MeasurementItem, MeasurementSheet } from '../types';
-import { calculateRow, calculateSheetSqft, calculateTotals, normalizeTeakGrade, resolveSheetWidth } from '../utils/calculator';
+import { calculateRow, calculateSheetAmount, calculateTotals, normalizeTeakGrade, resolveSheetRateUnit, resolveSheetWidth } from '../utils/calculator';
 
 const LOCAL_SHEETS_KEY = 'timberpro_local_sheets';
 const ACTIVE_DRAFT_KEY = 'timberpro_active_draft';
@@ -31,8 +31,8 @@ export function sanitizeAndComputeSheet(
       const p = typeof item.pieces === 'number' ? item.pieces : (parseFloat(String(item.pieces)) || 0);
       const r = typeof item.rate === 'number' ? item.rate : (typeof item.rate === 'string' && item.rate !== '' ? parseFloat(item.rate) : 0);
       const sheetW = resolveSheetWidth(isPlywood, item.widthInches, item.boardSize);
-      const sqft = calculateSheetSqft(isPlywood, p, sheetW, item.boardSize);
-      const amount = Math.round(sqft * r * 100) / 100;
+      const rateUnit = resolveSheetRateUnit(item.rateUnit);
+      const sheetCalc = calculateSheetAmount(isPlywood, p, r, rateUnit, sheetW, item.boardSize);
       let resolvedWoodType = item.woodType || '';
       if (isPlywood) {
         resolvedWoodType = resolvedWoodType.includes('34') ? 'Plywood(34)' : 'Plywood(30)';
@@ -51,10 +51,10 @@ export function sanitizeAndComputeSheet(
         thicknessInches: 0,
         pieces: p,
         cft: 0,
-        sqft,
+        sqft: sheetCalc.sqft,
         rate: r,
-        rateUnit: 'SQFT',
-        amount,
+        rateUnit: sheetCalc.rateUnit,
+        amount: sheetCalc.amount,
         woodType: resolvedWoodType,
         remarks: item.remarks || ''
       };

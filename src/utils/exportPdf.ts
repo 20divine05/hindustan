@@ -10,7 +10,7 @@ import type {
 import { LOGO_ICON_BASE64 } from './logoBase64';
 import { PAYMENT_QR_BASE64 } from './paymentQrBase64';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from './indianNumberWords';
-import { sortTimberEntries, calculateSheetSqft, resolveSheetWidth, formatValue, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from './calculator';
+import { sortTimberEntries, calculateSheetAmount, resolveSheetRateUnit, resolveSheetWidth, formatValue, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from './calculator';
 import {
   groupRoundLogsBySpeciesFirst,
   getRoundLogUnitConfig
@@ -189,8 +189,8 @@ export function createProformaInvoiceDoc(
           const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
           const isPly = Boolean(it.itemCategory === 'plywood' || wood.includes('PLYWOOD'));
           const sheetW = resolveSheetWidth(isPly, it.widthInches, (it as any).boardSize);
-          const sqft = calculateSheetSqft(isPly, pcs, sheetW, (it as any).boardSize);
-          const amt = Math.round(sqft * r * 100) / 100;
+          const sheetUnit = resolveSheetRateUnit(it.rateUnit, (it as any).per);
+          const sheetCalc = calculateSheetAmount(isPly, pcs, r, sheetUnit, sheetW, (it as any).boardSize);
           return {
             slNo: idx + 1,
             description: desc,
@@ -199,14 +199,14 @@ export function createProformaInvoiceDoc(
             brand: it.brand,
             hsn: '4412',
             cft: 0,
-            sqft,
+            sqft: sheetCalc.sqft,
             widthInches: sheetW,
-            rateUnit: 'SQFT' as any,
+            rateUnit: sheetCalc.rateUnit as any,
             pieces: pcs,
             rate: r,
-            per: 'SQFT',
+            per: sheetCalc.rateUnit,
             discPercent: '',
-            amount: amt
+            amount: sheetCalc.amount
           };
         }
         const l = it.lengthFeet;
@@ -271,10 +271,13 @@ export function createProformaInvoiceDoc(
         const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
         const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
         const isPly = Boolean((it as any).itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD'));
-        const sqft = calculateSheetSqft(isPly, p, it.widthInches, (it as any).boardSize);
-        const amt = r > 0 ? Math.round(sqft * r * 100) / 100 : (typeof it.amount === 'number' ? it.amount : 0);
+        const sheetUnit = resolveSheetRateUnit((it as any).rateUnit, it.per);
+        const sheetCalc = calculateSheetAmount(isPly, p, r, sheetUnit, it.widthInches, (it as any).boardSize);
+        const amt = sheetCalc.amount > 0 ? sheetCalc.amount : (typeof it.amount === 'number' ? it.amount : 0);
         totalAmount += amt;
-        totalSqftBilled += sqft;
+        if (sheetUnit === 'SQFT') {
+          totalSqftBilled += sheetCalc.sqft;
+        }
       } else {
         const isSqftBilled = it.rateUnit === 'SQFT' || it.per === 'SQFT';
         const defaultRowRate = isSqftBilled ? 120 : defaultRate;
@@ -824,15 +827,17 @@ export function createProformaInvoiceDoc(
           const rawDim = (it.description || '').split(/\s+/)[0] || it.description;
           dimOnly = rawDim.split(/([xX×])/).map(p => p.trim().replace(/^0+(\d)/, '$1')).join('');
         }
-        const isSqftBilled = isSheet || (!isSheet && ((it as any).rateUnit === 'SQFT' || it.per === 'SQFT' || ((it as any).widthInches && (it as any).widthInches >= 7 && (it as any).rateUnit !== 'CFT')));
-        const perText = isSheet ? 'SQFT' : (isSqftBilled ? 'SQFT' : 'CFT');
+        const sheetUnit = isSheet ? resolveSheetRateUnit((it as any).rateUnit, it.per) : null;
+        const isSqftBilled = isSheet ? sheetUnit === 'SQFT' : (!isSheet && ((it as any).rateUnit === 'SQFT' || it.per === 'SQFT' || ((it as any).widthInches && (it as any).widthInches >= 7 && (it as any).rateUnit !== 'CFT')));
+        const perText = isSheet ? sheetUnit! : (isSqftBilled ? 'SQFT' : 'CFT');
         const zebraBg = (itemIdx++ % 2 === 0) ? [243, 244, 246] : [255, 255, 255];
 
         const itPieces = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
         const itRate = typeof it.rate === 'number' ? it.rate : 0;
         const isPly = Boolean((it as any).itemCategory === 'plywood' || group.wood.includes('PLYWOOD') || (it.woodType && it.woodType.toUpperCase().includes('PLYWOOD')));
-        const sheetSqft = isSheet ? calculateSheetSqft(isPly, itPieces, it.widthInches, (it as any).boardSize) : 0;
-        const rowAmount = isSheet ? (itRate > 0 ? Math.round(sheetSqft * itRate * 100) / 100 : (typeof it.amount === 'number' ? it.amount : 0)) : (typeof it.amount === 'number' ? it.amount : 0);
+        const sheetCalc = isSheet ? calculateSheetAmount(isPly, itPieces, itRate, sheetUnit!, it.widthInches, (it as any).boardSize) : null;
+        const sheetSqft = sheetCalc ? sheetCalc.sqft : 0;
+        const rowAmount = isSheet ? (itRate > 0 ? sheetCalc!.amount : (typeof it.amount === 'number' ? it.amount : 0)) : (typeof it.amount === 'number' ? it.amount : 0);
 
         groupPieces += itPieces;
         if (!isSheet && !isSqftBilled) {
@@ -938,7 +943,7 @@ export function createProformaInvoiceDoc(
     const planingRate = (ac?.planingRatePerCft && ac.planingRatePerCft > 0)
       ? ac.planingRatePerCft
       : (totalCft > 0 ? Math.round((ac.planing / totalCft) * 100) / 100 : 0);
-    const planingLabel = planingRate > 0 ? `PLANING CHARGES (Rs. ${planingRate}/CFT)` : 'PLANING CHARGES';
+    const planingLabel = planingRate > 0 ? `PLAINING CHARGES (Rs. ${planingRate}/CFT)` : 'PLAINING CHARGES';
     tableBody.push(chargeRow(planingLabel, formatIndianCurrency(ac.planing)));
   }
 

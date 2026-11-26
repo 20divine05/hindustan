@@ -7,7 +7,7 @@ import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
 import { exportSheetToPdf, printProformaInvoicePdf } from '../utils/exportPdf';
 import { renderDimensionHtml, renderWithSmallDecimalHtml } from './PrintableProformaInvoice';
 import { groupRoundLogsBySpeciesFirst, getRoundLogUnitConfig } from '../utils/roundLogCalculator';
-import { formatValue, calculateSheetSqft, resolveSheetWidth, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
+import { formatValue, calculateSheetAmount, resolveSheetRateUnit, resolveSheetWidth, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
 import './ProformaInvoice.css';
 
 export interface ProformaInvoiceProps {
@@ -275,8 +275,8 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
           const brand = it.brand || (isPlywood ? 'Red Tag' : 'Mine Gold');
           const desc = getCutLogItemDescription({ ...it, brand, itemCategory: isPlywood ? 'plywood' : 'ready_board', woodType: wood });
           const sheetW = resolveSheetWidth(isPlywood, it.widthInches, it.boardSize);
-          const sqft = calculateSheetSqft(isPlywood, p, sheetW, it.boardSize);
-          const amount = Math.round(sqft * rate * 100) / 100;
+          const sheetUnit = resolveSheetRateUnit(it.rateUnit);
+          const sheetCalc = calculateSheetAmount(isPlywood, p, rate, sheetUnit, sheetW, it.boardSize);
 
           validItems.push({
             id: it.id,
@@ -288,14 +288,14 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
             brand,
             hsn,
             cft: 0,
-            sqft,
+            sqft: sheetCalc.sqft,
             widthInches: sheetW,
-            rateUnit: 'SQFT',
+            rateUnit: sheetCalc.rateUnit,
             pieces: p,
             rate,
-            per: 'SQFT',
+            per: sheetCalc.rateUnit,
             discPercent: disc,
-            amount
+            amount: sheetCalc.amount
           });
         }
         return;
@@ -354,7 +354,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
     let sqftBilled = 0;
 
     for (const it of invoiceItems) {
-      const isSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.rateUnit === 'PCS' || it.per === 'PCS' || it.woodType === 'PLYWOOD' || it.woodType === 'READY BOARD';
+      const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType === 'PLYWOOD' || it.woodType === 'READY BOARD' || it.woodType?.toUpperCase().includes('PLYWOOD') || it.woodType?.toUpperCase().includes('READY')) && it.itemCategory !== 'timber';
       if (!isSheet) {
         cftSum += it.cft;
         sqftSum += (it.sqft || (it.cft * 12));
@@ -364,7 +364,9 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
       pcsSum += it.pieces;
       amtSum += it.amount;
       if (isSheet) {
-        sqftBilled += (it.sqft || 0);
+        if (resolveSheetRateUnit(it.rateUnit, it.per) === 'SQFT') {
+          sqftBilled += (it.sqft || 0);
+        }
       } else if (it.rateUnit !== 'CFT' && (it.widthInches || 0) >= 7) {
         sqftBilled += (it.sqft || (it.cft * 12));
       }
@@ -408,7 +410,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
     ? ac.planingRatePerCft
     : (totalPlaning > 0 && billingBaseVol > 0 ? Math.round((totalPlaning / billingBaseVol) * 100) / 100 : 0);
   const planingUnitLabel = isRoundLog ? roundLogOutputUnit : 'CFT';
-  const planingLabel = planingRate > 0 ? `PLANING CHARGES (Rs. ${planingRate}/${planingUnitLabel})` : 'PLANING CHARGES';
+  const planingLabel = planingRate > 0 ? `PLAINING CHARGES (Rs. ${planingRate}/${planingUnitLabel})` : 'PLAINING CHARGES';
   const totalOther = ac?.other || 0;
   const additionalChargesSum = totalCarpentryWorks + totalTransportation + totalPlaning + totalOther;
   const discAmount = sheet?.discount?.amount || 0;
@@ -1316,16 +1318,18 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                 {woodGroups.map((group, gIdx) => {
                   const groupPieces = group.items.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
                   const groupCft = group.items.reduce((acc, it) => {
-                    const isSheet = it.rateUnit === 'PCS' || it.per === 'PCS' || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY');
+                    const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.woodType?.toUpperCase().includes('PLYWOOD') || it.woodType?.toUpperCase().includes('READY')) && it.itemCategory !== 'timber';
                     const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
-                    const isSqftBilled = isSheet || (!isSheet && (it.rateUnit === 'SQFT' || it.per === 'SQFT' || (w >= 7 && it.rateUnit !== 'CFT')));
-                    if (isSqftBilled) return acc;
+                    const isSqftBilled = isSheet ? resolveSheetRateUnit(it.rateUnit, it.per) === 'SQFT' : (!isSheet && (it.rateUnit === 'SQFT' || it.per === 'SQFT' || (w >= 7 && it.rateUnit !== 'CFT')));
+                    if (isSheet || isSqftBilled) return acc;
                     return acc + (typeof it.cft === 'number' ? it.cft : 0);
                   }, 0);
                   const groupAmount = group.items.reduce((acc, it) => acc + (typeof it.amount === 'number' ? it.amount : 0), 0);
                   const groupSqftBilled = group.items.reduce((acc, it) => {
-                    const isSheet = it.rateUnit === 'PCS' || it.per === 'PCS' || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY');
-                    if (isSheet) return acc + (typeof it.sqft === 'number' ? it.sqft : 0);
+                    const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.woodType?.toUpperCase().includes('PLYWOOD') || it.woodType?.toUpperCase().includes('READY')) && it.itemCategory !== 'timber';
+                    if (isSheet) {
+                      return resolveSheetRateUnit(it.rateUnit, it.per) === 'SQFT' ? acc + (typeof it.sqft === 'number' ? it.sqft : 0) : acc;
+                    }
                     const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
                     const isSqft = it.rateUnit === 'SQFT' || it.per === 'SQFT' || (w >= 7 && it.rateUnit !== 'CFT');
                     if (isSqft) return acc + (typeof it.sqft === 'number' ? it.sqft : (it.cft * 12));
@@ -1350,11 +1354,12 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
                       {/* Measurements of that wood */}
                       {group.items.map((item, itemIdx) => {
-                        const isSheet = group.wood.includes('PLYWOOD') || group.wood.includes('READY') || item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || (item.woodType && (item.woodType.toUpperCase().includes('PLYWOOD') || item.woodType.toUpperCase().includes('READY')));
+                        const isSheet = (group.wood.includes('PLYWOOD') || group.wood.includes('READY') || item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || (item.woodType && (item.woodType.toUpperCase().includes('PLYWOOD') || item.woodType.toUpperCase().includes('READY')))) && item.itemCategory !== 'timber';
                         const dimOnly = isSheet ? getCutLogItemDescription({ ...item, woodType: group.wood || item.woodType } as any) : (item.description.split(/\s+/)[0] || item.description);
-                        const isSqftBilled = isSheet || (!isSheet && item.rateUnit !== 'CFT' && (item.widthInches || 0) >= 7);
+                        const sheetUnit = isSheet ? resolveSheetRateUnit(item.rateUnit, item.per) : null;
+                        const isSqftBilled = isSheet ? sheetUnit === 'SQFT' : (!isSheet && item.rateUnit !== 'CFT' && (item.widthInches || 0) >= 7);
                         const slStr = String(item.slNo);
-                        const perUnit = isSheet ? 'SQFT' : item.per;
+                        const perUnit = isSheet ? sheetUnit! : item.per;
                         return (
                           <tr key={item.slNo} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                             <td className="text-center">{slStr}</td>

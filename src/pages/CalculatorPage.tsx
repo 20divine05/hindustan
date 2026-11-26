@@ -50,7 +50,7 @@ import { RoundLogSlabPricing } from '../components/RoundLogSlabPricing';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ProformaInvoiceModal } from '../components/ProformaInvoiceModal';
 import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice';
-import { calculateTotals, calculateSheetSqft, resolveSheetWidth, formatValue, sortTimberEntries, groupTimberByWood, calculateRow, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from '../utils/calculator';
+import { calculateTotals, calculateSheetAmount, calculateSheetSqft, resolveSheetRateUnit, resolveSheetWidth, formatValue, sortTimberEntries, groupTimberByWood, calculateRow, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from '../utils/calculator';
 import {
   calculateRoundLogTotals,
   getRoundLogUnitConfig,
@@ -901,6 +901,29 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const updated = [...items];
     const target = { ...updated[itemIndex] };
 
+    if (target.itemCategory === 'plywood' || target.itemCategory === 'ready_board' || (target.woodType && (target.woodType.toUpperCase().includes('PLYWOOD') || target.woodType.toUpperCase().includes('READY')))) {
+      if (field === 'rateUnit') {
+        target.rateUnit = resolveSheetRateUnit(rawValue);
+      } else if (field === 'woodType' || field === 'remarks') {
+        target[field] = rawValue;
+      } else {
+        const parsed = rawValue === '' ? '' : parseFloat(rawValue);
+        (target as any)[field] = isNaN(parsed as number) ? '' : parsed;
+      }
+      const p = typeof target.pieces === 'number' && target.pieces > 0 ? target.pieces : 0;
+      const isPly = Boolean(target.itemCategory === 'plywood' || (target.woodType && target.woodType.toUpperCase().includes('PLYWOOD')));
+      const sheetUnit = resolveSheetRateUnit(target.rateUnit);
+      const r = typeof target.rate === 'number' && target.rate > 0 ? target.rate : 0;
+      const sheetCalc = calculateSheetAmount(isPly, p, r, sheetUnit, target.widthInches, target.boardSize);
+      target.cft = 0;
+      target.sqft = sheetCalc.sqft;
+      target.rateUnit = sheetCalc.rateUnit;
+      target.amount = sheetCalc.amount;
+      updated[itemIndex] = target;
+      setItems(updated);
+      return;
+    }
+
     if (field === 'woodType' || field === 'remarks') {
       target[field] = rawValue;
     } else {
@@ -1314,8 +1337,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           const woodType = getCutLogItemSectionHeading(it);
           const desc = getCutLogItemDescription({ ...it, brand, itemCategory: isPlywood ? 'plywood' : 'ready_board', woodType });
           const sheetW = resolveSheetWidth(isPlywood, it.widthInches, it.boardSize);
-          const sqft = calculateSheetSqft(isPlywood, p, sheetW, it.boardSize);
-          const rowAmount = Math.round(sqft * rowRate * 100) / 100;
+          const sheetUnit = resolveSheetRateUnit(it.rateUnit);
+          const sheetCalc = calculateSheetAmount(isPlywood, p, rowRate, sheetUnit, sheetW, it.boardSize);
 
           return {
             id: it.id,
@@ -1327,14 +1350,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             brand,
             hsn: '4412',
             cft: 0,
-            sqft,
+            sqft: sheetCalc.sqft,
             widthInches: sheetW,
-            rateUnit: 'SQFT' as const,
+            rateUnit: sheetCalc.rateUnit,
             pieces: p,
             rate: rowRate,
-            per: 'SQFT',
+            per: sheetCalc.rateUnit,
             discPercent: '',
-            amount: rowAmount
+            amount: sheetCalc.amount
           };
         }
 
@@ -3014,14 +3037,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             <div className="calc-service-banner">
               <img
                 src="https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=1200&q=80"
-                alt="Planing & Surface Milling"
+                alt="Plaining & Surface Milling"
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
               <div className="calc-service-banner-overlay">
                 <span className="calc-service-banner-tag">
                   <Sparkles size={12} /> Surface Finishing
                 </span>
-                <h3 className="calc-service-banner-title">Planing &amp; Milling Works</h3>
+                <h3 className="calc-service-banner-title">Plaining &amp; Milling Works</h3>
               </div>
             </div>
 
@@ -3071,7 +3094,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <input
                   type="number"
                   className="calc-prefixed-input"
-                  placeholder="Total Planing Charges"
+                  placeholder="Total Plaining Charges"
                   value={planingCharges === 0 ? '' : planingCharges}
                   onChange={(e) => {
                     const val = Math.max(0, Number(e.target.value) || 0);
@@ -3093,7 +3116,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 Timber Subtotal: <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>₹{formatIndianCurrency(activeTimberSubtotal)}</strong>
               </span>
               <strong style={{ fontSize: '0.88rem', color: 'var(--primary-800)', fontWeight: 700 }}>
-                Planing: ₹{formatIndianCurrency(planingCharges)}
+                Plaining: ₹{formatIndianCurrency(planingCharges)}
               </strong>
             </div>
           </div>
@@ -3954,11 +3977,19 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         </thead>
                         <tbody>
                           {group.items.map((it, idx) => {
-                            const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
-                            const defaultRowRate = isSqft ? 120 : ratePerCft;
+                            const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready')) && it.itemCategory !== 'timber';
+                            const isPly = Boolean(it.itemCategory === 'plywood' || it.woodType?.toLowerCase().includes('plywood'));
+                            const sheetUnit = isSheet ? resolveSheetRateUnit(it.rateUnit) : null;
+                            const isSheetPcs = sheetUnit === 'PCS';
+                            const isSqft = isSheet ? !isSheetPcs : ((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT');
+                            const defaultRowRate = isSheet ? 0 : (isSqft ? 120 : ratePerCft);
                             const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
-                            const mult = isSqft ? it.sqft : it.cft;
-                            const rowAmount = (typeof it.amount === 'number' && it.amount > 0) ? it.amount : Math.round(mult * rowRate * 100) / 100;
+                            const pNum = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
+                            const rowSqft = isSheet ? calculateSheetSqft(isPly, pNum, it.widthInches, it.boardSize) : it.sqft;
+                            const mult = isSqft ? rowSqft : it.cft;
+                            const rowAmount = isSheet
+                              ? calculateSheetAmount(isPly, pNum, rowRate, sheetUnit!, it.widthInches, it.boardSize).amount
+                              : ((typeof it.amount === 'number' && it.amount > 0) ? it.amount : Math.round(mult * rowRate * 100) / 100);
                             return (
                               <tr
                                 key={it.id || idx}
@@ -4023,25 +4054,47 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                                   />
                                 </td>
                                 <td style={{ padding: '0.35rem 0.5rem', textAlign: 'center', fontWeight: 800, color: 'var(--primary-700)' }}>
-                                  {isSqft ? `${formatValue(it.sqft, 2)} SQFT` : `${formatValue(it.cft, 3)} CFT`}
+                                  {isSheetPcs ? `${pNum} PCS` : (isSqft ? `${formatValue(rowSqft, 2)} SQFT` : `${formatValue(it.cft, 3)} CFT`)}
                                 </td>
                                 <td style={{ padding: '0.25rem 0.3rem', textAlign: 'center' }}>
-                                  <input
-                                    type="number"
-                                    step="any"
-                                    min="0"
-                                    placeholder=""
-                                    className="calc-input tally-cell-input"
-                                    value={(it.rate as any) === '' ? '' : (typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate)}
-                                    onChange={(e) => handleStep8UpdateItem(it.id, 'rate', e.target.value)}
-                                    onBlur={() => {
-                                      if ((it.rate as any) === '' || it.rate === undefined || it.rate === null) {
-                                        handleStep8UpdateItem(it.id, 'rate', defaultRowRate.toString());
-                                      }
-                                    }}
-                                    onFocus={(e) => e.target.select()}
-                                    style={{ width: '68px', padding: '0.22rem 0.3rem', textAlign: 'center', fontWeight: 800 }}
-                                  />
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', justifyContent: 'center' }}>
+                                    <input
+                                      type="number"
+                                      step="any"
+                                      min="0"
+                                      placeholder=""
+                                      className="calc-input tally-cell-input"
+                                      value={(it.rate as any) === '' ? '' : (typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate)}
+                                      onChange={(e) => handleStep8UpdateItem(it.id, 'rate', e.target.value)}
+                                      onBlur={() => {
+                                        if ((it.rate as any) === '' || it.rate === undefined || it.rate === null) {
+                                          handleStep8UpdateItem(it.id, 'rate', defaultRowRate.toString());
+                                        }
+                                      }}
+                                      onFocus={(e) => e.target.select()}
+                                      style={{ width: '58px', padding: '0.22rem 0.3rem', textAlign: 'center', fontWeight: 800 }}
+                                    />
+                                    {isSheet && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleStep8UpdateItem(it.id, 'rateUnit', isSheetPcs ? 'SQFT' : 'PCS')}
+                                        title="Switch between SQFT and Per Piece"
+                                        style={{
+                                          border: '1px solid var(--primary-400)',
+                                          backgroundColor: isSheetPcs ? 'var(--primary-700)' : 'var(--primary-100)',
+                                          color: isSheetPcs ? '#ffffff' : 'var(--primary-900)',
+                                          fontSize: '0.6rem',
+                                          fontWeight: 800,
+                                          borderRadius: '3px',
+                                          padding: '2px 4px',
+                                          cursor: 'pointer',
+                                          lineHeight: 1.1
+                                        }}
+                                      >
+                                        {isSheetPcs ? 'PCS' : 'SQFT'}
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                                 <td style={{ padding: '0.35rem 0.5rem', textAlign: 'right', fontWeight: 800, color: 'var(--primary-900)', fontFamily: 'var(--font-mono)' }}>
                                   ₹{formatIndianCurrency(rowAmount)}
@@ -4093,11 +4146,19 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
                       {/* Mobile Cards List */}
                       {group.items.map((it, idx) => {
-                        const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
-                        const defaultRowRate = isSqft ? 120 : ratePerCft;
+                        const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready')) && it.itemCategory !== 'timber';
+                        const isPly = Boolean(it.itemCategory === 'plywood' || it.woodType?.toLowerCase().includes('plywood'));
+                        const sheetUnit = isSheet ? resolveSheetRateUnit(it.rateUnit) : null;
+                        const isSheetPcs = sheetUnit === 'PCS';
+                        const isSqft = isSheet ? !isSheetPcs : ((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT');
+                        const defaultRowRate = isSheet ? 0 : (isSqft ? 120 : ratePerCft);
                         const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
-                        const mult = isSqft ? it.sqft : it.cft;
-                        const displayAmount = (typeof it.amount === 'number' && it.amount > 0) ? it.amount : Math.round(mult * rowRate * 100) / 100;
+                        const pNum = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
+                        const rowSqft = isSheet ? calculateSheetSqft(isPly, pNum, it.widthInches, it.boardSize) : it.sqft;
+                        const mult = isSqft ? rowSqft : it.cft;
+                        const displayAmount = isSheet
+                          ? calculateSheetAmount(isPly, pNum, rowRate, sheetUnit!, it.widthInches, it.boardSize).amount
+                          : ((typeof it.amount === 'number' && it.amount > 0) ? it.amount : Math.round(mult * rowRate * 100) / 100);
                         return (
                           <div
                             key={it.id || idx}
@@ -4205,7 +4266,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                             >
                               {/* Volume */}
                               <span style={{ fontWeight: 800, color: 'var(--primary-700)', fontFamily: 'var(--font-mono)' }}>
-                                {isSqft ? `${formatValue(it.sqft, 2)} SQFT` : `${formatValue(it.cft, 3)} CFT`}
+                                {isSheetPcs ? `${pNum} PCS` : (isSqft ? `${formatValue(rowSqft, 2)} SQFT` : `${formatValue(it.cft, 3)} CFT`)}
                               </span>
 
                               {/* Rate input */}
@@ -4233,6 +4294,26 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                                     color: 'var(--primary-900)'
                                   }}
                                 />
+                                {isSheet && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStep8UpdateItem(it.id, 'rateUnit', isSheetPcs ? 'SQFT' : 'PCS')}
+                                    title="Switch between SQFT and Per Piece"
+                                    style={{
+                                      border: '1px solid var(--primary-400)',
+                                      backgroundColor: isSheetPcs ? 'var(--primary-700)' : 'var(--primary-100)',
+                                      color: isSheetPcs ? '#ffffff' : 'var(--primary-900)',
+                                      fontSize: '0.58rem',
+                                      fontWeight: 800,
+                                      borderRadius: '3px',
+                                      padding: '2px 4px',
+                                      cursor: 'pointer',
+                                      lineHeight: 1.1
+                                    }}
+                                  >
+                                    {isSheetPcs ? 'PCS' : 'SQFT'}
+                                  </button>
+                                )}
                               </div>
 
                               {/* Row Amount */}
@@ -4686,7 +4767,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 </div>
                 {planingCharges > 0 && (
                   <div className="summary-preview-item">
-                    <span className="preview-label">Planing Charges{planingRatePerCft > 0 ? ` (₹${planingRatePerCft}/CFT)` : ''}:</span>
+                    <span className="preview-label">Plaining Charges{planingRatePerCft > 0 ? ` (₹${planingRatePerCft}/CFT)` : ''}:</span>
                     <span className="preview-val font-bold">+₹ {formatIndianCurrency(planingCharges)}</span>
                   </div>
                 )}
@@ -4913,8 +4994,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     logType === 'round' ? (
                       roundLogStage === 'entry' ? 'Next: Girth Sorting →' :
                       roundLogStage === 'sorting' ? 'Next: Slab Pricing →' :
-                      'Next: Planing →'
-                    ) : 'Next: Planing →'
+                      'Next: Plaining →'
+                    ) : 'Next: Plaining →'
                   )}
                   {currentStep === 7 && 'Next: Carpentry →'}
                   {currentStep === 8 && 'Next: Transport →'}
