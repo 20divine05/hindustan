@@ -5,7 +5,7 @@ import type { MeasurementSheet, BusinessSettings } from '../types';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from '../utils/indianNumberWords';
 import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
 import { exportSheetToPdf, printProformaInvoicePdf } from '../utils/exportPdf';
-import { renderDimensionHtml, renderWithSmallDecimalHtml } from './PrintableProformaInvoice';
+import { renderDimensionHtml, renderWithSmallDecimalHtml, renderAdvanceFooterRows } from './PrintableProformaInvoice';
 import { groupRoundLogsBySpeciesFirst, getRoundLogUnitConfig } from '../utils/roundLogCalculator';
 import { calculateRFT, formatValue, calculateSheetAmount, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, resolveSheetRateUnit, resolveSheetWidth, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
 import './ProformaInvoice.css';
@@ -471,6 +471,8 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const effectiveTotal = (hasCustomEdits || subtotalWithCharges > 0 || !sheet?.finalGrandTotal)
     ? computedFallback
     : sheet.finalGrandTotal;
+  const advanceAmt = Math.max(0, Math.round((sheet?.advanceAmount || 0) * 100) / 100);
+  const remainingAmt = Math.max(0, Math.round((effectiveTotal - advanceAmt) * 100) / 100);
 
   const amountInWords = useMemo(() => {
     return numberToIndianCurrencyWords(effectiveTotal);
@@ -527,7 +529,8 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
       buyerOrderNo,
       buyerOrderDate,
       items: updatedItems,
-      finalGrandTotal: effectiveTotal
+      finalGrandTotal: effectiveTotal,
+      advanceAmount: advanceAmt > 0 ? advanceAmt : undefined
     };
   };
 
@@ -716,7 +719,8 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
       discountDesc: sheet.discount?.type === 'percentage' ? `${sheet.discount.value}%` : undefined,
       gstPercent: sheet.gstPercent,
       gstAmount: gstAmount,
-      finalGrandTotal: effectiveTotal
+      finalGrandTotal: effectiveTotal,
+      advanceAmount: advanceAmt > 0 ? advanceAmt : undefined
     });
   };
 
@@ -763,7 +767,8 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
       discountDesc: sheet.discount?.type === 'percentage' ? `${sheet.discount.value}%` : undefined,
       gstPercent: sheet.gstPercent,
       gstAmount: gstAmount,
-      finalGrandTotal: effectiveTotal
+      finalGrandTotal: effectiveTotal,
+      advanceAmount: advanceAmt > 0 ? advanceAmt : undefined
     });
   };
 
@@ -1371,6 +1376,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                       {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), 'Rs. ')}
                     </td>
                   </tr>
+                  {renderAdvanceFooterRows(advanceAmt, remainingAmt, 4)}
                 </tfoot>
               </table>
             ) : (
@@ -1697,6 +1703,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), 'Rs. ')}
                   </td>
                 </tr>
+                {renderAdvanceFooterRows(advanceAmt, remainingAmt, 3 + (showSqftCol ? 1 : 0) + (showRftCol ? 1 : 0), 3, true)}
               </tfoot>
               </table>
             )}

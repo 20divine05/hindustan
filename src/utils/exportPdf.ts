@@ -88,6 +88,7 @@ export interface ProformaInvoiceExportData {
   gstTaxableBase?: number;
   gstAmount?: number;
   finalGrandTotal?: number;
+  advanceAmount?: number;
 
   bankHolder?: string;
   bankName?: string;
@@ -331,6 +332,8 @@ export function createProformaInvoiceDoc(
     : ((invoiceData?.finalGrandTotal !== undefined && invoiceData.finalGrandTotal > 0)
         ? invoiceData.finalGrandTotal
         : 0);
+  const advanceAmt = Math.max(0, Math.round((invoiceData?.advanceAmount ?? sheet.advanceAmount ?? 0) * 100) / 100);
+  const remainingAmt = Math.max(0, Math.round((effectiveTotal - advanceAmt) * 100) / 100);
   const amountInWords = numberToIndianCurrencyWords(effectiveTotal);
 
   // -------------------------------------------------------------
@@ -1037,8 +1040,8 @@ export function createProformaInvoiceDoc(
   function splitDecimalNumber(s: string) {
     if (!s || typeof s !== 'string') return null;
     const trimmed = s.trim();
-    // Only numbers like 10.6337, 2,020.01, - 500.00, Rs. 1,234.56, 10.6337 CFT
-    const match = trimmed.match(/^((?:Rs\.?\s*|-|\+)?[\d,]+)\.(\d+)(.*)$/);
+    // Only numbers like 10.6337, 2,020.01, - 500.00, Rs. 1,234.56, - Rs. 1,000.00, 10.6337 CFT
+    const match = trimmed.match(/^((?:-\s*)?(?:Rs\.?\s*|\+)?[\d,]+)\.(\d+)(.*)$/);
     if (!match) return null;
     return {
       intStr: match[1] + '.',
@@ -1080,39 +1083,83 @@ export function createProformaInvoiceDoc(
     'Amount'
   ]];
 
-  const roundFoot = [[
-    {
-      content: 'GRAND TOTAL',
-      colSpan: 2,
-      styles: { halign: 'right', fontStyle: 'bold', cellPadding: { right: 2.5 } }
-    },
-    {
-      content: `${totalPieces} LOGS`,
-      styles: { halign: 'center', fontStyle: 'bold' }
-    },
-    {
-      content: `${formatValue(roundLogOutputUnit === 'CFT' ? totalCft : totalCbm, 4)} ${roundLogOutputUnit}`,
-      styles: { halign: 'right', fontStyle: 'bold' }
-    },
-    {
-      content: `Rs. ${formatIndianCurrency(effectiveTotal)}`,
-      styles: { halign: 'right', fontStyle: 'bold', cellPadding: { right: 1.8 }, fontSize: 9.0 }
-    }
-  ]];
+  const buildAdvancePdfRows = (
+    labelColSpan: number,
+    amountColSpan: number,
+    leadingEmptyCell: boolean,
+    amountPadRight: number
+  ) => {
+    if (advanceAmt <= 0) return [];
+    const lead = leadingEmptyCell ? [{ content: '', styles: { halign: 'center' } }] : [];
+    return [
+      [
+        ...lead,
+        {
+          content: 'LESS: ADVANCE',
+          colSpan: labelColSpan,
+          styles: { halign: 'right', fontStyle: 'bold', textColor: [22, 101, 52], cellPadding: { right: 2.5 } }
+        },
+        {
+          content: `- Rs. ${formatIndianCurrency(advanceAmt)}`,
+          colSpan: amountColSpan,
+          styles: { halign: 'right', fontStyle: 'bold', textColor: [22, 101, 52], cellPadding: { right: amountPadRight } }
+        }
+      ],
+      [
+        ...lead,
+        {
+          content: 'AMOUNT TO BE PAID (REMAINING AMOUNT)',
+          colSpan: labelColSpan,
+          styles: { halign: 'right', fontStyle: 'bold', cellPadding: { right: 2.5 } }
+        },
+        {
+          content: `Rs. ${formatIndianCurrency(remainingAmt)}`,
+          colSpan: amountColSpan,
+          styles: { halign: 'right', fontStyle: 'bold', cellPadding: { right: amountPadRight }, fontSize: isRoundLog ? 9.0 : 8.5 }
+        }
+      ]
+    ];
+  };
 
-  const cutFoot = [[
-    '',
-    'Total',
-    { content: `${totalPieces} PCS`, styles: { cellPadding: { right: 2.2 } } },
-    { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { cellPadding: { right: 2.2 } } },
-    ...(showSqftCol ? [{ content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '', styles: { cellPadding: { right: 2.2 } } }] : []),
-    ...(showRftCol ? [{ content: totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '', styles: { cellPadding: { right: 2.2 } } }] : []),
-    {
-      content: `Rs. ${formatIndianCurrency(effectiveTotal)}`,
-      colSpan: 3,
-      styles: { halign: 'right', cellPadding: { right: 2.2 } }
-    }
-  ]];
+  const roundFoot = [
+    [
+      {
+        content: 'GRAND TOTAL',
+        colSpan: 2,
+        styles: { halign: 'right', fontStyle: 'bold', cellPadding: { right: 2.5 } }
+      },
+      {
+        content: `${totalPieces} LOGS`,
+        styles: { halign: 'center', fontStyle: 'bold' }
+      },
+      {
+        content: `${formatValue(roundLogOutputUnit === 'CFT' ? totalCft : totalCbm, 4)} ${roundLogOutputUnit}`,
+        styles: { halign: 'right', fontStyle: 'bold' }
+      },
+      {
+        content: `Rs. ${formatIndianCurrency(effectiveTotal)}`,
+        styles: { halign: 'right', fontStyle: 'bold', cellPadding: { right: 1.8 }, fontSize: 9.0 }
+      }
+    ],
+    ...buildAdvancePdfRows(4, 1, false, 1.8)
+  ];
+
+  const cutFoot = [
+    [
+      '',
+      'Total',
+      { content: `${totalPieces} PCS`, styles: { cellPadding: { right: 2.2 } } },
+      { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { cellPadding: { right: 2.2 } } },
+      ...(showSqftCol ? [{ content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '', styles: { cellPadding: { right: 2.2 } } }] : []),
+      ...(showRftCol ? [{ content: totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '', styles: { cellPadding: { right: 2.2 } } }] : []),
+      {
+        content: `Rs. ${formatIndianCurrency(effectiveTotal)}`,
+        colSpan: 3,
+        styles: { halign: 'right', cellPadding: { right: 2.2 } }
+      }
+    ],
+    ...buildAdvancePdfRows(3 + (showSqftCol ? 1 : 0) + (showRftCol ? 1 : 0), 3, true, 2.2)
+  ];
 
   const roundColumnStyles = {
     0: { halign: 'center', cellWidth: 14 },

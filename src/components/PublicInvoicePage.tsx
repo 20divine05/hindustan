@@ -143,6 +143,7 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
       discountDesc: sheet.discount?.type === 'percentage' ? `${sheet.discount.value}%` : undefined,
       gstPercent: sheet.gstPercent,
       finalGrandTotal: effectiveTotal,
+      advanceAmount: sheet.advanceAmount || 0,
       items: isRoundLog ? roundInvoiceItems : cutInvoiceItems
     };
   }, [sheet, businessSettings]);
@@ -382,6 +383,7 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
             gstTaxableBase={resolvedExportData.gstTaxableBase}
             gstAmount={resolvedExportData.gstAmount}
             finalGrandTotal={grandTotal}
+            advanceAmount={resolvedExportData.advanceAmount}
           />
         </div>
       </div>

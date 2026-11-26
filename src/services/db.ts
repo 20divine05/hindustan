@@ -260,6 +260,12 @@ export function sanitizeAndComputeSheet(
     gstPercent: sheet.gstPercent,
     isConfirmed: Boolean(sheet.isConfirmed),
     finalGrandTotal: sheet.finalGrandTotal,
+    advanceAmount: (() => {
+      const parsedAdv = typeof sheet.advanceAmount === 'number'
+        ? sheet.advanceAmount
+        : (typeof sheet.advanceAmount === 'string' && sheet.advanceAmount !== '' ? parseFloat(sheet.advanceAmount) : 0);
+      return !isNaN(parsedAdv) && parsedAdv > 0 ? Math.round(parsedAdv * 100) / 100 : undefined;
+    })(),
     proformaExportData: sheet.proformaExportData,
     totalEntries: sheet.logType === 'round' && sheet.roundLogItems ? sheet.roundLogItems.length : totals.totalEntries,
     totalPieces: sheet.logType === 'round' && sheet.roundLogItems ? sheet.roundLogItems.reduce((acc, it) => acc + (Number(it.pieces) || 0), 0) : totals.totalPieces,
@@ -614,6 +620,7 @@ export const dbService = {
         gstPercent: parsedMeta?.gstPercent !== undefined ? parsedMeta.gstPercent : localSheet?.gstPercent,
         isConfirmed: parsedMeta?.isConfirmed !== undefined ? Boolean(parsedMeta.isConfirmed) : (localSheet?.isConfirmed ?? Boolean(sheetData.is_confirmed)),
         finalGrandTotal: parsedMeta ? parsedMeta.finalGrandTotal : localSheet?.finalGrandTotal,
+        advanceAmount: parsedMeta ? parsedMeta.advanceAmount : localSheet?.advanceAmount,
         proformaExportData: parsedMeta ? parsedMeta.proformaExportData : localSheet?.proformaExportData,
         totalEntries: sheetData.total_entries || finalItems.length,
         totalPieces: Number(sheetData.total_pieces) || localSheet?.totalPieces || 0,
@@ -698,6 +705,7 @@ export const dbService = {
           gstPercent: sanitized.gstPercent,
           isConfirmed: Boolean(sanitized.isConfirmed),
           finalGrandTotal: sanitized.finalGrandTotal,
+          advanceAmount: sanitized.advanceAmount,
           proformaExportData: sanitized.proformaExportData,
           logType: sanitized.logType,
           roundLogOutputUnit: sanitized.roundLogOutputUnit,

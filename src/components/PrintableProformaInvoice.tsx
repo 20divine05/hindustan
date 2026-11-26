@@ -125,6 +125,45 @@ export const renderWithSmallDecimalHtml = (val: string | number | undefined | nu
   );
 };
 
+export const renderAdvanceFooterRows = (
+  advanceAmt: number,
+  remainingAmt: number,
+  labelColSpan: number,
+  amountColSpan: number = 1,
+  leadingEmptyCell: boolean = false
+) => {
+  if (!advanceAmt || advanceAmt <= 0) return null;
+  return (
+    <>
+      <tr className="p-total-row">
+        {leadingEmptyCell && <td style={{ backgroundColor: '#ffffff' }}></td>}
+        <td
+          colSpan={labelColSpan}
+          style={{ textAlign: 'right', fontWeight: 700, paddingRight: '12px', color: '#166534', backgroundColor: '#ffffff' }}
+        >
+          LESS: ADVANCE
+        </td>
+        <td
+          colSpan={amountColSpan}
+          className="text-right p-mono font-bold"
+          style={{ color: '#166534', paddingRight: '8px', backgroundColor: '#ffffff' }}
+        >
+          - {renderWithSmallDecimalHtml(formatIndianCurrency(advanceAmt), 'Rs. ')}
+        </td>
+      </tr>
+      <tr className="p-total-row">
+        {leadingEmptyCell && <td></td>}
+        <td colSpan={labelColSpan} style={{ textAlign: 'right', fontWeight: 800, paddingRight: '12px' }}>
+          AMOUNT TO BE PAID (REMAINING AMOUNT)
+        </td>
+        <td colSpan={amountColSpan} className="text-right p-mono font-bold p-final-total-highlight">
+          {renderWithSmallDecimalHtml(formatIndianCurrency(remainingAmt), 'Rs. ')}
+        </td>
+      </tr>
+    </>
+  );
+};
+
 export interface PrintableProformaInvoiceProps {
   businessSettings?: BusinessSettings;
   voucherType?: 'sales' | 'purchase';
@@ -183,6 +222,7 @@ export interface PrintableProformaInvoiceProps {
   gstTaxableBase?: number;
   gstAmount?: number;
   finalGrandTotal?: number;
+  advanceAmount?: number;
 
   upiId?: string;
   bankHolder?: string;
@@ -233,7 +273,8 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
   gstPercent: _gstPercent = 0,
   gstTaxableBase: _gstTaxableBase,
   gstAmount = 0,
-  finalGrandTotal
+  finalGrandTotal,
+  advanceAmount = 0
 }) => {
   const isRound = logType === 'round';
   const roundSpeciesData = groupRoundLogsBySpeciesFirst(
@@ -410,6 +451,8 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
   const effectiveTotal = (subtotalWithCharges > 0 || isRound)
     ? computedFallback
     : (finalGrandTotal !== undefined && finalGrandTotal > 0 ? finalGrandTotal : timberTotalAmount);
+  const advanceAmt = Math.max(0, Math.round((advanceAmount || 0) * 100) / 100);
+  const remainingAmt = Math.max(0, Math.round((effectiveTotal - advanceAmt) * 100) / 100);
   const amountInWords = numberToIndianCurrencyWords(effectiveTotal);
 
   let runningSl = 1;
@@ -824,6 +867,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                     {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), 'Rs. ')}
                   </td>
                 </tr>
+                {renderAdvanceFooterRows(advanceAmt, remainingAmt, 4)}
               </tfoot>
             </table>
           ) : (
@@ -1152,6 +1196,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                     {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), 'Rs. ')}
                   </td>
                 </tr>
+                {renderAdvanceFooterRows(advanceAmt, remainingAmt, 3 + (showSqftCol ? 1 : 0) + (showRftCol ? 1 : 0), 3, true)}
               </tfoot>
             </table>
           )}

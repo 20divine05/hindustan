@@ -281,6 +281,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   );
 
   const [gstPercent, setGstPercent] = useState<number>(sheetToEdit?.gstPercent !== undefined ? sheetToEdit.gstPercent : 0);
+  const [advanceAmount, setAdvanceAmount] = useState<number>(sheetToEdit?.advanceAmount || 0);
   const [isCustomGstRate, setIsCustomGstRate] = useState<boolean>(
     sheetToEdit?.gstPercent !== undefined && ![0, 5, 12, 18, 28].includes(sheetToEdit.gstPercent)
   );
@@ -385,6 +386,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       const isCustomRate = sheetToEdit.gstPercent !== undefined && ![0, 5, 12, 18, 28].includes(sheetToEdit.gstPercent);
       setIsCustomGstRate(isCustomRate);
       setGstPercent(sheetToEdit.gstPercent !== undefined ? sheetToEdit.gstPercent : 0);
+      setAdvanceAmount(sheetToEdit.advanceAmount || 0);
       setInvoiceNo(sheetToEdit.referenceNumber ? sheetToEdit.referenceNumber.replace('REF-', '') : '8');
       setInvoiceDate(formatToInvoiceDate(sheetToEdit.measurementDate));
       setDestination(sheetToEdit.destination || 'Karnataka');
@@ -796,6 +798,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
   // Grand Total = Total Before Discount - Discount Deducted
   const finalGrandTotal = Math.max(0, Math.round((totalBeforeDiscount - discountAmount) * 100) / 100);
+  const remainingPayableAmount = Math.max(0, Math.round((finalGrandTotal - Math.max(0, advanceAmount)) * 100) / 100);
 
   // Sorted timber entries according to strict sawmill specifications:
   // Wood Species Grouping -> Width (IN) Ascending -> Length (FT) Descending -> Thickness (IN) Descending
@@ -1098,7 +1101,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       },
       customGstTaxableAmount: customGstTaxableAmount > 0 ? customGstTaxableAmount : undefined,
       gstPercent,
-      finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : totalBeforeDiscount
+      finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : totalBeforeDiscount,
+      advanceAmount: advanceAmount > 0 ? advanceAmount : undefined
     };
     return sanitizeAndComputeSheet(raw, user?.id || 'guest');
   };
@@ -1181,7 +1185,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       },
       customGstTaxableAmount: customGstTaxableAmount > 0 ? customGstTaxableAmount : undefined,
       gstPercent,
-      finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : totalBeforeDiscount
+      finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : totalBeforeDiscount,
+      advanceAmount: advanceAmount > 0 ? advanceAmount : undefined
     };
 
     // Always preserve working session draft
@@ -1255,6 +1260,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     customGstTaxableAmount,
     gstPercent,
     finalGrandTotal,
+    advanceAmount,
     sheetId,
     user?.id
   ]);
@@ -1349,6 +1355,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setCustomGstTaxableAmount(0);
     setIsCustomGstRate(false);
     setGstPercent(0);
+    setAdvanceAmount(0);
     setVoucherType('sales');
     setCurrentStep(1);
     setSaveStatus('saved');
@@ -1512,6 +1519,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       gstPercent,
       gstTaxableBase: (customGstTaxableAmount > 0 && customGstTaxableAmount !== subtotalWithCharges) ? gstTaxableBase : undefined,
       finalGrandTotal,
+      advanceAmount: advanceAmount > 0 ? advanceAmount : undefined,
       gstAmount,
       items: invoiceItems
     };
@@ -3471,23 +3479,15 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         )}
 
         {/* =========================================================================
-            STEP 12: DISCOUNT (WITH IMAGE)
+            STEP 12: DISCOUNT & ADVANCE
             ========================================================================= */}
         {currentStep === 12 && (
           <div className="card calc-step-card">
-            {/* Visual Service Banner */}
-            <div className="calc-service-banner">
-              <img
-                src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1200&q=80"
-                alt="Discount & Offers"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-              <div className="calc-service-banner-overlay">
-                <span className="calc-service-banner-tag">
-                  <Tag size={12} /> Special Offers &amp; Concessions
-                </span>
-                <h3 className="calc-service-banner-title">Customer Discount &amp; Concession</h3>
-              </div>
+            {/* Section Heading (no image banner) */}
+            <div className="calc-step-header" style={{ textAlign: 'center', marginBottom: '0.85rem' }}>
+              <h3 className="calc-step-title" style={{ justifyContent: 'center', fontSize: '1.15rem' }}>
+                <Tag size={18} color="var(--primary-600)" /> Customer Discount &amp; Concession
+              </h3>
             </div>
 
             {/* Current Bill Subtotal / Before Discount Display */}
@@ -3682,6 +3682,65 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   ₹{formatIndianCurrency(finalGrandTotal)}
                 </strong>
               </div>
+            </div>
+
+            {/* Advance Section */}
+            <div className="calc-charge-card" style={{ marginTop: '0.9rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  Advance
+                </h4>
+                {advanceAmount > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setAdvanceAmount(0)}
+                    style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.2rem 0.55rem', color: 'var(--danger-500)', borderRadius: '6px' }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.3rem' }}>
+                Advance Amount Paid (₹):
+              </label>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-muted)' }}>
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  className="calc-prefixed-input"
+                  value={advanceAmount === 0 ? '' : advanceAmount}
+                  placeholder="Enter advance amount (if any)"
+                  onChange={(e) => setAdvanceAmount(Math.max(0, Number(e.target.value) || 0))}
+                  style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, borderRadius: '8px', border: '1.5px solid var(--border-medium)' }}
+                />
+              </div>
+
+              {advanceAmount > 0 && (
+                <div style={{
+                  marginTop: '0.65rem',
+                  padding: '0.55rem 0.85rem',
+                  borderRadius: '8px',
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '0.4rem'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#1e40af', fontWeight: 600 }}>Advance Received:</div>
+                    <strong style={{ fontSize: '1rem', color: '#166534' }}>-₹{formatIndianCurrency(advanceAmount)}</strong>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#1e40af', fontWeight: 600 }}>Amount to be Paid (Remaining):</div>
+                    <strong style={{ fontSize: '1.1rem', color: '#1e3a8a' }}>₹{formatIndianCurrency(remainingPayableAmount)}</strong>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -4940,6 +4999,18 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                     ₹ {formatIndianCurrency(finalGrandTotal)}
                   </span>
                 </div>
+                {advanceAmount > 0 && (
+                  <>
+                    <div className="summary-preview-item">
+                      <span className="preview-label">Less: Advance:</span>
+                      <span className="preview-val font-bold" style={{ color: '#15803d' }}>-₹ {formatIndianCurrency(advanceAmount)}</span>
+                    </div>
+                    <div className="summary-preview-item" style={{ background: '#eff6ff', padding: '0.45rem 0.65rem', borderRadius: '6px' }}>
+                      <span className="preview-label" style={{ fontWeight: 800 }}>Remaining to be Paid:</span>
+                      <span className="preview-val font-bold" style={{ color: '#1e3a8a' }}>₹ {formatIndianCurrency(remainingPayableAmount)}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -5821,6 +5892,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           gstTaxableBase={(customGstTaxableAmount > 0 && customGstTaxableAmount !== subtotalWithCharges) ? gstTaxableBase : undefined}
           gstAmount={gstAmount}
           finalGrandTotal={finalGrandTotal}
+          advanceAmount={advanceAmount}
         />
       </div>
     </>
