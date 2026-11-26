@@ -365,6 +365,10 @@
   text-overflow: ellipsis;
 }
 
+.p-items-table td.text-right {
+  padding-right: 7px !important;
+}
+
 .p-items-table th:last-child {
   border-right: none;
 }
