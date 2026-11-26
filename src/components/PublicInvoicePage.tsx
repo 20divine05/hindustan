@@ -4,7 +4,7 @@ import { dbService } from '../services/db';
 import { exportSheetToPdf, printProformaInvoicePdf, type ProformaInvoiceExportData } from '../utils/exportPdf';
 import { PrintableProformaInvoice } from './PrintableProformaInvoice';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
-import { calculateRFT, calculateTotals, calculateSheetAmount, calculateSheetSqft, isTimberRftBilled, resolveSheetRateUnit, resolveSheetWidth, getCutLogItemSectionHeading, getCutLogItemDescription, sortTimberEntries } from '../utils/calculator';
+import { calculateRFT, calculateTotals, calculateSheetAmount, calculateSheetSqft, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, resolveSheetRateUnit, resolveSheetWidth, getCutLogItemSectionHeading, getCutLogItemDescription, sortTimberEntries } from '../utils/calculator';
 import type { BusinessSettings, MeasurementSheet } from '../types';
 
 interface PublicInvoicePageProps {
@@ -61,11 +61,15 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
       const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY');
       const isSheet = (isPly || isReady) && it.itemCategory !== 'timber';
       const woodHeading = getCutLogItemSectionHeading(it);
+      const isCftRftOnly = !isSheet && isCftRftOnlyWood(it.woodType || woodHeading);
       const isRftBilled = !isSheet && isTimberRftBilled({ ...it, woodType: woodHeading });
-      const unit: 'CFT' | 'SQFT' | 'PCS' | 'RFT' = isSheet ? resolveSheetRateUnit(it.rateUnit) : (isRftBilled ? 'RFT' : (it.rateUnit || 'CFT'));
+      const isSqftBilled = !isSheet && isTimberSqftBilled({ ...it, woodType: woodHeading });
+      const unit: 'CFT' | 'SQFT' | 'PCS' | 'RFT' = isSheet
+        ? resolveSheetRateUnit(it.rateUnit)
+        : (isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : 'CFT'));
       const pcs = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
       const sheetW = resolveSheetWidth(isPly, it.widthInches, it.boardSize);
-      const sheetSqft = isSheet ? calculateSheetSqft(isPly, pcs, sheetW, it.boardSize) : (it.sqft || 0);
+      const sheetSqft = isSheet ? calculateSheetSqft(isPly, pcs, sheetW, it.boardSize) : (isCftRftOnly ? 0 : (it.sqft || 0));
       const rftVal = !isSheet ? calculateRFT(it.lengthFeet, pcs) : 0;
       const qty = unit === 'RFT' ? rftVal : (unit === 'SQFT' ? sheetSqft : unit === 'PCS' ? pcs : it.cft);
       const rate = typeof it.rate === 'number' ? it.rate : rateDefault;

@@ -165,6 +165,11 @@ export function isRftEligibleWood(woodType?: string): boolean {
   return w.includes('SILVER') || w.includes('NEEM') || w.includes('JUNGLE');
 }
 
+export function isCftRftOnlyWood(woodType?: string): boolean {
+  const w = (woodType || '').trim().toUpperCase();
+  return w.includes('SILVER') || w.includes('NEEM');
+}
+
 export function calculateRFT(lengthFeet: number | '', pieces: number | ''): number {
   const l = typeof lengthFeet === 'number' ? lengthFeet : parseFloat(String(lengthFeet)) || 0;
   const p = typeof pieces === 'number' ? pieces : parseFloat(String(pieces)) || 0;
@@ -175,6 +180,20 @@ export function calculateRFT(lengthFeet: number | '', pieces: number | ''): numb
 export function isTimberRftBilled(item: { woodType?: string; rateUnit?: string; per?: string; itemCategory?: string }): boolean {
   if (item.itemCategory === 'plywood' || item.itemCategory === 'ready_board') return false;
   return isRftEligibleWood(item.woodType) && (item.rateUnit === 'RFT' || item.per === 'RFT');
+}
+
+export function isTimberSqftBilled(item: {
+  woodType?: string;
+  rateUnit?: string;
+  per?: string;
+  widthInches?: number | '';
+  itemCategory?: string;
+}): boolean {
+  if (item.itemCategory === 'plywood' || item.itemCategory === 'ready_board') return false;
+  if (isCftRftOnlyWood(item.woodType)) return false;
+  if (isTimberRftBilled(item)) return false;
+  const w = typeof item.widthInches === 'number' ? item.widthInches : parseFloat(String(item.widthInches)) || 0;
+  return item.rateUnit === 'SQFT' || item.per === 'SQFT' || (w >= 7 && item.rateUnit !== 'CFT' && item.per !== 'CFT');
 }
 
 export function resolveSheetRateUnit(rateUnit?: string, per?: string): 'SQFT' | 'PCS' {
@@ -237,12 +256,13 @@ export function calculateTotals(
       validEntries++;
       totalPieces += p;
       const rowCft = calculateCFT(l, w, t, p);
-      const rowSqft = rowCft * 12; // SQFT = CFT × 12
+      const isCftRftOnly = isCftRftOnlyWood(item.woodType);
+      const rowSqft = isCftRftOnly ? 0 : rowCft * 12; // SQFT = CFT × 12 (excluded for Silver Wood & Neem)
       totalCft += rowCft;
       totalSqft += rowSqft;
 
       const isRftBilled = isTimberRftBilled(item);
-      const isSqftBilled = !isRftBilled && w >= 7 && item.rateUnit !== 'CFT';
+      const isSqftBilled = isTimberSqftBilled(item);
       const rowRft = calculateRFT(l, p);
       const multiplier = isRftBilled ? rowRft : (isSqftBilled ? (item.sqft || rowSqft) : rowCft);
       const defaultRowRate = isRftBilled ? 0 : (isSqftBilled ? 120 : defaultRate);
@@ -460,15 +480,21 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
     const l = typeof it.lengthFeet === 'number' ? it.lengthFeet : parseFloat(String(it.lengthFeet));
     const w = typeof it.widthInches === 'number' ? it.widthInches : parseFloat(String(it.widthInches));
     if (!isNaN(l) && l > 0 && !isNaN(w) && w > 0) {
-      // Preserve RFT for eligible species, or default width >= 7 to SQFT unless explicitly CFT
-      const isWide = w >= 7;
+      // Preserve RFT for eligible species; Silver Wood & Neem only allow CFT/RFT (never SQFT)
+      const isCftRftOnly = isCftRftOnlyWood(it.woodType);
+      const isWide = !isCftRftOnly && w >= 7;
       const isRft = isTimberRftBilled(it);
-      const resolvedUnit: 'CFT' | 'SQFT' | 'RFT' = isRft ? 'RFT' : (isWide ? (it.rateUnit === 'CFT' ? 'CFT' : 'SQFT') : 'CFT');
+      const resolvedUnit: 'CFT' | 'SQFT' | 'RFT' = isRft
+        ? 'RFT'
+        : isCftRftOnly
+          ? 'CFT'
+          : (isWide ? (it.rateUnit === 'CFT' ? 'CFT' : 'SQFT') : (it.rateUnit === 'SQFT' ? 'SQFT' : 'CFT'));
       const defaultRateVal = resolvedUnit === 'RFT' ? 0 : (resolvedUnit === 'SQFT' ? 120 : 1200);
       const resolvedRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRateVal;
 
       validItems.push({
         ...it,
+        sqft: isCftRftOnly ? 0 : it.sqft,
         rft: calculateRFT(l, it.pieces),
         rateUnit: resolvedUnit,
         rate: resolvedRate
@@ -506,10 +532,13 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
       const w = typeof it.widthInches === 'number' ? it.widthInches : parseFloat(String(it.widthInches)) || 0;
       const t = typeof it.thicknessInches === 'number' ? it.thicknessInches : parseFloat(String(it.thicknessInches)) || 0;
       const p = typeof it.pieces === 'number' ? it.pieces : parseFloat(String(it.pieces)) || 1;
-      const isWide = w >= 7;
+      const isCftRftOnly = !isSheet && isCftRftOnlyWood(it.woodType);
+      const isWide = !isCftRftOnly && w >= 7;
       const sheetUnit = isSheet ? resolveSheetRateUnit(it.rateUnit) : null;
       const isRft = !isSheet && isTimberRftBilled(it);
-      const unit: 'CFT' | 'SQFT' | 'PCS' | 'RFT' = isSheet ? sheetUnit! : (isRft ? 'RFT' : (isWide ? (it.rateUnit === 'CFT' ? 'CFT' : 'SQFT') : 'CFT'));
+      const unit: 'CFT' | 'SQFT' | 'PCS' | 'RFT' = isSheet
+        ? sheetUnit!
+        : (isRft ? 'RFT' : (isCftRftOnly ? 'CFT' : (isWide ? (it.rateUnit === 'CFT' ? 'CFT' : 'SQFT') : (it.rateUnit === 'SQFT' ? 'SQFT' : 'CFT'))));
       const defaultRateVal = (unit === 'SQFT' || unit === 'PCS' || unit === 'RFT') ? (isSheet || unit === 'RFT' ? 0 : 120) : 1200;
       const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRateVal;
 
@@ -553,7 +582,7 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
 
       const calc = calculateRow(l, w, t, p);
       const rftVal = calculateRFT(l, p);
-      const isSqft = !isRft && w >= 7 && unit !== 'CFT';
+      const isSqft = !isRft && isTimberSqftBilled({ ...it, rateUnit: unit });
       const mult = isRft ? rftVal : (isSqft ? calc.sqft : calc.cft);
       const computedAmount = Math.round(mult * r * 100) / 100;
 
@@ -572,14 +601,14 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
 
         existing.pieces = newPieces;
         existing.cft = newCalc.cft;
-        existing.sqft = newCalc.sqft;
+        existing.sqft = isCftRftOnly ? 0 : newCalc.sqft;
         existing.rft = newRft;
         existing.amount = newAmount;
       } else {
         const clone: MeasurementItem = {
           ...it,
           cft: calc.cft,
-          sqft: calc.sqft,
+          sqft: isCftRftOnly ? 0 : calc.sqft,
           rft: rftVal,
           rate: r,
           rateUnit: unit,
@@ -694,7 +723,7 @@ export function groupTimberByWood(items: MeasurementItem[], defaultRate = 1200):
         const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
         return acc + Math.round(rftVal * r * 100) / 100;
       }
-      const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
+      const isSqft = isTimberSqftBilled(it);
       const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : (isSqft ? 120 : defaultRate);
       const mult = isSqft ? (it.sqft || 0) : (it.cft || 0);
       return acc + Math.round(mult * r * 100) / 100;
@@ -739,7 +768,12 @@ export function groupTimberByWidth(items: MeasurementItem[], defaultRate = 1200)
       if (typeof it.amount === 'number' && it.amount > 0) {
         return acc + it.amount;
       }
-      const isSqft = widthInches >= 7 && it.rateUnit !== 'CFT';
+      if (isTimberRftBilled(it)) {
+        const rftVal = typeof it.rft === 'number' && it.rft > 0 ? it.rft : calculateRFT(it.lengthFeet, it.pieces);
+        const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
+        return acc + Math.round(rftVal * r * 100) / 100;
+      }
+      const isSqft = isTimberSqftBilled({ ...it, widthInches });
       const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : (isSqft ? 120 : defaultRate);
       const mult = isSqft ? (it.sqft || 0) : (it.cft || 0);
       return acc + Math.round(mult * r * 100) / 100;

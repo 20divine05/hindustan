@@ -50,7 +50,7 @@ import { RoundLogSlabPricing } from '../components/RoundLogSlabPricing';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ProformaInvoiceModal } from '../components/ProformaInvoiceModal';
 import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice';
-import { calculateRFT, calculateTotals, calculateSheetAmount, calculateSheetSqft, isRftEligibleWood, isTimberRftBilled, resolveSheetRateUnit, resolveSheetWidth, formatValue, sortTimberEntries, groupTimberByWood, calculateRow, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from '../utils/calculator';
+import { calculateRFT, calculateTotals, calculateSheetAmount, calculateSheetSqft, isCftRftOnlyWood, isRftEligibleWood, isTimberRftBilled, isTimberSqftBilled, resolveSheetRateUnit, resolveSheetWidth, formatValue, sortTimberEntries, groupTimberByWood, calculateRow, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from '../utils/calculator';
 import {
   calculateRoundLogTotals,
   getRoundLogUnitConfig,
@@ -928,11 +928,15 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       target[field] = rawValue;
       if (field === 'woodType') {
         const wNum = typeof target.widthInches === 'number' ? target.widthInches : 0;
-        if (!isRftEligibleWood(target.woodType) && target.rateUnit === 'RFT') {
+        const isCftRft = isCftRftOnlyWood(target.woodType);
+        if (isCftRft) {
+          target.rateUnit = 'RFT';
+          target.sqft = 0;
+        } else if (!isRftEligibleWood(target.woodType) && target.rateUnit === 'RFT') {
           target.rateUnit = wNum >= 7 ? 'SQFT' : 'CFT';
         }
         const isRft = isTimberRftBilled(target);
-        const isSqft = !isRft && wNum >= 7 && target.rateUnit !== 'CFT';
+        const isSqft = isTimberSqftBilled(target);
         const rftVal = calculateRFT(target.lengthFeet, target.pieces);
         target.rft = rftVal;
         const rowRate = typeof target.rate === 'number' && target.rate > 0 ? target.rate : (isRft ? 0 : (isSqft ? 120 : ratePerCft));
@@ -940,12 +944,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         target.amount = Math.round(mult * rowRate * 100) / 100;
       }
     } else if (field === 'rateUnit') {
+      const isCftRft = isCftRftOnlyWood(target.woodType);
       const nextUnit = (rawValue === 'RFT' && isRftEligibleWood(target.woodType))
         ? 'RFT'
-        : (rawValue === 'SQFT' ? 'SQFT' : 'CFT');
+        : (!isCftRft && rawValue === 'SQFT' ? 'SQFT' : 'CFT');
       target.rateUnit = nextUnit;
       const rftVal = calculateRFT(target.lengthFeet, target.pieces);
       target.rft = rftVal;
+      if (isCftRft) target.sqft = 0;
       const rowRate = typeof target.rate === 'number' && target.rate > 0 ? target.rate : (nextUnit === 'RFT' ? 0 : (nextUnit === 'SQFT' ? 120 : ratePerCft));
       const mult = nextUnit === 'RFT' ? rftVal : (nextUnit === 'SQFT' ? target.sqft : target.cft);
       target.amount = Math.round(mult * rowRate * 100) / 100;
@@ -961,14 +967,15 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         target.pieces,
         businessSettings?.sqftFormulaType
       );
+      const isCftRft = isCftRftOnlyWood(target.woodType);
       target.cft = calc.cft;
-      target.sqft = calc.sqft;
+      target.sqft = isCftRft ? 0 : calc.sqft;
       const rftVal = calculateRFT(target.lengthFeet, target.pieces);
       target.rft = rftVal;
 
       const wNum = typeof target.widthInches === 'number' ? target.widthInches : 0;
       const keepRft = isTimberRftBilled(target);
-      if (field === 'widthInches' && !keepRft) {
+      if (field === 'widthInches' && !keepRft && !isCftRft) {
         if (wNum >= 7) {
           target.rateUnit = 'SQFT';
           if (!target.rate || target.rate === ratePerCft) {
@@ -983,7 +990,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       }
 
       const isRft = isTimberRftBilled(target);
-      const isSqft = !isRft && wNum >= 7 && target.rateUnit !== 'CFT';
+      const isSqft = isTimberSqftBilled(target);
       const defaultRowRate = isRft ? 0 : (isSqft ? 120 : ratePerCft);
       const rowRate = typeof target.rate === 'number' && target.rate > 0 ? target.rate : defaultRowRate;
       const multiplier = isRft ? rftVal : (isSqft ? calc.sqft : calc.cft);
@@ -1006,6 +1013,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const wtUpper = (woodType || '').toUpperCase();
     const isPly = wtUpper.includes('PLYWOOD');
     const isReady = wtUpper.includes('READY');
+    const isCftRft = isCftRftOnlyWood(woodType);
     const newRow: MeasurementItem = (isPly || isReady)
       ? {
           id: generateId(),
@@ -1035,7 +1043,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           pieces: 1,
           cft: 0,
           sqft: 0,
-          rate: ratePerCft,
+          rate: isCftRft ? 0 : ratePerCft,
+          rateUnit: isCftRft ? 'RFT' : 'CFT',
           amount: 0,
           woodType: woodType || 'SILVER WOOD'
         };
@@ -1411,9 +1420,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           };
         }
 
-        const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
+        const isCftRftOnly = isCftRftOnlyWood(it.woodType);
         const isRftBilled = isTimberRftBilled(it);
-        const isSqftBilled = !isRftBilled && w >= 7 && it.rateUnit !== 'CFT';
+        const isSqftBilled = isTimberSqftBilled(it);
         const defaultRowRate = isRftBilled ? 0 : (isSqftBilled ? 120 : ratePerCft);
         const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
         const rftVal = calculateRFT(it.lengthFeet, it.pieces);
@@ -1429,7 +1438,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           teakGrade: it.teakGrade ? normalizeTeakGrade(it.teakGrade) : undefined,
           hsn: '4407',
           cft: it.cft,
-          sqft: it.sqft,
+          sqft: isCftRftOnly ? 0 : it.sqft,
           rft: rftVal,
           widthInches: it.widthInches,
           rateUnit: isRftBilled ? ('RFT' as const) : (isSqftBilled ? ('SQFT' as const) : ('CFT' as const)),
@@ -4022,7 +4031,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                             <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center', width: '68px' }}>Width (in)</th>
                             <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center', width: '68px' }}>Thick (in)</th>
                             <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center', width: '60px' }}>Pieces</th>
-                            <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center', width: '90px' }}>CFT / SQFT</th>
+                            <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center', width: '90px' }}>
+                              {isCftRftOnlyWood(group.woodType) ? 'CFT / RFT' : 'CFT / SQFT'}
+                            </th>
                             <th style={{ padding: '0.35rem 0.5rem', textAlign: 'center', width: '85px' }}>Rate (₹)</th>
                             <th style={{ padding: '0.35rem 0.5rem', textAlign: 'right', width: '95px' }}>Amount (₹)</th>
                             <th style={{ padding: '0.35rem 0.5rem', width: '32px', textAlign: 'center' }}></th>
@@ -4034,14 +4045,16 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                             const isPly = Boolean(it.itemCategory === 'plywood' || it.woodType?.toLowerCase().includes('plywood'));
                             const sheetUnit = isSheet ? resolveSheetRateUnit(it.rateUnit) : null;
                             const isSheetPcs = sheetUnit === 'PCS';
-                            const isRowRftEligible = !isSheet && isRftEligibleWood(it.woodType || group.woodType);
+                            const rowWood = it.woodType || group.woodType;
+                            const isRowCftRftOnly = !isSheet && isCftRftOnlyWood(rowWood);
+                            const isRowRftEligible = !isSheet && isRftEligibleWood(rowWood);
                             const isRowRft = isRowRftEligible && it.rateUnit === 'RFT';
                             const rowRft = isRowRftEligible ? calculateRFT(it.lengthFeet, it.pieces) : 0;
-                            const isSqft = isSheet ? !isSheetPcs : (!isRowRft && (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT');
+                            const isSqft = isSheet ? !isSheetPcs : isTimberSqftBilled({ ...it, woodType: rowWood });
                             const defaultRowRate = (isSheet || isRowRft) ? 0 : (isSqft ? 120 : ratePerCft);
                             const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
                             const pNum = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
-                            const rowSqft = isSheet ? calculateSheetSqft(isPly, pNum, it.widthInches, it.boardSize) : it.sqft;
+                            const rowSqft = isSheet ? calculateSheetSqft(isPly, pNum, it.widthInches, it.boardSize) : (isRowCftRftOnly ? 0 : it.sqft);
                             const mult = isRowRft ? rowRft : (isSqft ? rowSqft : it.cft);
                             const rowAmount = isSheet
                               ? calculateSheetAmount(isPly, pNum, rowRate, sheetUnit!, it.widthInches, it.boardSize).amount
@@ -4154,7 +4167,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                                         type="button"
                                         onClick={() => {
                                           const wNum = typeof it.widthInches === 'number' ? it.widthInches : 0;
-                                          const nextU = isRowRft ? (wNum >= 7 ? 'SQFT' : 'CFT') : 'RFT';
+                                          const nextU = isRowRft ? (isRowCftRftOnly ? 'CFT' : (wNum >= 7 ? 'SQFT' : 'CFT')) : 'RFT';
                                           handleStep8UpdateItem(it.id, 'rateUnit', nextU);
                                         }}
                                         title="Toggle RFT pricing"
@@ -4229,14 +4242,16 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                         const isPly = Boolean(it.itemCategory === 'plywood' || it.woodType?.toLowerCase().includes('plywood'));
                         const sheetUnit = isSheet ? resolveSheetRateUnit(it.rateUnit) : null;
                         const isSheetPcs = sheetUnit === 'PCS';
-                        const isRowRftEligible = !isSheet && isRftEligibleWood(it.woodType || group.woodType);
+                        const rowWood = it.woodType || group.woodType;
+                        const isRowCftRftOnly = !isSheet && isCftRftOnlyWood(rowWood);
+                        const isRowRftEligible = !isSheet && isRftEligibleWood(rowWood);
                         const isRowRft = isRowRftEligible && it.rateUnit === 'RFT';
                         const rowRft = isRowRftEligible ? calculateRFT(it.lengthFeet, it.pieces) : 0;
-                        const isSqft = isSheet ? !isSheetPcs : (!isRowRft && (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT');
+                        const isSqft = isSheet ? !isSheetPcs : isTimberSqftBilled({ ...it, woodType: rowWood });
                         const defaultRowRate = (isSheet || isRowRft) ? 0 : (isSqft ? 120 : ratePerCft);
                         const rowRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
                         const pNum = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
-                        const rowSqft = isSheet ? calculateSheetSqft(isPly, pNum, it.widthInches, it.boardSize) : it.sqft;
+                        const rowSqft = isSheet ? calculateSheetSqft(isPly, pNum, it.widthInches, it.boardSize) : (isRowCftRftOnly ? 0 : it.sqft);
                         const mult = isRowRft ? rowRft : (isSqft ? rowSqft : it.cft);
                         const displayAmount = isSheet
                           ? calculateSheetAmount(isPly, pNum, rowRate, sheetUnit!, it.widthInches, it.boardSize).amount

@@ -1,6 +1,6 @@
 import { getSupabase, getSupabaseCredentials } from '../lib/supabase';
 import type { MeasurementItem, MeasurementSheet } from '../types';
-import { calculateRFT, calculateRow, calculateSheetAmount, calculateTotals, isTimberRftBilled, normalizeTeakGrade, resolveSheetRateUnit, resolveSheetWidth } from '../utils/calculator';
+import { calculateRFT, calculateRow, calculateSheetAmount, calculateTotals, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, normalizeTeakGrade, resolveSheetRateUnit, resolveSheetWidth } from '../utils/calculator';
 
 const LOCAL_SHEETS_KEY = 'timberpro_local_sheets';
 const ACTIVE_DRAFT_KEY = 'timberpro_active_draft';
@@ -68,9 +68,14 @@ export function sanitizeAndComputeSheet(
     const calc = calculateRow(l, w, t, p);
     const rft = calculateRFT(l, p);
 
+    const isCftRftOnly = isCftRftOnlyWood(item.woodType);
     const isRftBilled = isTimberRftBilled(item);
-    const isSqftBilled = !isRftBilled && typeof w === 'number' && w >= 7 && item.rateUnit !== 'CFT';
-    const rateUnit: 'CFT' | 'SQFT' | 'PCS' | 'RFT' = isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : (item.rateUnit === 'CFT' || item.rateUnit === 'SQFT' ? item.rateUnit : 'CFT'));
+    const isSqftBilled = isTimberSqftBilled(item);
+    const rateUnit: 'CFT' | 'SQFT' | 'PCS' | 'RFT' = isRftBilled
+      ? 'RFT'
+      : isCftRftOnly
+        ? 'CFT'
+        : (isSqftBilled ? 'SQFT' : (item.rateUnit === 'CFT' || item.rateUnit === 'SQFT' ? item.rateUnit : 'CFT'));
     const r = typeof item.rate === 'number' ? item.rate : (typeof item.rate === 'string' && item.rate !== '' ? parseFloat(item.rate) : '');
     const defaultRowRate = isRftBilled ? 0 : (isSqftBilled ? 120 : 1200);
     const rateNum = typeof r === 'number' && !isNaN(r) && r > 0 ? r : defaultRowRate;
@@ -94,7 +99,7 @@ export function sanitizeAndComputeSheet(
       thicknessInches: t,
       pieces: p,
       cft: calc.cft,
-      sqft: calc.sqft,
+      sqft: isCftRftOnly ? 0 : calc.sqft,
       rft,
       rate: rateNum,
       rateUnit,
@@ -390,11 +395,16 @@ export const dbService = {
       const finalItems: MeasurementItem[] = items.length > 0
         ? items.map((it, idx) => {
             const backup = backupMap.get(it.id) || backupMap.get(`sn_${it.serialNumber || idx + 1}`);
-            const isWide = (it.widthInches || 0) >= 7;
+            const resolvedWood = it.woodType || backup?.woodType || '';
+            const isCftRftOnly = isCftRftOnlyWood(resolvedWood);
+            const isWide = !isCftRftOnly && (it.widthInches || 0) >= 7;
             const rate = (typeof it.rate === 'number' && it.rate > 0)
               ? it.rate
               : (backup && typeof backup.rate === 'number' && backup.rate > 0 ? backup.rate : undefined);
-            const rateUnit: 'CFT' | 'SQFT' | 'PCS' | 'RFT' = it.rateUnit || backup?.rateUnit || (isWide ? 'SQFT' : 'CFT');
+            const rawUnit = it.rateUnit || backup?.rateUnit;
+            const rateUnit: 'CFT' | 'SQFT' | 'PCS' | 'RFT' = isCftRftOnly
+              ? (rawUnit === 'RFT' ? 'RFT' : 'CFT')
+              : (rawUnit || (isWide ? 'SQFT' : 'CFT'));
             const rft = it.rft || backup?.rft || calculateRFT(it.lengthFeet, it.pieces);
             const amount = (typeof it.amount === 'number' && it.amount > 0)
               ? it.amount
@@ -408,11 +418,12 @@ export const dbService = {
               brand: it.brand || backup?.brand,
               boardSize: it.boardSize || backup?.boardSize,
               teakGrade: it.teakGrade || backup?.teakGrade,
+              sqft: isCftRftOnly ? 0 : it.sqft,
               rft,
               rate,
               rateUnit,
               amount,
-              woodType: it.woodType || backup?.woodType || '',
+              woodType: resolvedWood,
               remarks: it.remarks || backup?.remarks || ''
             };
           })
