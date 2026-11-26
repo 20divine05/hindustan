@@ -328,8 +328,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   }, []);
 
   const isInitialMount = useRef(true);
-  // Track the ID of the sheet that has been loaded into state to avoid overwriting active user inputs
-  const loadedSheetIdRef = useRef<string | null>(sheetToEdit?.id || null);
+  // Track the ID of the sheet currently loaded in state so auto-save/onSaved never overwrites active user selections
+  const loadedSheetIdRef = useRef<string | null>(sheetId);
 
   // Persistence gating:
   // Existing sheets being edited are already persisted.
@@ -1135,6 +1135,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         const sheetObj = sanitizeAndComputeSheet(draftSheet, user?.id || 'guest');
         const res = await dbService.saveSheet(sheetObj, user?.id || 'guest');
         isSheetPersistedRef.current = true;
+        loadedSheetIdRef.current = res.sheet.id;
         if (onSaved) {
           onSaved(res.sheet);
         }
@@ -1218,6 +1219,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
     setSaveStatus('saved');
     dbService.clearDraft();
+    loadedSheetIdRef.current = result.sheet.id;
     if (onSaved) {
       onSaved(result.sheet);
     }
