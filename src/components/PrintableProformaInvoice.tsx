@@ -669,11 +669,11 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                   ));
                 })()}
 
-                {/* 6. TOTAL WOOD AMOUNT row */}
+                {/* 6. TOTAL MATERIALS row */}
                 {totalPieces > 0 && (
                   <tr className="p-total-wood-row" style={{ backgroundColor: '#e2e8f0', borderTop: '1px solid #111', borderBottom: '1px solid #111', fontWeight: 900 }}>
                     <td colSpan={2} className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                      TOTAL WOOD AMOUNT
+                      TOTAL MATERIALS
                     </td>
                     <td className="text-center font-bold p-mono">
                       {totalPieces} LOGS CLASSIFIED
@@ -943,7 +943,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                   <tr className="p-total-wood-row">
                     <td className="text-center" style={{ color: '#444' }}></td>
                     <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                      TOTAL WOOD AMOUNT
+                      TOTAL MATERIALS
                     </td>
                     <td className="text-right p-mono" style={{ fontWeight: 800 }}>
                       {totalPieces} PCS

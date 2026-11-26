@@ -695,7 +695,7 @@ export function createProformaInvoiceDoc(
       const woodBg: [number, number, number] = [226, 232, 240];
       tableBody.push([
         {
-          content: 'TOTAL WOOD AMOUNT',
+          content: 'TOTAL MATERIALS',
           colSpan: 2,
           styles: {
             fontStyle: 'bold',
@@ -890,7 +890,7 @@ export function createProformaInvoiceDoc(
       const totalWoodBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
       tableBody.push([
         { content: '', styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
-        { content: 'TOTAL WOOD AMOUNT', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: [238, 240, 243], lineWidth: totalWoodBorder } },
+        { content: 'TOTAL MATERIALS', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: [238, 240, 243], lineWidth: totalWoodBorder } },
         { content: `${totalPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } },
         { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } },
         { content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } },
@@ -1188,7 +1188,7 @@ export function createProformaInvoiceDoc(
         const c1 = (rawRow[1] as any)?.content ?? (typeof rawRow[1] === 'string' ? rawRow[1] : '');
 
         const isSectionBanner = (rawRow[0] as any)?.colSpan >= (isRoundLog ? 5 : 7) || (rawRow[1] as any)?.colSpan >= (isRoundLog ? 5 : 7);
-        const isSubtotalRow = (typeof c0 === 'string' && (c0.startsWith('Sub Total') || c0.startsWith('Total ') || c0.startsWith('Total -') || c0 === 'TOTAL WOOD AMOUNT' || (c0.includes('logs') && c0.includes('@')))) || c1 === 'Total' || c1 === 'TOTAL WOOD AMOUNT';
+        const isSubtotalRow = (typeof c0 === 'string' && (c0.startsWith('Sub Total') || c0.startsWith('Total ') || c0.startsWith('Total -') || c0 === 'TOTAL MATERIALS' || (c0.includes('logs') && c0.includes('@')))) || c1 === 'Total' || c1 === 'TOTAL MATERIALS';
         const isFootRow = data.section === 'foot';
         const isChargeRow = (rawRow[1] as any)?.colSpan === (isRoundLog ? 3 : 6);
         const isEmptyPaddingRow = c0 === '' && c1 === '' && !isSectionBanner && !isSubtotalRow;
