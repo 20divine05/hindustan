@@ -2785,13 +2785,13 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                 <Layers size={20} color="var(--primary-600)" /> Select Timber Log Type
               </h3>
               <p className="calc-step-desc">
-                Choose <strong>Cut Logs</strong> for standard sawn timber or <strong>Round Logs</strong> for quarter-girth Hoppus tally
+                Choose <strong>Sawn Sizes</strong> for standard sawn timber or <strong>Round Logs</strong> for quarter-girth Hoppus tally
               </p>
             </div>
 
             {/* Primary 2 Option Cards */}
             <div className="calc-type-choice-grid" style={{ marginBottom: logType === 'round' ? '1.25rem' : '0.5rem' }}>
-              {/* 1. Cut Logs Card */}
+              {/* 1. Sawn Sizes Card */}
               <div
                 className={`calc-type-card ${logType === 'cut' ? 'selected' : ''}`}
                 onClick={() => {
@@ -2804,7 +2804,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                   <Scissors size={28} />
                 </div>
                 <div className="calc-type-card-content">
-                  <h4>Cut Logs</h4>
+                  <h4>Sawn Sizes</h4>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Sawn Timber &bull; L &times; W &times; T</span>
                 </div>
               </div>
