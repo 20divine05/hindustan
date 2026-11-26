@@ -7,7 +7,7 @@ import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
 import { exportSheetToPdf, printProformaInvoicePdf } from '../utils/exportPdf';
 import { renderDimensionHtml, renderWithSmallDecimalHtml } from './PrintableProformaInvoice';
 import { groupRoundLogsBySpeciesFirst, getRoundLogUnitConfig } from '../utils/roundLogCalculator';
-import { formatValue, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
+import { formatValue, calculateSheetSqft, resolveSheetWidth, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
 import './ProformaInvoice.css';
 
 export interface ProformaInvoiceProps {
@@ -274,8 +274,8 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
           const wood = getCutLogItemSectionHeading(it);
           const brand = it.brand || (isPlywood ? 'Red Tag' : 'Mine Gold');
           const desc = getCutLogItemDescription({ ...it, brand, itemCategory: isPlywood ? 'plywood' : 'ready_board', woodType: wood });
-          const sheetW = typeof it.widthInches === 'number' && it.widthInches > 0 ? it.widthInches : (isPlywood ? 4 : 12);
-          const sqft = isPlywood ? (32 * p) : (8 * sheetW * p);
+          const sheetW = resolveSheetWidth(isPlywood, it.widthInches, it.boardSize);
+          const sqft = calculateSheetSqft(isPlywood, p, sheetW, it.boardSize);
           const amount = Math.round(sqft * rate * 100) / 100;
 
           validItems.push({
@@ -419,7 +419,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   const gstAmount = sheet?.gstPercent ? Math.round((gstTaxableBase * (sheet.gstPercent / 100)) * 100) / 100 : 0;
   const hasCustomEdits = Object.keys(customRates).length > 0;
   const computedFallback = Math.max(0, subtotalWithCharges + gstAmount - discAmount);
-  const effectiveTotal = (hasCustomEdits || !sheet?.finalGrandTotal)
+  const effectiveTotal = (hasCustomEdits || subtotalWithCharges > 0 || !sheet?.finalGrandTotal)
     ? computedFallback
     : sheet.finalGrandTotal;
 

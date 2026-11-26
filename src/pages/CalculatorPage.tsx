@@ -50,7 +50,7 @@ import { RoundLogSlabPricing } from '../components/RoundLogSlabPricing';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ProformaInvoiceModal } from '../components/ProformaInvoiceModal';
 import { PrintableProformaInvoice } from '../components/PrintableProformaInvoice';
-import { calculateTotals, formatValue, sortTimberEntries, groupTimberByWood, calculateRow, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from '../utils/calculator';
+import { calculateTotals, calculateSheetSqft, resolveSheetWidth, formatValue, sortTimberEntries, groupTimberByWood, calculateRow, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from '../utils/calculator';
 import {
   calculateRoundLogTotals,
   getRoundLogUnitConfig,
@@ -697,27 +697,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   }, [roundLogItems, roundLogOutputUnit]);
 
   // Financial calculations with additional charges, discounts, and GST
-  // Ensures timberSubtotal is never zero when timber items exist (supports both CFT and SQFT rates)
+  // Delegates cleanly to totals.totalAmount so Cut Logs, Plywood, and Readywood are all included consistently
   const timberSubtotal = useMemo(() => {
-    let sum = 0;
-    for (const it of items) {
-      const l = typeof it.lengthFeet === 'number' ? it.lengthFeet : 0;
-      const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
-      const t = typeof it.thicknessInches === 'number' ? it.thicknessInches : 0;
-      const p = typeof it.pieces === 'number' ? it.pieces : 0;
-      if (l > 0 && w > 0 && t > 0 && p > 0) {
-        const rowCft = it.cft > 0 ? it.cft : (l * w * t * p) / 144;
-        const rowSqft = it.sqft > 0 ? it.sqft : (rowCft * 12);
-        const isSqft = w >= 7 && it.rateUnit !== 'CFT';
-        const defaultRowRate = isSqft ? 120 : ratePerCft;
-        const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
-        const mult = isSqft ? rowSqft : rowCft;
-        const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * r * 100) / 100;
-        sum += amt;
-      }
-    }
-    return sum > 0 ? sum : (totals.totalAmount || 0);
-  }, [items, ratePerCft, totals.totalAmount]);
+    return Math.round((totals.totalAmount || 0) * 100) / 100;
+  }, [totals.totalAmount]);
 
 
 
@@ -1330,8 +1313,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
           const brand = it.brand || (isPlywood ? 'Red Tag' : 'Mine Gold');
           const woodType = getCutLogItemSectionHeading(it);
           const desc = getCutLogItemDescription({ ...it, brand, itemCategory: isPlywood ? 'plywood' : 'ready_board', woodType });
-          const sheetW = typeof it.widthInches === 'number' && it.widthInches > 0 ? it.widthInches : (isPlywood ? 4 : 12);
-          const sqft = isPlywood ? (32 * p) : (8 * sheetW * p);
+          const sheetW = resolveSheetWidth(isPlywood, it.widthInches, it.boardSize);
+          const sqft = calculateSheetSqft(isPlywood, p, sheetW, it.boardSize);
           const rowAmount = Math.round(sqft * rowRate * 100) / 100;
 
           return {
@@ -1439,7 +1422,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         otherLabel: otherChargesLabel
       },
       discountAmount,
-      discountDesc: discountMode === 'percentage' ? `DISCOUNT (${discountValue}%)` : (discountAmount > 0 ? 'LESS: DISCOUNT' : undefined),
+      discountDesc: discountMode === 'percentage' ? `${discountValue}%` : undefined,
       gstPercent,
       gstTaxableBase: (customGstTaxableAmount > 0 && customGstTaxableAmount !== subtotalWithCharges) ? gstTaxableBase : undefined,
       finalGrandTotal,

@@ -4,7 +4,7 @@ import { dbService } from '../services/db';
 import { exportSheetToPdf, printProformaInvoicePdf, type ProformaInvoiceExportData } from '../utils/exportPdf';
 import { PrintableProformaInvoice } from './PrintableProformaInvoice';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
-import { calculateTotals, getCutLogItemSectionHeading, getCutLogItemDescription, sortTimberEntries } from '../utils/calculator';
+import { calculateTotals, calculateSheetSqft, resolveSheetWidth, getCutLogItemSectionHeading, getCutLogItemDescription, sortTimberEntries } from '../utils/calculator';
 import type { BusinessSettings, MeasurementSheet } from '../types';
 
 interface PublicInvoicePageProps {
@@ -61,9 +61,12 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
       const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY');
       const isSheet = (isPly || isReady) && it.itemCategory !== 'timber';
       const unit: 'CFT' | 'SQFT' | 'PCS' = it.rateUnit || (isSheet ? 'SQFT' : 'CFT');
-      const qty = unit === 'SQFT' ? it.sqft : unit === 'PCS' ? (typeof it.pieces === 'number' ? it.pieces : 0) : it.cft;
+      const pcs = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
+      const sheetW = resolveSheetWidth(isPly, it.widthInches, it.boardSize);
+      const sheetSqft = isSheet ? calculateSheetSqft(isPly, pcs, sheetW, it.boardSize) : (it.sqft || 0);
+      const qty = unit === 'SQFT' ? sheetSqft : unit === 'PCS' ? pcs : it.cft;
       const rate = typeof it.rate === 'number' ? it.rate : rateDefault;
-      const amt = typeof it.amount === 'number' ? it.amount : Math.round(qty * rate * 100) / 100;
+      const amt = isSheet ? (rate > 0 ? Math.round(sheetSqft * rate * 100) / 100 : (it.amount || 0)) : (typeof it.amount === 'number' ? it.amount : Math.round(qty * rate * 100) / 100);
       const woodHeading = getCutLogItemSectionHeading(it);
 
       return {
@@ -72,10 +75,10 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
         woodType: woodHeading,
         hsn: isSheet ? '4412' : '4407',
         cft: it.cft || 0,
-        sqft: it.sqft || 0,
+        sqft: sheetSqft,
         widthInches: it.widthInches || 0,
         rateUnit: unit,
-        pieces: Number(it.pieces) || 0,
+        pieces: pcs,
         rate,
         per: unit,
         discPercent: '',
@@ -96,7 +99,7 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
       amount: it.amount || 0
     }));
 
-    const effectiveTotal = sheet.finalGrandTotal || computed.totalCft * rateDefault;
+    const effectiveTotal = (computed.totalAmount && computed.totalAmount > 0) ? computed.totalAmount : (sheet.finalGrandTotal || computed.totalCft * rateDefault);
 
     return {
       voucherType: sheet.voucherType || 'sales',

@@ -10,7 +10,7 @@ import type {
 import { LOGO_ICON_BASE64 } from './logoBase64';
 import { PAYMENT_QR_BASE64 } from './paymentQrBase64';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from './indianNumberWords';
-import { sortTimberEntries, formatValue, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from './calculator';
+import { sortTimberEntries, calculateSheetSqft, resolveSheetWidth, formatValue, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from './calculator';
 import {
   groupRoundLogsBySpeciesFirst,
   getRoundLogUnitConfig
@@ -187,13 +187,9 @@ export function createProformaInvoiceDoc(
           const desc = getCutLogItemDescription({ ...it, woodType: wood });
           const pcs = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
           const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
-          const isPly = it.itemCategory === 'plywood' || wood.includes('PLYWOOD');
-          let sheetW = typeof it.widthInches === 'number' && it.widthInches > 0 ? it.widthInches : (isPly ? 4 : 12);
-          if (!sheetW && (it as any).boardSize) {
-            const match = (it as any).boardSize.match(/8\s*[xX×*]\s*(\d+)/);
-            if (match) sheetW = parseInt(match[1], 10);
-          }
-          const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * pcs) : (8 * sheetW * pcs));
+          const isPly = Boolean(it.itemCategory === 'plywood' || wood.includes('PLYWOOD'));
+          const sheetW = resolveSheetWidth(isPly, it.widthInches, (it as any).boardSize);
+          const sqft = calculateSheetSqft(isPly, pcs, sheetW, (it as any).boardSize);
           const amt = Math.round(sqft * r * 100) / 100;
           return {
             slNo: idx + 1,
@@ -274,14 +270,9 @@ export function createProformaInvoiceDoc(
       if (isSheet) {
         const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
         const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
-        const isPly = (it as any).itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD');
-        let sheetW = typeof it.widthInches === 'number' && it.widthInches > 0 ? it.widthInches : (isPly ? 4 : 12);
-        if (!sheetW && (it as any).boardSize) {
-          const match = (it as any).boardSize.match(/8\s*[xX×*]\s*(\d+)/);
-          if (match) sheetW = parseInt(match[1], 10);
-        }
-        const sqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : (8 * sheetW * p));
-        const amt = Math.round(sqft * r * 100) / 100;
+        const isPly = Boolean((it as any).itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD'));
+        const sqft = calculateSheetSqft(isPly, p, it.widthInches, (it as any).boardSize);
+        const amt = r > 0 ? Math.round(sqft * r * 100) / 100 : (typeof it.amount === 'number' ? it.amount : 0);
         totalAmount += amt;
         totalSqftBilled += sqft;
       } else {
@@ -310,11 +301,11 @@ export function createProformaInvoiceDoc(
   const discAmt = invoiceData?.discountAmount || 0;
   const computedFallback = Math.max(0, totalAmount + additionalChargesSum + gstAmt - discAmt);
 
-  const effectiveTotal = isRoundLog
+  const effectiveTotal = (isRoundLog || totalAmount > 0 || additionalChargesSum > 0)
     ? computedFallback
     : ((invoiceData?.finalGrandTotal !== undefined && invoiceData.finalGrandTotal > 0)
         ? invoiceData.finalGrandTotal
-        : (computedFallback > 0 ? computedFallback : totalAmount));
+        : 0);
   const amountInWords = numberToIndianCurrencyWords(effectiveTotal);
 
   // -------------------------------------------------------------
@@ -839,14 +830,9 @@ export function createProformaInvoiceDoc(
 
         const itPieces = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
         const itRate = typeof it.rate === 'number' ? it.rate : 0;
-        const isPly = (it as any).itemCategory === 'plywood' || group.wood.includes('PLYWOOD') || (it.woodType && it.woodType.toUpperCase().includes('PLYWOOD'));
-        let sheetW = typeof it.widthInches === 'number' && it.widthInches > 0 ? it.widthInches : (isPly ? 4 : 12);
-        if (!sheetW && (it as any).boardSize) {
-          const match = (it as any).boardSize.match(/8\s*[xX×*]\s*(\d+)/);
-          if (match) sheetW = parseInt(match[1], 10);
-        }
-        const sheetSqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * itPieces) : (8 * sheetW * itPieces));
-        const rowAmount = isSheet ? Math.round(sheetSqft * itRate * 100) / 100 : (typeof it.amount === 'number' ? it.amount : 0);
+        const isPly = Boolean((it as any).itemCategory === 'plywood' || group.wood.includes('PLYWOOD') || (it.woodType && it.woodType.toUpperCase().includes('PLYWOOD')));
+        const sheetSqft = isSheet ? calculateSheetSqft(isPly, itPieces, it.widthInches, (it as any).boardSize) : 0;
+        const rowAmount = isSheet ? (itRate > 0 ? Math.round(sheetSqft * itRate * 100) / 100 : (typeof it.amount === 'number' ? it.amount : 0)) : (typeof it.amount === 'number' ? it.amount : 0);
 
         groupPieces += itPieces;
         if (!isSheet && !isSqftBilled) {
@@ -982,7 +968,7 @@ export function createProformaInvoiceDoc(
   if (invoiceData?.discountAmount && invoiceData.discountAmount > 0) {
     const totalBeforeDisc = totalAmount + additionalChargesSum + (invoiceData?.gstAmount || 0);
     tableBody.push(chargeRow('TOTAL PRICE BEFORE DISCOUNT', formatIndianCurrency(totalBeforeDisc), false));
-    const discLabel = invoiceData.discountDesc ? `LESS: DISCOUNT (${invoiceData.discountDesc})` : 'LESS: DISCOUNT';
+    const discLabel = (invoiceData.discountDesc && invoiceData.discountDesc !== 'LESS: DISCOUNT') ? `LESS: DISCOUNT (${invoiceData.discountDesc})` : 'LESS: DISCOUNT';
     tableBody.push(chargeRow(discLabel, `- ${formatIndianCurrency(invoiceData.discountAmount)}`, true));
   }
 

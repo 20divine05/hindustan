@@ -81,6 +81,41 @@ export function calculateSQFT(
 }
 
 /**
+ * Resolves sheet width from explicit widthInches or boardSize (e.g. "8 × 24").
+ */
+export function resolveSheetWidth(
+  isPlywood: boolean,
+  widthInches?: number | '',
+  boardSize?: string
+): number {
+  if (typeof widthInches === 'number' && widthInches > 0) {
+    return widthInches;
+  }
+  if (boardSize) {
+    const match = boardSize.match(/8\s*[xX×*]\s*(\d+)/);
+    if (match) return parseInt(match[1], 10);
+  }
+  return isPlywood ? 4 : 12;
+}
+
+/**
+ * Computes canonical SQFT for sheet products:
+ * - Plywood: 8ft × 4ft = 32 SQFT per piece
+ * - Readywood: 8ft × (widthInches / 12) ft per piece (converts inch width to ft and multiplies by 8 ft)
+ */
+export function calculateSheetSqft(
+  isPlywood: boolean,
+  pieces: number,
+  widthInches?: number | '',
+  boardSize?: string
+): number {
+  if (!pieces || isNaN(pieces) || pieces <= 0) return 0;
+  if (isPlywood) return 32 * pieces;
+  const sheetW = resolveSheetWidth(false, widthInches, boardSize);
+  return Math.round(((8 * sheetW) / 12) * pieces * 10000) / 10000;
+}
+
+/**
  * Computes CFT and SQFT for a single measurement row with validation
  * Uses formula: CFT = (L × W × T × P) / 144 and SQFT = CFT × 12
  */
@@ -146,17 +181,12 @@ export function calculateTotals(
       if (p > 0) {
         validEntries++;
         totalPieces += p;
-        const isPly = item.itemCategory === 'plywood' || (item.woodType && item.woodType.toUpperCase().includes('PLYWOOD'));
-        let sheetW = typeof item.widthInches === 'number' && item.widthInches > 0 ? item.widthInches : (isPly ? 4 : 12);
-        if (!sheetW && item.boardSize) {
-          const match = item.boardSize.match(/8\s*[xX×*]\s*(\d+)/);
-          if (match) sheetW = parseInt(match[1], 10);
-        }
-        const rowSqft = typeof item.sqft === 'number' && item.sqft > 0 ? item.sqft : (isPly ? (32 * p) : (8 * sheetW * p));
+        const isPly = Boolean(item.itemCategory === 'plywood' || (item.woodType && item.woodType.toUpperCase().includes('PLYWOOD')));
+        const rowSqft = calculateSheetSqft(isPly, p, item.widthInches, item.boardSize);
         totalSqft += rowSqft;
         // Do NOT compute or add CFT for Plywood or Ready Board (cft = 0)
         const r = typeof item.rate === 'number' && item.rate > 0 ? item.rate : 0;
-        const amt = typeof item.amount === 'number' && item.amount > 0 ? item.amount : Math.round(rowSqft * r * 100) / 100;
+        const amt = r > 0 ? Math.round(rowSqft * r * 100) / 100 : (typeof item.amount === 'number' ? item.amount : 0);
         totalAmount += amt;
       }
       continue;
@@ -370,17 +400,16 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
     if (isSheet) {
       const p = typeof it.pieces === 'number' ? it.pieces : parseFloat(String(it.pieces));
       if (!isNaN(p) && p > 0) {
-        let sheetW = typeof it.widthInches === 'number' && it.widthInches > 0 ? it.widthInches : (isPlywood ? 4 : 12);
-        if (!sheetW && it.boardSize) {
-          const match = it.boardSize.match(/8\s*[xX×*]\s*(\d+)/);
-          if (match) sheetW = parseInt(match[1], 10);
-        }
-        const sqft = isPlywood ? (32 * p) : (8 * sheetW * p);
+        const sheetW = resolveSheetWidth(isPlywood, it.widthInches, it.boardSize);
+        const sqft = calculateSheetSqft(isPlywood, p, sheetW, it.boardSize);
+        const resolvedSheetWood = isPlywood
+          ? (itWood.includes('34') ? 'Plywood(34)' : 'Plywood(30)')
+          : (itWood.includes('34') ? 'Readywood(34)' : 'Readywood(30)');
         validItems.push({
           ...it,
           itemCategory: isPlywood ? 'plywood' : 'ready_board',
           brand: it.brand || (isPlywood ? 'Red Tag' : 'Mine Gold'),
-          woodType: isPlywood ? 'Plywood' : 'Ready Board',
+          woodType: resolvedSheetWood,
           widthInches: sheetW,
           cft: 0,
           sqft,
@@ -443,13 +472,9 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
       const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRateVal;
 
       if (isSheet) {
-        const isPly = it.itemCategory === 'plywood' || (it.woodType && it.woodType.toLowerCase().includes('plywood'));
-        let sheetW = typeof it.widthInches === 'number' && it.widthInches > 0 ? it.widthInches : (isPly ? 4 : 12);
-        if (!sheetW && it.boardSize) {
-          const match = it.boardSize.match(/8\s*[xX×*]\s*(\d+)/);
-          if (match) sheetW = parseInt(match[1], 10);
-        }
-        const sheetSqft = typeof it.sqft === 'number' && it.sqft > 0 ? it.sqft : (isPly ? (32 * p) : (8 * sheetW * p));
+        const isPly = Boolean(it.itemCategory === 'plywood' || (it.woodType && it.woodType.toLowerCase().includes('plywood')));
+        const sheetW = resolveSheetWidth(isPly, it.widthInches, it.boardSize);
+        const sheetSqft = calculateSheetSqft(isPly, p, sheetW, it.boardSize);
         const boardKey = isPly ? '8x4' : (it.boardSize || `${l}x${sheetW}`);
         const brandKey = it.brand || (isPly ? 'Red Tag' : 'Mine Gold');
         const key = `sheet_${it.itemCategory}_${boardKey}_${brandKey}_${r}_SQFT`;
