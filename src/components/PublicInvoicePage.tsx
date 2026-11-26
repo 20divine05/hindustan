@@ -4,7 +4,7 @@ import { dbService } from '../services/db';
 import { exportSheetToPdf, printProformaInvoicePdf, type ProformaInvoiceExportData } from '../utils/exportPdf';
 import { PrintableProformaInvoice } from './PrintableProformaInvoice';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
-import { calculateTotals, calculateSheetAmount, calculateSheetSqft, resolveSheetRateUnit, resolveSheetWidth, getCutLogItemSectionHeading, getCutLogItemDescription, sortTimberEntries } from '../utils/calculator';
+import { calculateRFT, calculateTotals, calculateSheetAmount, calculateSheetSqft, isTimberRftBilled, resolveSheetRateUnit, resolveSheetWidth, getCutLogItemSectionHeading, getCutLogItemDescription, sortTimberEntries } from '../utils/calculator';
 import type { BusinessSettings, MeasurementSheet } from '../types';
 
 interface PublicInvoicePageProps {
@@ -60,16 +60,18 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
       const isPly = it.itemCategory === 'plywood' || itWood.includes('PLYWOOD');
       const isReady = it.itemCategory === 'ready_board' || itWood.includes('READY');
       const isSheet = (isPly || isReady) && it.itemCategory !== 'timber';
-      const unit: 'CFT' | 'SQFT' | 'PCS' = isSheet ? resolveSheetRateUnit(it.rateUnit) : (it.rateUnit || 'CFT');
+      const woodHeading = getCutLogItemSectionHeading(it);
+      const isRftBilled = !isSheet && isTimberRftBilled({ ...it, woodType: woodHeading });
+      const unit: 'CFT' | 'SQFT' | 'PCS' | 'RFT' = isSheet ? resolveSheetRateUnit(it.rateUnit) : (isRftBilled ? 'RFT' : (it.rateUnit || 'CFT'));
       const pcs = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
       const sheetW = resolveSheetWidth(isPly, it.widthInches, it.boardSize);
       const sheetSqft = isSheet ? calculateSheetSqft(isPly, pcs, sheetW, it.boardSize) : (it.sqft || 0);
-      const qty = unit === 'SQFT' ? sheetSqft : unit === 'PCS' ? pcs : it.cft;
+      const rftVal = !isSheet ? calculateRFT(it.lengthFeet, pcs) : 0;
+      const qty = unit === 'RFT' ? rftVal : (unit === 'SQFT' ? sheetSqft : unit === 'PCS' ? pcs : it.cft);
       const rate = typeof it.rate === 'number' ? it.rate : rateDefault;
       const amt = isSheet
         ? (rate > 0 ? calculateSheetAmount(isPly, pcs, rate, unit, sheetW, it.boardSize).amount : (it.amount || 0))
         : (typeof it.amount === 'number' ? it.amount : Math.round(qty * rate * 100) / 100);
-      const woodHeading = getCutLogItemSectionHeading(it);
 
       return {
         slNo: idx + 1,
@@ -78,6 +80,7 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
         hsn: isSheet ? '4412' : '4407',
         cft: it.cft || 0,
         sqft: sheetSqft,
+        rft: rftVal,
         widthInches: it.widthInches || 0,
         rateUnit: unit,
         pieces: pcs,

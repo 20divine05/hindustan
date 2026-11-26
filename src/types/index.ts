@@ -32,8 +32,9 @@ export interface MeasurementItem {
   pieces: number | '';
   cft: number;
   sqft: number;
+  rft?: number;
   rate?: number | '';
-  rateUnit?: 'CFT' | 'SQFT' | 'PCS';
+  rateUnit?: 'CFT' | 'SQFT' | 'PCS' | 'RFT';
   amount?: number;
   woodType?: string;
   remarks?: string;

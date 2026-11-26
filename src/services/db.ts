@@ -1,6 +1,6 @@
 import { getSupabase, getSupabaseCredentials } from '../lib/supabase';
 import type { MeasurementItem, MeasurementSheet } from '../types';
-import { calculateRow, calculateSheetAmount, calculateTotals, normalizeTeakGrade, resolveSheetRateUnit, resolveSheetWidth } from '../utils/calculator';
+import { calculateRFT, calculateRow, calculateSheetAmount, calculateTotals, isTimberRftBilled, normalizeTeakGrade, resolveSheetRateUnit, resolveSheetWidth } from '../utils/calculator';
 
 const LOCAL_SHEETS_KEY = 'timberpro_local_sheets';
 const ACTIVE_DRAFT_KEY = 'timberpro_active_draft';
@@ -66,13 +66,15 @@ export function sanitizeAndComputeSheet(
     const p = typeof item.pieces === 'number' ? item.pieces : '';
 
     const calc = calculateRow(l, w, t, p);
+    const rft = calculateRFT(l, p);
 
-    const isSqftBilled = typeof w === 'number' && w >= 7 && item.rateUnit !== 'CFT';
-    const rateUnit: 'CFT' | 'SQFT' | 'PCS' = isSqftBilled ? 'SQFT' : (item.rateUnit || 'CFT');
+    const isRftBilled = isTimberRftBilled(item);
+    const isSqftBilled = !isRftBilled && typeof w === 'number' && w >= 7 && item.rateUnit !== 'CFT';
+    const rateUnit: 'CFT' | 'SQFT' | 'PCS' | 'RFT' = isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : (item.rateUnit === 'CFT' || item.rateUnit === 'SQFT' ? item.rateUnit : 'CFT'));
     const r = typeof item.rate === 'number' ? item.rate : (typeof item.rate === 'string' && item.rate !== '' ? parseFloat(item.rate) : '');
-    const defaultRowRate = isSqftBilled ? 120 : 1200;
+    const defaultRowRate = isRftBilled ? 0 : (isSqftBilled ? 120 : 1200);
     const rateNum = typeof r === 'number' && !isNaN(r) && r > 0 ? r : defaultRowRate;
-    const multiplier = isSqftBilled ? calc.sqft : calc.cft;
+    const multiplier = isRftBilled ? rft : (isSqftBilled ? calc.sqft : calc.cft);
     const amount = typeof item.amount === 'number' && item.amount > 0 ? item.amount : Math.round(multiplier * rateNum * 100) / 100;
 
     const isExplicitSheetWood = itWood.includes('PLYWOOD') || itWood.includes('READY');
@@ -93,6 +95,7 @@ export function sanitizeAndComputeSheet(
       pieces: p,
       cft: calc.cft,
       sqft: calc.sqft,
+      rft,
       rate: rateNum,
       rateUnit,
       amount,
@@ -391,12 +394,13 @@ export const dbService = {
             const rate = (typeof it.rate === 'number' && it.rate > 0)
               ? it.rate
               : (backup && typeof backup.rate === 'number' && backup.rate > 0 ? backup.rate : undefined);
-            const rateUnit: 'CFT' | 'SQFT' | 'PCS' = it.rateUnit || backup?.rateUnit || (isWide ? 'SQFT' : 'CFT');
+            const rateUnit: 'CFT' | 'SQFT' | 'PCS' | 'RFT' = it.rateUnit || backup?.rateUnit || (isWide ? 'SQFT' : 'CFT');
+            const rft = it.rft || backup?.rft || calculateRFT(it.lengthFeet, it.pieces);
             const amount = (typeof it.amount === 'number' && it.amount > 0)
               ? it.amount
               : (backup && typeof backup.amount === 'number' && backup.amount > 0
                   ? backup.amount
-                  : (rate && rate > 0 ? Math.round((rateUnit === 'SQFT' ? it.sqft : rateUnit === 'PCS' ? (it.pieces || 0) : it.cft) * rate * 100) / 100 : undefined));
+                  : (rate && rate > 0 ? Math.round((rateUnit === 'RFT' ? rft : rateUnit === 'SQFT' ? it.sqft : rateUnit === 'PCS' ? (it.pieces || 0) : it.cft) * rate * 100) / 100 : undefined));
 
             return {
               ...it,
@@ -404,6 +408,7 @@ export const dbService = {
               brand: it.brand || backup?.brand,
               boardSize: it.boardSize || backup?.boardSize,
               teakGrade: it.teakGrade || backup?.teakGrade,
+              rft,
               rate,
               rateUnit,
               amount,

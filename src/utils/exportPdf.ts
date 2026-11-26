@@ -10,7 +10,7 @@ import type {
 import { LOGO_ICON_BASE64 } from './logoBase64';
 import { PAYMENT_QR_BASE64 } from './paymentQrBase64';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from './indianNumberWords';
-import { sortTimberEntries, calculateSheetAmount, resolveSheetRateUnit, resolveSheetWidth, formatValue, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from './calculator';
+import { sortTimberEntries, calculateRFT, calculateSheetAmount, isTimberRftBilled, resolveSheetRateUnit, resolveSheetWidth, formatValue, getCutLogItemDescription, getCutLogItemSectionHeading, normalizeTeakGrade } from './calculator';
 import {
   groupRoundLogsBySpeciesFirst,
   getRoundLogUnitConfig
@@ -63,8 +63,9 @@ export interface ProformaInvoiceExportData {
     hsn: string;
     cft: number;
     sqft?: number;
+    rft?: number;
     widthInches?: number | '';
-    rateUnit?: 'CFT' | 'SQFT' | 'CBM' | 'PCS';
+    rateUnit?: 'CFT' | 'SQFT' | 'CBM' | 'PCS' | 'RFT';
     pieces: number;
     rate: number;
     per: string;
@@ -217,10 +218,12 @@ export function createProformaInvoiceDoc(
         const cft = it.cft;
         const sqft = it.sqft;
         const pcs = typeof it.pieces === 'number' ? it.pieces : 0;
-        const isSqftBilled = (typeof w === 'number' ? w : 0) >= 7 && it.rateUnit !== 'CFT';
-        const defaultRowRate = isSqftBilled ? 120 : defaultRate;
+        const rft = calculateRFT(l, pcs);
+        const isRftBilled = isTimberRftBilled(it as any);
+        const isSqftBilled = !isRftBilled && (typeof w === 'number' ? w : 0) >= 7 && it.rateUnit !== 'CFT';
+        const defaultRowRate = isRftBilled ? 0 : (isSqftBilled ? 120 : defaultRate);
         const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
-        const mult = isSqftBilled ? (typeof sqft === 'number' ? sqft : 0) : cft;
+        const mult = isRftBilled ? rft : (isSqftBilled ? (typeof sqft === 'number' ? sqft : 0) : cft);
         const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(mult * r * 100) / 100;
         return {
           slNo: idx + 1,
@@ -230,11 +233,12 @@ export function createProformaInvoiceDoc(
           hsn: '4407',
           cft,
           sqft,
+          rft,
           widthInches: w,
-          rateUnit: (isSqftBilled ? 'SQFT' : 'CFT') as any,
+          rateUnit: (isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : 'CFT')) as any,
           pieces: pcs,
           rate: r,
-          per: isSqftBilled ? 'SQFT' : 'CFT',
+          per: isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : 'CFT'),
           discPercent: '',
           amount: amt
         };
@@ -246,8 +250,10 @@ export function createProformaInvoiceDoc(
   let totalPieces = 0;
   let totalAmount = 0;
   let totalSqftBilled = 0;
+  let totalRftBilled = 0;
   let totalCftBilled = 0;
   let totalCbm = 0;
+  const showRftCol = !isRoundLog && (items || []).some((it) => isTimberRftBilled(it as any));
 
   if (isRoundLog) {
     totalPieces = roundOverallTotals.totalPieces;
@@ -261,8 +267,9 @@ export function createProformaInvoiceDoc(
       const isPlywood = ((it as any).itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD')) && (it as any).itemCategory !== 'timber';
       const isReady = ((it as any).itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY')) && (it as any).itemCategory !== 'timber';
       const isPureSheet = isPlywood || isReady || (it as any).rateUnit === 'PCS' || it.per === 'PCS';
+      const isRftBilled = !isPureSheet && isTimberRftBilled(it as any);
 
-      if (!isPureSheet) {
+      if (!isPureSheet && !isRftBilled) {
         totalCft += (typeof it.cft === 'number' ? it.cft : 0);
       }
       totalPieces += (typeof it.pieces === 'number' ? it.pieces : 0);
@@ -278,6 +285,14 @@ export function createProformaInvoiceDoc(
         if (sheetUnit === 'SQFT') {
           totalSqftBilled += sheetCalc.sqft;
         }
+      } else if (isRftBilled) {
+        const p = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
+        const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
+        const lenMatch = (it.description || '').match(/^([\d.]+)\s*[xX×]/);
+        const rftVal = typeof it.rft === 'number' && it.rft > 0 ? it.rft : (lenMatch ? calculateRFT(parseFloat(lenMatch[1]) || 0, p) : calculateRFT((it as any).lengthFeet, p));
+        const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(rftVal * r * 100) / 100;
+        totalAmount += amt;
+        totalRftBilled += rftVal;
       } else {
         const isSqftBilled = it.rateUnit === 'SQFT' || it.per === 'SQFT';
         const defaultRowRate = isSqftBilled ? 120 : defaultRate;
@@ -796,7 +811,7 @@ export function createProformaInvoiceDoc(
       });
 
       const headingBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
-      tableBody.push([
+      const headingRow: any[] = [
         { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
         {
           content: group.wood.toUpperCase(),
@@ -805,14 +820,17 @@ export function createProformaInvoiceDoc(
         { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
         { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
         { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
+        ...(showRftCol ? [{ content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } }] : []),
         { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
         { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
         { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } }
-      ]);
+      ];
+      tableBody.push(headingRow);
 
       let groupPieces = 0;
       let groupCft = 0;
       let groupSqftBilled = 0;
+      let groupRftBilled = 0;
       let groupAmount = 0;
 
       const itemBorder = { top: 0, bottom: 0, left: 0.2, right: 0.2 };
@@ -828,8 +846,9 @@ export function createProformaInvoiceDoc(
           dimOnly = rawDim.split(/([xX×])/).map(p => p.trim().replace(/^0+(\d)/, '$1')).join('');
         }
         const sheetUnit = isSheet ? resolveSheetRateUnit((it as any).rateUnit, it.per) : null;
-        const isSqftBilled = isSheet ? sheetUnit === 'SQFT' : (!isSheet && ((it as any).rateUnit === 'SQFT' || it.per === 'SQFT' || ((it as any).widthInches && (it as any).widthInches >= 7 && (it as any).rateUnit !== 'CFT')));
-        const perText = isSheet ? sheetUnit! : (isSqftBilled ? 'SQFT' : 'CFT');
+        const isRftBilled = !isSheet && isTimberRftBilled(it as any);
+        const isSqftBilled = isSheet ? sheetUnit === 'SQFT' : (!isSheet && !isRftBilled && ((it as any).rateUnit === 'SQFT' || it.per === 'SQFT' || ((it as any).widthInches && (it as any).widthInches >= 7 && (it as any).rateUnit !== 'CFT')));
+        const perText = isSheet ? sheetUnit! : (isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : 'CFT'));
         const zebraBg = (itemIdx++ % 2 === 0) ? [243, 244, 246] : [255, 255, 255];
 
         const itPieces = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
@@ -837,10 +856,12 @@ export function createProformaInvoiceDoc(
         const isPly = Boolean((it as any).itemCategory === 'plywood' || group.wood.includes('PLYWOOD') || (it.woodType && it.woodType.toUpperCase().includes('PLYWOOD')));
         const sheetCalc = isSheet ? calculateSheetAmount(isPly, itPieces, itRate, sheetUnit!, it.widthInches, (it as any).boardSize) : null;
         const sheetSqft = sheetCalc ? sheetCalc.sqft : 0;
-        const rowAmount = isSheet ? (itRate > 0 ? sheetCalc!.amount : (typeof it.amount === 'number' ? it.amount : 0)) : (typeof it.amount === 'number' ? it.amount : 0);
+        const lenMatch = (it.description || '').match(/^([\d.]+)\s*[xX×]/);
+        const rowRft = isRftBilled ? (typeof it.rft === 'number' && it.rft > 0 ? it.rft : (lenMatch ? calculateRFT(parseFloat(lenMatch[1]) || 0, itPieces) : calculateRFT((it as any).lengthFeet, itPieces))) : 0;
+        const rowAmount = isSheet ? (itRate > 0 ? sheetCalc!.amount : (typeof it.amount === 'number' ? it.amount : 0)) : (isRftBilled && (!it.amount || it.amount === 0) && itRate > 0 ? Math.round(rowRft * itRate * 100) / 100 : (typeof it.amount === 'number' ? it.amount : 0));
 
         groupPieces += itPieces;
-        if (!isSheet && !isSqftBilled) {
+        if (!isSheet && !isRftBilled && !isSqftBilled) {
           groupCft += (typeof it.cft === 'number' ? it.cft : 0);
         }
         groupAmount += rowAmount;
@@ -848,11 +869,15 @@ export function createProformaInvoiceDoc(
         if (isSqftBilled) {
           groupSqftBilled += isSheet ? sheetSqft : (typeof it.sqft === 'number' ? it.sqft : (it.cft || 0) * 12);
         }
+        if (isRftBilled) {
+          groupRftBilled += rowRft;
+        }
 
-        const cftText = !isSheet && it.cft > 0 ? it.cft.toFixed(4) : '';
+        const cftText = !isSheet && !isRftBilled && it.cft > 0 ? it.cft.toFixed(4) : '';
         const sqftText = isSqftBilled
           ? (isSheet ? `${sheetSqft.toFixed(2)} SQFT` : (it.sqft && it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : `${((it.cft || 0) * 12).toFixed(2)} SQFT`))
           : '';
+        const rftText = isRftBilled && rowRft > 0 ? `${rowRft.toFixed(2)} RFT` : '';
 
         const slStr = `${slCounter}`;
         slCounter++;
@@ -863,6 +888,7 @@ export function createProformaInvoiceDoc(
           { content: itPieces > 0 ? `${itPieces}` : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.45, bottom: 0.45 } } },
           { content: cftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.45, bottom: 0.45 } } },
           { content: sqftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.45, bottom: 0.45 } } },
+          ...(showRftCol ? [{ content: rftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.45, bottom: 0.45 } } }] : []),
           { content: itRate !== 0 ? formatIndianCurrency(itRate) : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.45, bottom: 0.45 } } },
           { content: perText, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: formatIndianCurrency(rowAmount), styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'normal', textColor: [75, 85, 99], fillColor: zebraBg, cellPadding: { left: 2.2, top: 0.45, bottom: 0.45 } } }
@@ -880,6 +906,7 @@ export function createProformaInvoiceDoc(
         { content: `${groupPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
         { content: groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
         { content: groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
+        ...(showRftCol ? [{ content: groupRftBilled > 0 ? `${groupRftBilled.toFixed(2)} RFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } }] : []),
         { content: '', styles: { halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
         { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
         { content: `Rs. ${formatIndianCurrency(groupAmount)}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } }
@@ -894,6 +921,7 @@ export function createProformaInvoiceDoc(
         { content: `${totalPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } },
         { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } },
         { content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } },
+        ...(showRftCol ? [{ content: totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }] : []),
         { content: '', styles: { halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
         { content: '', styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
         { content: `Rs. ${formatIndianCurrency(totalAmount)}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }
@@ -905,7 +933,7 @@ export function createProformaInvoiceDoc(
 
   let isFirstChargeRow = true;
   let chargeRowIdx = 0;
-  const chargeColSpan = isRoundLog ? 3 : 6;
+  const chargeColSpan = isRoundLog ? 3 : (showRftCol ? 7 : 6);
   const chargeRow = (name: string, amountStr: string, isDiscount: boolean = false) => {
     const topWidth = isFirstChargeRow ? 0.2 : 0;
     isFirstChargeRow = false;
@@ -992,16 +1020,9 @@ export function createProformaInvoiceDoc(
         { content: '', styles: { lineWidth: emptyBorder } }
       ]);
     } else {
-      tableBody.push([
-        { content: '', styles: { lineWidth: emptyBorder } },
-        { content: '', styles: { lineWidth: emptyBorder } },
-        { content: '', styles: { lineWidth: emptyBorder } },
-        { content: '', styles: { lineWidth: emptyBorder } },
-        { content: '', styles: { lineWidth: emptyBorder } },
-        { content: '', styles: { lineWidth: emptyBorder } },
-        { content: '', styles: { lineWidth: emptyBorder } },
-        { content: '', styles: { lineWidth: emptyBorder } }
-      ]);
+      tableBody.push(
+        Array.from({ length: showRftCol ? 9 : 8 }, () => ({ content: '', styles: { lineWidth: emptyBorder } }))
+      );
     }
   }
 
@@ -1043,8 +1064,9 @@ export function createProformaInvoiceDoc(
     'Sl\nNo.',
     'Description of Goods',
     { content: 'Quantity (PCS)', styles: { fontSize: 7.4 } },
-    'Alt. Quantity (CFT)',
+    { content: 'Alt. Quantity (CFT)', styles: { fontSize: showRftCol ? 7.2 : 8.0 } },
     'SQFT',
+    ...(showRftCol ? ['RFT'] : []),
     'Rate',
     'per',
     'Amount'
@@ -1074,8 +1096,9 @@ export function createProformaInvoiceDoc(
     '',
     'Total',
     { content: `${totalPieces} PCS`, styles: { cellPadding: { right: 2.2 } } },
-    { content: `${totalCft.toFixed(4)} CFT`, styles: { cellPadding: { right: 2.2 } } },
+    { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { cellPadding: { right: 2.2 } } },
     { content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '', styles: { cellPadding: { right: 2.2 } } },
+    ...(showRftCol ? [{ content: totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '', styles: { cellPadding: { right: 2.2 } } }] : []),
     {
       content: `Rs. ${formatIndianCurrency(effectiveTotal)}`,
       colSpan: 3,
@@ -1091,18 +1114,30 @@ export function createProformaInvoiceDoc(
     4: { halign: 'right', cellWidth: 62, fontStyle: 'bold', cellPadding: { right: 2.5 } }
   };
 
-  const cutColumnStyles = {
-    0: { halign: 'center', cellWidth: 7 },
-    1: { halign: 'left', cellWidth: 31, fontStyle: 'bold' },
-    2: { halign: 'right', cellWidth: 20 },
-    3: { halign: 'right', cellWidth: 30 },
-    4: { halign: 'right', cellWidth: 29 },
-    5: { halign: 'right', cellWidth: 15 },
-    6: { halign: 'center', cellWidth: 9, cellPadding: { left: 0.5, right: 0.5 } },
-    7: { halign: 'left', cellWidth: 49, fontStyle: 'bold', cellPadding: { left: 2.2 } }
-  };
+  const cutColumnStyles = showRftCol
+    ? {
+        0: { halign: 'center', cellWidth: 7 },
+        1: { halign: 'left', cellWidth: 31, fontStyle: 'bold' },
+        2: { halign: 'right', cellWidth: 20 },
+        3: { halign: 'right', cellWidth: 25 },
+        4: { halign: 'right', cellWidth: 22 },
+        5: { halign: 'right', cellWidth: 19 },
+        6: { halign: 'right', cellWidth: 15 },
+        7: { halign: 'center', cellWidth: 9, cellPadding: { left: 0.5, right: 0.5 } },
+        8: { halign: 'left', cellWidth: 42, fontStyle: 'bold', cellPadding: { left: 2.2 } }
+      }
+    : {
+        0: { halign: 'center', cellWidth: 7 },
+        1: { halign: 'left', cellWidth: 31, fontStyle: 'bold' },
+        2: { halign: 'right', cellWidth: 20 },
+        3: { halign: 'right', cellWidth: 30 },
+        4: { halign: 'right', cellWidth: 29 },
+        5: { halign: 'right', cellWidth: 15 },
+        6: { halign: 'center', cellWidth: 9, cellPadding: { left: 0.5, right: 0.5 } },
+        7: { halign: 'left', cellWidth: 49, fontStyle: 'bold', cellPadding: { left: 2.2 } }
+      };
 
-  const lastColIndex = isRoundLog ? 4 : 7;
+  const lastColIndex = isRoundLog ? 4 : (showRftCol ? 8 : 7);
 
   autoTable(doc, {
     startY: 87,
@@ -1154,7 +1189,7 @@ export function createProformaInvoiceDoc(
     willDrawCell: (data) => {
       if (data.section === 'body' || data.section === 'foot') {
         const rawRow = Array.isArray(data.row.raw) ? data.row.raw : [];
-        const isSectionBanner = (rawRow[0] as any)?.colSpan >= (isRoundLog ? 4 : 7) || (rawRow[1] as any)?.colSpan >= (isRoundLog ? 4 : 7);
+        const isSectionBanner = (rawRow[0] as any)?.colSpan >= (isRoundLog ? 4 : (showRftCol ? 8 : 7)) || (rawRow[1] as any)?.colSpan >= (isRoundLog ? 4 : (showRftCol ? 8 : 7));
         if (isSectionBanner) return;
         const raw = (data.cell.text || []).join(' ').trim();
         if (splitDimension(raw) || splitDecimalNumber(raw)) {
@@ -1187,10 +1222,10 @@ export function createProformaInvoiceDoc(
         const c0 = (rawRow[0] as any)?.content ?? (typeof rawRow[0] === 'string' ? rawRow[0] : '');
         const c1 = (rawRow[1] as any)?.content ?? (typeof rawRow[1] === 'string' ? rawRow[1] : '');
 
-        const isSectionBanner = (rawRow[0] as any)?.colSpan >= (isRoundLog ? 5 : 7) || (rawRow[1] as any)?.colSpan >= (isRoundLog ? 5 : 7);
+        const isSectionBanner = (rawRow[0] as any)?.colSpan >= (isRoundLog ? 5 : (showRftCol ? 8 : 7)) || (rawRow[1] as any)?.colSpan >= (isRoundLog ? 5 : (showRftCol ? 8 : 7));
         const isSubtotalRow = (typeof c0 === 'string' && (c0.startsWith('Sub Total') || c0.startsWith('Total ') || c0.startsWith('Total -') || c0 === 'TOTAL MATERIALS' || (c0.includes('logs') && c0.includes('@')))) || c1 === 'Total' || c1 === 'TOTAL MATERIALS';
         const isFootRow = data.section === 'foot';
-        const isChargeRow = (rawRow[1] as any)?.colSpan === (isRoundLog ? 3 : 6);
+        const isChargeRow = (rawRow[1] as any)?.colSpan === chargeColSpan;
         const isEmptyPaddingRow = c0 === '' && c1 === '' && !isSectionBanner && !isSubtotalRow;
 
         if (isSectionBanner) {
@@ -1211,7 +1246,7 @@ export function createProformaInvoiceDoc(
         const w = data.cell.width;
         const h = data.cell.height;
 
-        const isFootTotal = data.section === 'foot' && data.column.index === (isRoundLog ? 4 : 5);
+        const isFootTotal = data.section === 'foot' && data.column.index === (isRoundLog ? 4 : (showRftCol ? 6 : 5));
         const baseline = isFootTotal ? (y + h / 2 + 1.3) : (y + h / 2 + 1.0);
 
         const dimParts = splitDimension(raw);

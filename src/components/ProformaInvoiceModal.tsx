@@ -7,7 +7,7 @@ import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
 import { exportSheetToPdf, printProformaInvoicePdf } from '../utils/exportPdf';
 import { renderDimensionHtml, renderWithSmallDecimalHtml } from './PrintableProformaInvoice';
 import { groupRoundLogsBySpeciesFirst, getRoundLogUnitConfig } from '../utils/roundLogCalculator';
-import { formatValue, calculateSheetAmount, resolveSheetRateUnit, resolveSheetWidth, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
+import { calculateRFT, formatValue, calculateSheetAmount, isTimberRftBilled, resolveSheetRateUnit, resolveSheetWidth, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
 import './ProformaInvoice.css';
 
 export interface ProformaInvoiceProps {
@@ -30,8 +30,9 @@ export interface InvoiceItemRow {
   hsn: string;
   cft: number;
   sqft?: number;
+  rft?: number;
   widthInches?: number;
-  rateUnit?: 'CBM' | 'CFT' | 'SQFT' | 'PCS';
+  rateUnit?: 'CBM' | 'CFT' | 'SQFT' | 'PCS' | 'RFT';
   pieces: number;
   rate: number;
   per: string;
@@ -305,8 +306,9 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
         const l = it.lengthFeet;
         const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
         const t = it.thicknessInches;
-        const isSqftBilled = (typeof w === 'number' ? w : 0) >= 7 && it.rateUnit !== 'CFT';
-        const defaultItemRate = isSqftBilled ? 120 : globalRate;
+        const isRftBilled = isTimberRftBilled(it);
+        const isSqftBilled = !isRftBilled && (typeof w === 'number' ? w : 0) >= 7 && it.rateUnit !== 'CFT';
+        const defaultItemRate = isRftBilled ? 0 : (isSqftBilled ? 120 : globalRate);
         const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultItemRate;
         const rate = (it.id && customRates[it.id] !== undefined)
           ? customRates[it.id]
@@ -318,7 +320,8 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
         const cft = it.cft;
         const sqft = it.sqft || (it.cft * 12);
         const pcs = typeof it.pieces === 'number' ? it.pieces : 0;
-        const multiplier = isSqftBilled ? sqft : cft;
+        const rft = calculateRFT(l, pcs);
+        const multiplier = isRftBilled ? rft : (isSqftBilled ? sqft : cft);
         const amount = Math.round(multiplier * rate * 100) / 100;
 
         validItems.push({
@@ -331,11 +334,12 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
           hsn,
           cft,
           sqft,
+          rft,
           widthInches: w,
-          rateUnit: it.rateUnit === 'SQFT' ? 'SQFT' : 'CFT',
+          rateUnit: isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : 'CFT'),
           pieces: pcs,
           rate,
-          per: isSqftBilled ? 'SQFT' : 'CFT',
+          per: isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : 'CFT'),
           discPercent: disc,
           amount
         });
@@ -346,20 +350,20 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
   }, [sheet, useSampleData, customRates, customHsn, customDisc, globalRate]);
 
   // Aggregate Totals
-  const { totalCft, totalSqft, totalPieces, totalAmount, totalSqftBilled } = useMemo(() => {
+  const { totalCft, totalPieces, totalAmount, totalSqftBilled, totalRftBilled, showRftCol } = useMemo(() => {
     let cftSum = 0;
-    let sqftSum = 0;
     let pcsSum = 0;
     let amtSum = 0;
     let sqftBilled = 0;
+    let rftBilled = 0;
+    let hasRft = false;
 
     for (const it of invoiceItems) {
       const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType === 'PLYWOOD' || it.woodType === 'READY BOARD' || it.woodType?.toUpperCase().includes('PLYWOOD') || it.woodType?.toUpperCase().includes('READY')) && it.itemCategory !== 'timber';
-      if (!isSheet) {
+      const isRft = !isSheet && isTimberRftBilled(it);
+      if (isRft) hasRft = true;
+      if (!isSheet && !isRft) {
         cftSum += it.cft;
-        sqftSum += (it.sqft || (it.cft * 12));
-      } else {
-        sqftSum += (it.sqft || 0);
       }
       pcsSum += it.pieces;
       amtSum += it.amount;
@@ -367,6 +371,10 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
         if (resolveSheetRateUnit(it.rateUnit, it.per) === 'SQFT') {
           sqftBilled += (it.sqft || 0);
         }
+      } else if (isRft) {
+        const lenMatch = (it.description || '').match(/^([\d.]+)\s*[xX×]/);
+        const rftVal = typeof it.rft === 'number' && it.rft > 0 ? it.rft : (lenMatch ? calculateRFT(parseFloat(lenMatch[1]) || 0, it.pieces) : 0);
+        rftBilled += rftVal;
       } else if (it.rateUnit !== 'CFT' && (it.widthInches || 0) >= 7) {
         sqftBilled += (it.sqft || (it.cft * 12));
       }
@@ -374,10 +382,11 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
     return {
       totalCft: cftSum,
-      totalSqft: sqftSum,
       totalPieces: pcsSum,
       totalAmount: amtSum,
-      totalSqftBilled: sqftBilled
+      totalSqftBilled: sqftBilled,
+      totalRftBilled: rftBilled,
+      showRftCol: hasRft
     };
   }, [invoiceItems]);
 
@@ -1307,11 +1316,12 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                   <th style={{ width: '3.5%' }}>Sl<br />No.</th>
                   <th style={{ width: '17.5%', textAlign: 'left', paddingLeft: '8px' }}>Description of Goods</th>
                   <th style={{ width: '10%', textAlign: 'right' }}>Quantity (PCS)</th>
-                  <th style={{ width: '16.5%', textAlign: 'right' }}>Alt. Quantity (CFT)</th>
-                  <th style={{ width: '15%', textAlign: 'right' }}>SQFT</th>
+                  <th style={{ width: showRftCol ? '14%' : '16.5%', textAlign: 'right' }}>Alt. Quantity (CFT)</th>
+                  <th style={{ width: showRftCol ? '11%' : '15%', textAlign: 'right' }}>SQFT</th>
+                  {showRftCol && <th style={{ width: '10%', textAlign: 'right' }}>RFT</th>}
                   <th style={{ width: '9%', textAlign: 'right' }}>Rate</th>
                   <th style={{ width: '5%', textAlign: 'center', whiteSpace: 'nowrap' }}>per</th>
-                  <th style={{ width: '23.5%', textAlign: 'left', paddingLeft: '8px' }}>Amount</th>
+                  <th style={{ width: showRftCol ? '20%' : '23.5%', textAlign: 'left', paddingLeft: '8px' }}>Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -1319,9 +1329,10 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                   const groupPieces = group.items.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
                   const groupCft = group.items.reduce((acc, it) => {
                     const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.woodType?.toUpperCase().includes('PLYWOOD') || it.woodType?.toUpperCase().includes('READY')) && it.itemCategory !== 'timber';
+                    const isRft = !isSheet && isTimberRftBilled(it);
                     const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
-                    const isSqftBilled = isSheet ? resolveSheetRateUnit(it.rateUnit, it.per) === 'SQFT' : (!isSheet && (it.rateUnit === 'SQFT' || it.per === 'SQFT' || (w >= 7 && it.rateUnit !== 'CFT')));
-                    if (isSheet || isSqftBilled) return acc;
+                    const isSqftBilled = isSheet ? resolveSheetRateUnit(it.rateUnit, it.per) === 'SQFT' : (!isSheet && !isRft && (it.rateUnit === 'SQFT' || it.per === 'SQFT' || (w >= 7 && it.rateUnit !== 'CFT')));
+                    if (isSheet || isRft || isSqftBilled) return acc;
                     return acc + (typeof it.cft === 'number' ? it.cft : 0);
                   }, 0);
                   const groupAmount = group.items.reduce((acc, it) => acc + (typeof it.amount === 'number' ? it.amount : 0), 0);
@@ -1330,10 +1341,18 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     if (isSheet) {
                       return resolveSheetRateUnit(it.rateUnit, it.per) === 'SQFT' ? acc + (typeof it.sqft === 'number' ? it.sqft : 0) : acc;
                     }
+                    if (isTimberRftBilled(it)) return acc;
                     const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
                     const isSqft = it.rateUnit === 'SQFT' || it.per === 'SQFT' || (w >= 7 && it.rateUnit !== 'CFT');
                     if (isSqft) return acc + (typeof it.sqft === 'number' ? it.sqft : (it.cft * 12));
                     return acc;
+                  }, 0);
+                  const groupRftBilled = group.items.reduce((acc, it) => {
+                    const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.woodType?.toUpperCase().includes('PLYWOOD') || it.woodType?.toUpperCase().includes('READY')) && it.itemCategory !== 'timber';
+                    if (isSheet || !isTimberRftBilled(it)) return acc;
+                    const lenMatch = (it.description || '').match(/^([\d.]+)\s*[xX×]/);
+                    const rftVal = typeof it.rft === 'number' && it.rft > 0 ? it.rft : (lenMatch ? calculateRFT(parseFloat(lenMatch[1]) || 0, it.pieces) : 0);
+                    return acc + rftVal;
                   }, 0);
 
                   return (
@@ -1347,6 +1366,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                         <td></td>
                         <td></td>
                         <td></td>
+                        {showRftCol && <td></td>}
                         <td></td>
                         <td></td>
                         <td></td>
@@ -1357,9 +1377,12 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                         const isSheet = (group.wood.includes('PLYWOOD') || group.wood.includes('READY') || item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || (item.woodType && (item.woodType.toUpperCase().includes('PLYWOOD') || item.woodType.toUpperCase().includes('READY')))) && item.itemCategory !== 'timber';
                         const dimOnly = isSheet ? getCutLogItemDescription({ ...item, woodType: group.wood || item.woodType } as any) : (item.description.split(/\s+/)[0] || item.description);
                         const sheetUnit = isSheet ? resolveSheetRateUnit(item.rateUnit, item.per) : null;
-                        const isSqftBilled = isSheet ? sheetUnit === 'SQFT' : (!isSheet && item.rateUnit !== 'CFT' && (item.widthInches || 0) >= 7);
+                        const isRftBilled = !isSheet && isTimberRftBilled(item);
+                        const lenMatch = (item.description || '').match(/^([\d.]+)\s*[xX×]/);
+                        const itemRft = isRftBilled ? (typeof item.rft === 'number' && item.rft > 0 ? item.rft : (lenMatch ? calculateRFT(parseFloat(lenMatch[1]) || 0, item.pieces) : 0)) : 0;
+                        const isSqftBilled = isSheet ? sheetUnit === 'SQFT' : (!isSheet && !isRftBilled && item.rateUnit !== 'CFT' && (item.widthInches || 0) >= 7);
                         const slStr = String(item.slNo);
-                        const perUnit = isSheet ? sheetUnit! : item.per;
+                        const perUnit = isSheet ? sheetUnit! : (isRftBilled ? 'RFT' : item.per);
                         return (
                           <tr key={item.slNo} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                             <td className="text-center">{slStr}</td>
@@ -1367,8 +1390,11 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                               {renderDimensionHtml(dimOnly)}
                             </td>
                             <td className="text-right p-mono">{item.pieces}</td>
-                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && item.cft > 0 ? item.cft.toFixed(4) : '')}</td>
+                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && !isRftBilled && item.cft > 0 ? item.cft.toFixed(4) : '')}</td>
                             <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled && (item.sqft || (!isSheet && item.cft * 12)) ? `${(item.sqft || item.cft * 12).toFixed(2)} SQFT` : '')}</td>
+                            {showRftCol && (
+                              <td className="text-right p-mono">{renderWithSmallDecimalHtml(isRftBilled && itemRft > 0 ? `${itemRft.toFixed(2)} RFT` : '')}</td>
+                            )}
                             <td className="text-right p-mono">
                               <input
                                 type="number"
@@ -1410,6 +1436,11 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                         <td className="text-right p-mono" style={{ fontWeight: 800 }}>
                           {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '')}
                         </td>
+                        {showRftCol && (
+                          <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                            {renderWithSmallDecimalHtml(groupRftBilled > 0 ? `${groupRftBilled.toFixed(2)} RFT` : '')}
+                          </td>
+                        )}
                         <td className="text-right p-mono"></td>
                         <td className="text-center"></td>
                         <td className="text-right p-mono" style={{ fontWeight: 800, paddingRight: '8px' }}>
@@ -1436,6 +1467,11 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     <td className="text-right p-mono" style={{ fontWeight: 800 }}>
                       {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '')}
                     </td>
+                    {showRftCol && (
+                      <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                        {renderWithSmallDecimalHtml(totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '')}
+                      </td>
+                    )}
                     <td className="text-right p-mono"></td>
                     <td className="text-center"></td>
                     <td className="text-right p-mono" style={{ fontWeight: 800, paddingRight: '8px' }}>
@@ -1447,13 +1483,14 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                 {/* Additional Charges and Discount rows with zebra striping */}
                 {(() => {
                   let chargeIdx = 0;
+                  const chargeSpan = showRftCol ? 7 : 6;
                   return (
                     <>
                       {/* 1. Next: Planing Charges immediately after wood */}
                       {totalPlaning > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td className="text-center"></td>
-                          <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             {planingLabel}
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -1466,7 +1503,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                       {totalCarpentryWorks > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td className="text-center"></td>
-                          <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             CARPENTRY WORKS
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -1479,7 +1516,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                       {totalTransportation > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td className="text-center"></td>
-                          <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             TRANSPORTATION &amp; DELIVERY CHARGES
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -1492,7 +1529,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                       {totalOther > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td className="text-center"></td>
-                          <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             {(ac?.otherLabel || 'OTHER CHARGES').toUpperCase()}
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -1505,7 +1542,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                       {gstAmount > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td className="text-center"></td>
-                          <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             GST {sheet?.gstPercent ? `(${sheet.gstPercent}%)` : ''}
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -1519,7 +1556,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                         <>
                           <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`} style={{ fontWeight: 800 }}>
                             <td className="text-center"></td>
-                            <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                            <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                               TOTAL PRICE BEFORE DISCOUNT
                             </td>
                             <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -1528,7 +1565,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                           </tr>
                           <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                             <td className="text-center"></td>
-                            <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
+                            <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
                               LESS: DISCOUNT {sheet?.discount?.type === 'percentage' && sheet.discount.value ? `(${sheet.discount.value}%)` : (sheet?.discount?.type === 'rupees' && sheet.discount.value ? `(SPECIAL DISCOUNT)` : '')}
                             </td>
                             <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
@@ -1544,7 +1581,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                 {/* Fill empty spacing to push total to bottom if few items */}
                 {invoiceItems.length < 8 && (
                   <tr style={{ height: `${Math.max(20, (8 - invoiceItems.length) * 20)}px` }}>
-                    <td colSpan={8} style={{ borderBottom: 'none' }}></td>
+                    <td colSpan={showRftCol ? 9 : 8} style={{ borderBottom: 'none' }}></td>
                   </tr>
                 )}
               </tbody>
@@ -1559,11 +1596,16 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                     {totalPieces} PCS
                   </td>
                   <td className="text-right p-mono font-bold">
-                    {renderWithSmallDecimalHtml(`${totalCft.toFixed(4)} CFT`)}
+                    {renderWithSmallDecimalHtml(totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '')}
                   </td>
                   <td className="text-right p-mono font-bold">
-                    {renderWithSmallDecimalHtml(totalSqft.toFixed(2) !== '0.00' ? `${totalSqft.toFixed(2)} SQFT` : '')}
+                    {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '')}
                   </td>
+                  {showRftCol && (
+                    <td className="text-right p-mono font-bold">
+                      {renderWithSmallDecimalHtml(totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '')}
+                    </td>
+                  )}
                   <td colSpan={3} className="text-right p-mono font-bold p-final-total-highlight">
                     {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), 'Rs. ')}
                   </td>

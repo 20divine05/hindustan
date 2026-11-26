@@ -9,7 +9,7 @@ import type {
 import { formatIndianCurrency, numberToIndianCurrencyWords } from '../utils/indianNumberWords';
 import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
 import { groupRoundLogsBySpeciesFirst, getRoundLogUnitConfig } from '../utils/roundLogCalculator';
-import { formatValue, calculateSheetAmount, calculateSheetSqft, resolveSheetRateUnit, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
+import { calculateRFT, formatValue, calculateSheetAmount, calculateSheetSqft, isTimberRftBilled, resolveSheetRateUnit, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
 import './ProformaInvoice.css';
 
 export const renderDimensionHtml = (dim: string) => {
@@ -320,7 +320,9 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
   let totalCbm = 0;
   let totalPieces = 0;
   let totalSqftBilled = 0;
+  let totalRftBilled = 0;
   let timberTotalAmount = 0;
+  const showRftCol = !isRound && validItems.some((it) => isTimberRftBilled(it));
 
   if (isRound) {
     totalPieces = roundSpeciesData.overallTotals.totalPieces;
@@ -332,7 +334,8 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
       const itDesc = (it.remarks || (it as any).description || '').toUpperCase();
       const itWood = (it.woodType || '').toUpperCase();
       const isPureSheet = it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD') || itWood.includes('READY') || itDesc.includes('READY') || it.rateUnit === 'PCS';
-      return isPureSheet ? acc : acc + (typeof it.cft === 'number' ? it.cft : 0);
+      if (isPureSheet || isTimberRftBilled(it)) return acc;
+      return acc + (typeof it.cft === 'number' ? it.cft : 0);
     }, 0);
     totalPieces = validItems.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
 
@@ -345,10 +348,18 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
         const sqft = calculateSheetSqft(isPly, p, it.widthInches, (it as any).boardSize);
         return acc + sqft;
       }
+      if (isTimberRftBilled(it)) return acc;
       if ((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT') {
         return acc + (typeof it.sqft === 'number' ? it.sqft : 0);
       }
       return acc;
+    }, 0);
+
+    totalRftBilled = validItems.reduce((acc, it) => {
+      const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready')) && it.itemCategory !== 'timber';
+      if (isSheet || !isTimberRftBilled(it)) return acc;
+      const rftVal = typeof it.rft === 'number' && it.rft > 0 ? it.rft : calculateRFT(it.lengthFeet, it.pieces);
+      return acc + rftVal;
     }, 0);
 
     timberTotalAmount = validItems.reduce((acc, it) => {
@@ -359,6 +370,12 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
         const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
         const sheetCalc = calculateSheetAmount(isPly, p, r, resolveSheetRateUnit(it.rateUnit, (it as any).per), it.widthInches, (it as any).boardSize);
         const amt = sheetCalc.amount > 0 ? sheetCalc.amount : (typeof it.amount === 'number' ? it.amount : 0);
+        return acc + amt;
+      }
+      if (isTimberRftBilled(it)) {
+        const rftVal = typeof it.rft === 'number' && it.rft > 0 ? it.rft : calculateRFT(it.lengthFeet, it.pieces);
+        const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
+        const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(rftVal * r * 100) / 100;
         return acc + amt;
       }
       const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
@@ -810,11 +827,12 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                   <th style={{ width: '3.5%' }}>Sl<br />No.</th>
                   <th style={{ width: '17.5%', textAlign: 'left', paddingLeft: '8px' }}>Description of Goods</th>
                   <th style={{ width: '10%', textAlign: 'right' }}>Quantity (PCS)</th>
-                  <th style={{ width: '16.5%', textAlign: 'right' }}>Alt. Quantity (CFT)</th>
-                  <th style={{ width: '15%', textAlign: 'right' }}>SQFT</th>
+                  <th style={{ width: showRftCol ? '14%' : '16.5%', textAlign: 'right' }}>Alt. Quantity (CFT)</th>
+                  <th style={{ width: showRftCol ? '11%' : '15%', textAlign: 'right' }}>SQFT</th>
+                  {showRftCol && <th style={{ width: '10%', textAlign: 'right' }}>RFT</th>}
                   <th style={{ width: '9%', textAlign: 'right' }}>Rate</th>
                   <th style={{ width: '5%', textAlign: 'center', whiteSpace: 'nowrap' }}>per</th>
-                  <th style={{ width: '23.5%', textAlign: 'left', paddingLeft: '8px' }}>Amount</th>
+                  <th style={{ width: showRftCol ? '20%' : '23.5%', textAlign: 'left', paddingLeft: '8px' }}>Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -822,9 +840,10 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                   const groupPieces = group.items.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
                   const groupCft = group.items.reduce((acc, it) => {
                     const isSheet = (group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready')) && it.itemCategory !== 'timber';
+                    const isRft = !isSheet && isTimberRftBilled(it);
                     const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
-                    const isSqftBilled = isSheet ? resolveSheetRateUnit(it.rateUnit, (it as any).per) === 'SQFT' : (!isSheet && (it.rateUnit === 'SQFT' || (w >= 7 && it.rateUnit !== 'CFT')));
-                    if (isSheet || isSqftBilled) return acc;
+                    const isSqftBilled = isSheet ? resolveSheetRateUnit(it.rateUnit, (it as any).per) === 'SQFT' : (!isSheet && !isRft && (it.rateUnit === 'SQFT' || (w >= 7 && it.rateUnit !== 'CFT')));
+                    if (isSheet || isRft || isSqftBilled) return acc;
                     return acc + (typeof it.cft === 'number' ? it.cft : 0);
                   }, 0);
                   const groupSqftBilled = group.items.reduce((acc, it) => {
@@ -836,10 +855,17 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       const sqft = calculateSheetSqft(isPly, p, it.widthInches, (it as any).boardSize);
                       return acc + sqft;
                     }
+                    if (isTimberRftBilled(it)) return acc;
                     if ((typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit === 'SQFT') {
                       return acc + (typeof it.sqft === 'number' ? it.sqft : 0);
                     }
                     return acc;
+                  }, 0);
+                  const groupRftBilled = group.items.reduce((acc, it) => {
+                    const isSheet = (group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready')) && it.itemCategory !== 'timber';
+                    if (isSheet || !isTimberRftBilled(it)) return acc;
+                    const rftVal = typeof it.rft === 'number' && it.rft > 0 ? it.rft : calculateRFT(it.lengthFeet, it.pieces);
+                    return acc + rftVal;
                   }, 0);
                   const groupAmount = group.items.reduce((acc, it) => {
                     const isSheet = (group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready')) && it.itemCategory !== 'timber';
@@ -849,6 +875,12 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
                       const sheetCalc = calculateSheetAmount(isPly, p, r, resolveSheetRateUnit(it.rateUnit, (it as any).per), it.widthInches, (it as any).boardSize);
                       return acc + (sheetCalc.amount > 0 ? sheetCalc.amount : (typeof it.amount === 'number' ? it.amount : 0));
+                    }
+                    if (isTimberRftBilled(it)) {
+                      const rftVal = typeof it.rft === 'number' && it.rft > 0 ? it.rft : calculateRFT(it.lengthFeet, it.pieces);
+                      const r = typeof it.rate === 'number' && it.rate > 0 ? it.rate : 0;
+                      const amt = typeof it.amount === 'number' && it.amount > 0 ? it.amount : Math.round(rftVal * r * 100) / 100;
+                      return acc + amt;
                     }
                     const isSqft = (typeof it.widthInches === 'number' ? it.widthInches : 0) >= 7 && it.rateUnit !== 'CFT';
                     const defaultRowRate = isSqft ? 120 : ratePerCft;
@@ -869,6 +901,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         <td></td>
                         <td></td>
                         <td></td>
+                        {showRftCol && <td></td>}
                         <td></td>
                         <td></td>
                         <td></td>
@@ -880,20 +913,22 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         const isSheet = (group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || it.woodType?.toLowerCase().includes('plywood') || it.woodType?.toLowerCase().includes('ready')) && it.itemCategory !== 'timber';
                         const w = typeof it.widthInches === 'number' ? it.widthInches : 0;
                         const sheetUnit = isSheet ? resolveSheetRateUnit(it.rateUnit, (it as any).per) : null;
-                        const isSqftBilled = isSheet ? sheetUnit === 'SQFT' : (!isSheet && w >= 7 && it.rateUnit !== 'CFT');
-                        const defaultRowRate = isSheet ? 0 : (isSqftBilled ? 120 : ratePerCft);
+                        const isRftBilled = !isSheet && isTimberRftBilled(it);
+                        const rftVal = isRftBilled ? (typeof it.rft === 'number' && it.rft > 0 ? it.rft : calculateRFT(it.lengthFeet, it.pieces)) : 0;
+                        const isSqftBilled = isSheet ? sheetUnit === 'SQFT' : (!isSheet && !isRftBilled && w >= 7 && it.rateUnit !== 'CFT');
+                        const defaultRowRate = (isSheet || isRftBilled) ? 0 : (isSqftBilled ? 120 : ratePerCft);
                         const itemRate = typeof it.rate === 'number' && it.rate > 0 ? it.rate : defaultRowRate;
                         const itPieces = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
                         const isPly = Boolean(it.itemCategory === 'plywood' || (it.woodType && it.woodType.toLowerCase().includes('plywood')));
                         const sheetCalc = isSheet ? calculateSheetAmount(isPly, itPieces, itemRate, sheetUnit!, it.widthInches, (it as any).boardSize) : null;
                         const sheetSqft = sheetCalc ? sheetCalc.sqft : 0;
-                        const mult = isSqftBilled ? (isSheet ? sheetSqft : (typeof it.sqft === 'number' ? it.sqft : 0)) : it.cft;
+                        const mult = isRftBilled ? rftVal : (isSqftBilled ? (isSheet ? sheetSqft : (typeof it.sqft === 'number' ? it.sqft : 0)) : it.cft);
                         const amount = isSheet
                           ? (itemRate > 0 ? sheetCalc!.amount : (typeof it.amount === 'number' ? it.amount : 0))
                           : Math.round(mult * itemRate * 100) / 100;
                         const slStr = String(currentSl);
                         const descStr = isSheet ? getCutLogItemDescription({ ...it, woodType: group.wood || it.woodType }) : `${it.lengthFeet}X${it.widthInches}X${it.thicknessInches}`;
-                        const perUnit = isSheet ? sheetUnit! : (isSqftBilled ? 'SQFT' : 'CFT');
+                        const perUnit = isSheet ? sheetUnit! : (isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : 'CFT'));
 
                         return (
                           <tr key={`item-${currentSl}`} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
@@ -902,8 +937,11 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                               {renderDimensionHtml(descStr)}
                             </td>
                             <td className="text-right p-mono">{itPieces > 0 ? itPieces : ''}</td>
-                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && it.cft > 0 ? it.cft.toFixed(4) : '')}</td>
+                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && !isRftBilled && it.cft > 0 ? it.cft.toFixed(4) : '')}</td>
                             <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled && (isSheet ? sheetSqft > 0 : it.sqft > 0) ? `${(isSheet ? sheetSqft : it.sqft).toFixed(2)} SQFT` : '')}</td>
+                            {showRftCol && (
+                              <td className="text-right p-mono">{renderWithSmallDecimalHtml(isRftBilled && rftVal > 0 ? `${rftVal.toFixed(2)} RFT` : '')}</td>
+                            )}
                             <td className="text-right p-mono">{renderWithSmallDecimalHtml(itemRate.toFixed(2))}</td>
                             <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{perUnit}</td>
                             <td className="text-left p-mono p-item-amount" style={{ paddingLeft: '8px', fontWeight: 500, color: '#4b5563' }}>
@@ -928,6 +966,11 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         <td className="text-right p-mono" style={{ fontWeight: 800, color: '#000000' }}>
                           {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '')}
                         </td>
+                        {showRftCol && (
+                          <td className="text-right p-mono" style={{ fontWeight: 800, color: '#000000' }}>
+                            {renderWithSmallDecimalHtml(groupRftBilled > 0 ? `${groupRftBilled.toFixed(2)} RFT` : '')}
+                          </td>
+                        )}
                         <td className="text-right p-mono"></td>
                         <td className="text-center"></td>
                         <td className="text-right p-mono p-wood-subtotal-price" style={{ fontWeight: 800, paddingRight: '8px', color: '#000000' }}>
@@ -954,6 +997,11 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                     <td className="text-right p-mono" style={{ fontWeight: 800 }}>
                       {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '')}
                     </td>
+                    {showRftCol && (
+                      <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                        {renderWithSmallDecimalHtml(totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '')}
+                      </td>
+                    )}
                     <td className="text-right p-mono"></td>
                     <td className="text-center"></td>
                     <td className="text-right p-mono" style={{ fontWeight: 800, paddingRight: '8px' }}>
@@ -965,13 +1013,14 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                 {/* Additional Charges and Discount rows with zebra striping */}
                 {(() => {
                   let chargeIdx = 0;
+                  const chargeSpan = showRftCol ? 7 : 6;
                   return (
                     <>
                       {/* 1. Next: Planing Charges immediately after wood */}
                       {totalPlaning > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td className="text-center"></td>
-                          <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             {planingLabel}
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -984,7 +1033,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       {totalCarpentryWorks > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td className="text-center"></td>
-                          <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             CARPENTRY WORKS
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -997,7 +1046,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       {totalTransportation > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td className="text-center"></td>
-                          <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             TRANSPORTATION &amp; DELIVERY CHARGES
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -1010,7 +1059,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       {totalOther > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td className="text-center"></td>
-                          <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             {(additionalCharges?.otherLabel || 'OTHER CHARGES').toUpperCase()}
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -1023,7 +1072,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                       {gstAmount > 0 && (
                         <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                           <td className="text-center"></td>
-                          <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                             GST
                           </td>
                           <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -1037,7 +1086,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         <>
                           <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`} style={{ fontWeight: 800 }}>
                             <td className="text-center"></td>
-                            <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                            <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
                               TOTAL PRICE BEFORE DISCOUNT
                             </td>
                             <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
@@ -1046,7 +1095,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                           </tr>
                           <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                             <td className="text-center"></td>
-                            <td colSpan={6} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
+                            <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
                               LESS: DISCOUNT {(discountDesc && discountDesc !== 'LESS: DISCOUNT') ? `(${discountDesc})` : ''}
                             </td>
                             <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
@@ -1062,7 +1111,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                 {/* Spacing rows if fewer items */}
                 {validItems.length < 6 && (
                   <tr style={{ height: `${Math.max(25, (6 - validItems.length) * 18)}px` }}>
-                    <td colSpan={8} style={{ borderBottom: 'none' }}></td>
+                    <td colSpan={showRftCol ? 9 : 8} style={{ borderBottom: 'none' }}></td>
                   </tr>
                 )}
               </tbody>
@@ -1077,11 +1126,16 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                     {totalPieces} PCS
                   </td>
                   <td className="text-right p-mono font-bold">
-                    {renderWithSmallDecimalHtml(`${totalCft.toFixed(4)} CFT`)}
+                    {renderWithSmallDecimalHtml(totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '')}
                   </td>
                   <td className="text-right p-mono font-bold">
                     {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '')}
                   </td>
+                  {showRftCol && (
+                    <td className="text-right p-mono font-bold">
+                      {renderWithSmallDecimalHtml(totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '')}
+                    </td>
+                  )}
                   <td colSpan={3} className="text-right p-mono font-bold p-final-total-highlight">
                     {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), 'Rs. ')}
                   </td>
