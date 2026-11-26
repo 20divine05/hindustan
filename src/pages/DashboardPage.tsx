@@ -73,7 +73,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const handleDuplicate = async (sheetId: string) => {
     const uid = user?.id || 'guest';
-    const duplicated = await dbService.duplicateSheet(sheetId, uid);
+    const duplicated = await dbService.duplicateSheet(sheetId, uid, user?.role || 'admin');
     if (duplicated) {
       loadUserSheets();
     }
@@ -303,8 +303,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             fontSize: '0.95rem'
                           }}
                           onClick={async () => {
-                            const full = await dbService.getSheetById(sheet.id, user?.id || '');
-                            if (full) onOpenSheet(full);
+                            const full = await dbService.getSheetById(
+                              sheet.id,
+                              user?.id || sheet.userId || 'guest',
+                              user?.role || 'admin'
+                            );
+                            if (full) {
+                              onOpenSheet(full);
+                            } else if ((sheet.items && sheet.items.length > 0) || sheet.totalEntries === 0) {
+                              onOpenSheet(sheet);
+                            }
                           }}
                         >
                           {sheet.sheetName}
@@ -360,8 +368,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           style={{ padding: '4px 8px', fontSize: '0.8rem' }}
                           title="Open & Continue Editing"
                           onClick={async () => {
-                            const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
-                            onOpenSheet(full || sheet);
+                            const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role || 'admin');
+                            if (full) {
+                              onOpenSheet(full);
+                            } else if ((sheet.items && sheet.items.length > 0) || sheet.totalEntries === 0) {
+                              onOpenSheet(sheet);
+                            } else {
+                              alert('Could not load measurement rows from the database. Please check your connection and try again.');
+                            }
                           }}
                         >
                           <ExternalLink size={13} /> Open
@@ -373,8 +387,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           title="Download PDF"
                           style={{ padding: '5px' }}
                           onClick={async () => {
-                            const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
-                            exportSheetToPdf(full || sheet);
+                            const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role || 'admin');
+                            if (full) {
+                              exportSheetToPdf(full);
+                            } else if ((sheet.items && sheet.items.length > 0) || sheet.totalEntries === 0) {
+                              exportSheetToPdf(sheet);
+                            } else {
+                              alert('Could not load measurement rows from the database. Please check your connection and try again.');
+                            }
                           }}
                         >
                           <FileDown size={14} />

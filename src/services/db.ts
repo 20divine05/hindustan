@@ -4,6 +4,113 @@ import { calculateRFT, calculateRow, calculateSheetAmount, calculateTotals, isCf
 
 const LOCAL_SHEETS_KEY = 'timberpro_local_sheets';
 const ACTIVE_DRAFT_KEY = 'timberpro_active_draft';
+const PENDING_SYNC_KEY = 'timberpro_pending_sync_ids';
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Serialize cloud save operations per sheet ID so auto-save/proforma edits never race DELETE+INSERT
+const sheetSaveQueues = new Map<string, Promise<unknown>>();
+
+function enqueueSheetSave<T>(sheetId: string, task: () => Promise<T>): Promise<T> {
+  const prev = sheetSaveQueues.get(sheetId) || Promise.resolve();
+  const next = prev.then(task, task);
+  const tracked = next.then(
+    () => {
+      if (sheetSaveQueues.get(sheetId) === tracked) {
+        sheetSaveQueues.delete(sheetId);
+      }
+    },
+    () => {
+      if (sheetSaveQueues.get(sheetId) === tracked) {
+        sheetSaveQueues.delete(sheetId);
+      }
+    }
+  );
+  sheetSaveQueues.set(sheetId, tracked);
+  return next;
+}
+
+function getPendingSyncSet(): Set<string> {
+  try {
+    const raw = localStorage.getItem(PENDING_SYNC_KEY);
+    return raw ? new Set<string>(JSON.parse(raw)) : new Set<string>();
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function setPendingSync(sheetId: string, pending: boolean): void {
+  try {
+    const set = getPendingSyncSet();
+    if (pending) {
+      set.add(sheetId);
+    } else {
+      set.delete(sheetId);
+    }
+    localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(Array.from(set)));
+  } catch {
+    // Ignore storage quota errors on pending-sync metadata
+  }
+}
+
+function normalizeLoadedItem(raw: MeasurementItem, idx: number): MeasurementItem {
+  const resolvedWood = raw.woodType || '';
+  const itWood = resolvedWood.toUpperCase();
+  const itDesc = (raw.remarks || '').toUpperCase();
+  const isPlywood = (raw.itemCategory === 'plywood' || itWood.includes('PLYWOOD') || itDesc.includes('PLYWOOD')) && raw.itemCategory !== 'timber';
+  const isReady = (raw.itemCategory === 'ready_board' || itWood.includes('READY') || itDesc.includes('READY')) && raw.itemCategory !== 'timber';
+
+  if (isPlywood || isReady) {
+    return {
+      ...raw,
+      id: raw.id || generateId(),
+      serialNumber: raw.serialNumber || idx + 1,
+      itemCategory: isPlywood ? 'plywood' : 'ready_board',
+      woodType: resolvedWood,
+      remarks: raw.remarks || ''
+    };
+  }
+
+  const isCftRftOnly = isCftRftOnlyWood(resolvedWood);
+  const isRftBilled = isTimberRftBilled(raw);
+  const isSqftBilled = isTimberSqftBilled(raw);
+  const l = typeof raw.lengthFeet === 'number' ? raw.lengthFeet : 0;
+  const w = typeof raw.widthInches === 'number' ? raw.widthInches : 0;
+  const t = typeof raw.thicknessInches === 'number' ? raw.thicknessInches : 0;
+  const p = typeof raw.pieces === 'number' ? raw.pieces : 0;
+  const calc = calculateRow(l, w, t, p);
+  const cft = typeof raw.cft === 'number' ? raw.cft : calc.cft;
+  const sqft = isCftRftOnly ? 0 : (typeof raw.sqft === 'number' && raw.sqft > 0 ? raw.sqft : calc.sqft);
+  const rft = typeof raw.rft === 'number' && raw.rft > 0 ? raw.rft : calculateRFT(l, p);
+  const rawUnit = raw.rateUnit;
+  const rateUnit: 'CFT' | 'SQFT' | 'PCS' | 'RFT' = isRftBilled
+    ? 'RFT'
+    : isCftRftOnly
+      ? 'CFT'
+      : (rawUnit || (isSqftBilled ? 'SQFT' : 'CFT'));
+  const rate = typeof raw.rate === 'number' && raw.rate > 0
+    ? raw.rate
+    : (isRftBilled && typeof raw.rate === 'number' ? raw.rate : undefined);
+  const mult = rateUnit === 'RFT' ? rft : rateUnit === 'SQFT' ? sqft : rateUnit === 'PCS' ? p : cft;
+  const amount = typeof raw.amount === 'number' && raw.amount > 0
+    ? raw.amount
+    : (rate && rate > 0 ? Math.round(mult * rate * 100) / 100 : undefined);
+
+  return {
+    ...raw,
+    id: raw.id || generateId(),
+    serialNumber: raw.serialNumber || idx + 1,
+    itemCategory: raw.itemCategory || 'timber',
+    teakGrade: raw.teakGrade ? (normalizeTeakGrade(raw.teakGrade) as any) : undefined,
+    cft,
+    sqft,
+    rft,
+    rate,
+    rateUnit,
+    amount,
+    woodType: resolvedWood,
+    remarks: raw.remarks || ''
+  };
+}
 
 // Helper to generate IDs
 export function generateId(): string {
@@ -182,7 +289,11 @@ const localDb = {
       });
 
       if (validSheets.length !== sheets.length) {
-        localStorage.setItem(LOCAL_SHEETS_KEY, JSON.stringify(validSheets));
+        try {
+          localStorage.setItem(LOCAL_SHEETS_KEY, JSON.stringify(validSheets));
+        } catch {
+          // Ignore quota errors while pruning ghost sheets
+        }
         sheets = validSheets;
       }
 
@@ -207,20 +318,61 @@ const localDb = {
   },
 
   saveSheet(sheet: MeasurementSheet): void {
-    const sheets = this.getAllRawSheets();
-    const existingIndex = sheets.findIndex((s) => s.id === sheet.id);
-    if (existingIndex >= 0) {
-      sheets[existingIndex] = sheet;
-    } else {
-      sheets.unshift(sheet);
+    try {
+      const sheets = this.getAllRawSheets();
+      const existingIndex = sheets.findIndex((s) => s.id === sheet.id);
+      if (existingIndex >= 0) {
+        sheets[existingIndex] = sheet;
+      } else {
+        sheets.unshift(sheet);
+      }
+
+      try {
+        localStorage.setItem(LOCAL_SHEETS_KEY, JSON.stringify(sheets));
+        return;
+      } catch {
+        // Quota exceeded: strip heavy export payloads from older cached sheets first
+      }
+
+      const compact = sheets.map((s) =>
+        s.id === sheet.id ? s : { ...s, proformaExportData: undefined }
+      );
+      try {
+        localStorage.setItem(LOCAL_SHEETS_KEY, JSON.stringify(compact));
+        return;
+      } catch {
+        // Still over quota: evict oldest cached entries while keeping the active sheet
+      }
+
+      const others = compact
+        .filter((s) => s.id !== sheet.id)
+        .sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
+
+      let trimmed = [sheet, ...others];
+      while (others.length > 0) {
+        others.shift();
+        trimmed = [sheet, ...others];
+        try {
+          localStorage.setItem(LOCAL_SHEETS_KEY, JSON.stringify(trimmed));
+          return;
+        } catch {
+          // Continue evicting oldest entries until within localStorage quota
+        }
+      }
+    } catch (e) {
+      console.warn('Local sheet cache skipped (storage quota):', e);
     }
-    localStorage.setItem(LOCAL_SHEETS_KEY, JSON.stringify(sheets));
   },
 
   deleteSheet(sheetId: string): boolean {
-    const sheets = this.getAllRawSheets();
-    const filtered = sheets.filter((s) => s.id !== sheetId);
-    localStorage.setItem(LOCAL_SHEETS_KEY, JSON.stringify(filtered));
+    try {
+      const sheets = this.getAllRawSheets();
+      const filtered = sheets.filter((s) => s.id !== sheetId);
+      localStorage.setItem(LOCAL_SHEETS_KEY, JSON.stringify(filtered));
+    } catch {
+      // Ignore storage quota errors during delete
+    }
+    setPendingSync(sheetId, false);
     return true;
   },
 
@@ -262,7 +414,7 @@ export const dbService = {
         .select('*')
         .order('updated_at', { ascending: false });
 
-      if (role !== 'admin' && role !== 'manager') {
+      if (role !== 'admin' && role !== 'manager' && role !== 'public' && UUID_REGEX.test(userId)) {
         query = query.eq('user_id', userId);
       }
 
@@ -331,7 +483,7 @@ export const dbService = {
         .select('*')
         .eq('id', sheetId);
 
-      if (role !== 'admin' && role !== 'manager' && role !== 'public') {
+      if (role !== 'admin' && role !== 'manager' && role !== 'public' && UUID_REGEX.test(userId)) {
         sheetQuery = sheetQuery.eq('user_id', userId);
       }
 
@@ -342,30 +494,7 @@ export const dbService = {
         return localDb.getSheetById(sheetId, userId, role);
       }
 
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('measurement_items')
-        .select('*')
-        .eq('sheet_id', sheetId)
-        .order('serial_number', { ascending: true });
-
-      if (itemsError) {
-        console.error('Supabase fetch items error:', itemsError);
-      }
-
-      const items: MeasurementItem[] = (itemsData || []).map((it) => ({
-        id: it.id,
-        serialNumber: it.serial_number,
-        lengthFeet: Number(it.length_feet),
-        widthInches: Number(it.width_inches),
-        thicknessInches: Number(it.thickness_inches),
-        pieces: Number(it.number_of_pieces),
-        cft: Number(it.cft),
-        sqft: Number(it.sqft),
-        woodType: it.wood_type || '',
-        remarks: it.remarks || ''
-      }));
-
-      // Parse metadata envelope from notes if present
+      // Parse metadata envelope from notes if present (authoritative full item + proforma snapshot)
       let parsedMeta: any = null;
       let cleanNotes = sheetData.notes || '';
       if (cleanNotes.startsWith('__TIMBER_META__')) {
@@ -376,86 +505,99 @@ export const dbService = {
       }
 
       const localSheet = localDb.getSheetById(sheetId, userId, role);
+      const remoteUpdatedMs = sheetData.updated_at ? new Date(sheetData.updated_at).getTime() : 0;
+      const localUpdatedMs = localSheet?.updatedAt ? new Date(localSheet.updatedAt).getTime() : 0;
+      const hasUnsyncedLocal =
+        getPendingSyncSet().has(sheetId) &&
+        Boolean(localSheet) &&
+        localUpdatedMs >= remoteUpdatedMs &&
+        Array.isArray(localSheet?.items) &&
+        localSheet!.items.length > 0;
 
-      // Reconstruct rate, rateUnit, and amount from parsed backup items or local storage cache
-      const backupMap = new Map<string, MeasurementItem>();
-      if (parsedMeta?.backupItems && Array.isArray(parsedMeta.backupItems)) {
-        parsedMeta.backupItems.forEach((b: MeasurementItem, i: number) => {
-          if (b.id) backupMap.set(b.id, b);
-          backupMap.set(`sn_${b.serialNumber || i + 1}`, b);
-        });
-      }
-      if (localSheet?.items && Array.isArray(localSheet.items)) {
-        localSheet.items.forEach((b: MeasurementItem, i: number) => {
-          if (b.id && !backupMap.has(b.id)) backupMap.set(b.id, b);
-          if (!backupMap.has(`sn_${b.serialNumber || i + 1}`)) backupMap.set(`sn_${b.serialNumber || i + 1}`, b);
-        });
+      if (hasUnsyncedLocal && localSheet) {
+        return localSheet;
       }
 
-      const finalItems: MeasurementItem[] = items.length > 0
-        ? items.map((it, idx) => {
-            const backup = backupMap.get(it.id) || backupMap.get(`sn_${it.serialNumber || idx + 1}`);
-            const resolvedWood = it.woodType || backup?.woodType || '';
-            const isCftRftOnly = isCftRftOnlyWood(resolvedWood);
-            const isWide = !isCftRftOnly && (it.widthInches || 0) >= 7;
-            const rate = (typeof it.rate === 'number' && it.rate > 0)
-              ? it.rate
-              : (backup && typeof backup.rate === 'number' && backup.rate > 0 ? backup.rate : undefined);
-            const rawUnit = it.rateUnit || backup?.rateUnit;
-            const rateUnit: 'CFT' | 'SQFT' | 'PCS' | 'RFT' = isCftRftOnly
-              ? (rawUnit === 'RFT' ? 'RFT' : 'CFT')
-              : (rawUnit || (isWide ? 'SQFT' : 'CFT'));
-            const rft = it.rft || backup?.rft || calculateRFT(it.lengthFeet, it.pieces);
-            const amount = (typeof it.amount === 'number' && it.amount > 0)
-              ? it.amount
-              : (backup && typeof backup.amount === 'number' && backup.amount > 0
-                  ? backup.amount
-                  : (rate && rate > 0 ? Math.round((rateUnit === 'RFT' ? rft : rateUnit === 'SQFT' ? it.sqft : rateUnit === 'PCS' ? (it.pieces || 0) : it.cft) * rate * 100) / 100 : undefined));
+      const hasBackupItems = Array.isArray(parsedMeta?.backupItems) && parsedMeta.backupItems.length > 0;
+      let finalItems: MeasurementItem[];
 
-            return {
-              ...it,
-              itemCategory: it.itemCategory || backup?.itemCategory,
-              brand: it.brand || backup?.brand,
-              boardSize: it.boardSize || backup?.boardSize,
-              teakGrade: it.teakGrade || backup?.teakGrade,
-              sqft: isCftRftOnly ? 0 : it.sqft,
-              rft,
-              rate,
-              rateUnit,
-              amount,
-              woodType: resolvedWood,
-              remarks: it.remarks || backup?.remarks || ''
-            };
-          })
-        : (parsedMeta?.backupItems && parsedMeta.backupItems.length > 0
-            ? parsedMeta.backupItems
-            : (localSheet?.items || []));
+      if (hasBackupItems) {
+        finalItems = (parsedMeta.backupItems as MeasurementItem[]).map((it, idx) =>
+          normalizeLoadedItem(it, idx)
+        );
+      } else {
+        const { data: itemsData, error: itemsError } = await supabase
+          .from('measurement_items')
+          .select('*')
+          .eq('sheet_id', sheetId)
+          .order('serial_number', { ascending: true });
 
-      return {
+        if (itemsError) {
+          console.error('Supabase fetch items error:', itemsError);
+        }
+
+        const items: MeasurementItem[] = (itemsData || []).map((it) => ({
+          id: it.id,
+          serialNumber: it.serial_number,
+          lengthFeet: Number(it.length_feet),
+          widthInches: Number(it.width_inches),
+          thicknessInches: Number(it.thickness_inches),
+          pieces: Number(it.number_of_pieces),
+          cft: Number(it.cft),
+          sqft: Number(it.sqft),
+          woodType: it.wood_type || '',
+          remarks: it.remarks || ''
+        }));
+
+        const localMap = new Map<string, MeasurementItem>();
+        if (localSheet?.items && Array.isArray(localSheet.items)) {
+          localSheet.items.forEach((b: MeasurementItem, i: number) => {
+            if (b.id) localMap.set(b.id, b);
+            localMap.set(`sn_${b.serialNumber || i + 1}`, b);
+          });
+        }
+
+        finalItems = items.length > 0
+          ? items.map((it, idx) => {
+              const localMatch = localMap.get(it.id) || localMap.get(`sn_${it.serialNumber || idx + 1}`);
+              return normalizeLoadedItem(
+                {
+                  ...localMatch,
+                  ...it,
+                  woodType: it.woodType || localMatch?.woodType || '',
+                  remarks: it.remarks || localMatch?.remarks || ''
+                },
+                idx
+              );
+            })
+          : (localSheet?.items ? localSheet.items.map((it, idx) => normalizeLoadedItem(it, idx)) : []);
+      }
+
+      const loadedSheet: MeasurementSheet = {
         id: sheetData.id,
         userId: sheetData.user_id,
         sheetName: sheetData.sheet_name,
-        voucherType: parsedMeta?.voucherType || localSheet?.voucherType || 'sales',
-        customerType: parsedMeta?.customerType || localSheet?.customerType || 'b2c',
+        voucherType: parsedMeta ? (parsedMeta.voucherType || 'sales') : (localSheet?.voucherType || 'sales'),
+        customerType: parsedMeta ? (parsedMeta.customerType || 'b2c') : (localSheet?.customerType || 'b2c'),
         customerName: sheetData.customer_name || localSheet?.customerName || '',
-        customerPhone: parsedMeta?.customerPhone || localSheet?.customerPhone || '',
-        customerAddress: parsedMeta?.customerAddress || localSheet?.customerAddress || '',
-        customerGstin: parsedMeta?.customerGstin || localSheet?.customerGstin || '',
-        customerState: parsedMeta?.customerState || localSheet?.customerState || 'Karnataka',
-        customerStateCode: parsedMeta?.customerStateCode || localSheet?.customerStateCode || '29',
-        destination: parsedMeta?.destination || localSheet?.destination || '',
-        consigneeName: parsedMeta?.consigneeName || localSheet?.consigneeName || '',
-        consigneePhone: parsedMeta?.consigneePhone || localSheet?.consigneePhone || '',
-        consigneeAddress: parsedMeta?.consigneeAddress || localSheet?.consigneeAddress || '',
-        consigneeGstin: parsedMeta?.consigneeGstin || localSheet?.consigneeGstin || '',
-        consigneeDistrict: parsedMeta?.consigneeDistrict || localSheet?.consigneeDistrict || '',
-        consigneeState: parsedMeta?.consigneeState || localSheet?.consigneeState || '',
-        consigneeStateCode: parsedMeta?.consigneeStateCode || localSheet?.consigneeStateCode || '',
-        motorVehicleNo: parsedMeta?.motorVehicleNo || localSheet?.motorVehicleNo || '',
-        termsOfDelivery: parsedMeta?.termsOfDelivery || localSheet?.termsOfDelivery || '',
-        paymentTerms: parsedMeta?.paymentTerms || localSheet?.paymentTerms || '',
-        buyerOrderNo: parsedMeta?.buyerOrderNo || localSheet?.buyerOrderNo || '',
-        buyerOrderDate: parsedMeta?.buyerOrderDate || localSheet?.buyerOrderDate || '',
+        customerPhone: parsedMeta ? (parsedMeta.customerPhone || '') : (localSheet?.customerPhone || ''),
+        customerAddress: parsedMeta ? (parsedMeta.customerAddress || '') : (localSheet?.customerAddress || ''),
+        customerGstin: parsedMeta ? (parsedMeta.customerGstin || '') : (localSheet?.customerGstin || ''),
+        customerState: parsedMeta ? (parsedMeta.customerState || 'Karnataka') : (localSheet?.customerState || 'Karnataka'),
+        customerStateCode: parsedMeta ? (parsedMeta.customerStateCode || '29') : (localSheet?.customerStateCode || '29'),
+        destination: parsedMeta ? (parsedMeta.destination || '') : (localSheet?.destination || ''),
+        consigneeName: parsedMeta ? (parsedMeta.consigneeName || '') : (localSheet?.consigneeName || ''),
+        consigneePhone: parsedMeta ? (parsedMeta.consigneePhone || '') : (localSheet?.consigneePhone || ''),
+        consigneeAddress: parsedMeta ? (parsedMeta.consigneeAddress || '') : (localSheet?.consigneeAddress || ''),
+        consigneeGstin: parsedMeta ? (parsedMeta.consigneeGstin || '') : (localSheet?.consigneeGstin || ''),
+        consigneeDistrict: parsedMeta ? (parsedMeta.consigneeDistrict || '') : (localSheet?.consigneeDistrict || ''),
+        consigneeState: parsedMeta ? (parsedMeta.consigneeState || '') : (localSheet?.consigneeState || ''),
+        consigneeStateCode: parsedMeta ? (parsedMeta.consigneeStateCode || '') : (localSheet?.consigneeStateCode || ''),
+        motorVehicleNo: parsedMeta ? (parsedMeta.motorVehicleNo || '') : (localSheet?.motorVehicleNo || ''),
+        termsOfDelivery: parsedMeta ? (parsedMeta.termsOfDelivery || '') : (localSheet?.termsOfDelivery || ''),
+        paymentTerms: parsedMeta ? (parsedMeta.paymentTerms || '') : (localSheet?.paymentTerms || ''),
+        buyerOrderNo: parsedMeta ? (parsedMeta.buyerOrderNo || '') : (localSheet?.buyerOrderNo || ''),
+        buyerOrderDate: parsedMeta ? (parsedMeta.buyerOrderDate || '') : (localSheet?.buyerOrderDate || ''),
         projectName: sheetData.project_name || localSheet?.projectName || '',
         referenceNumber: sheetData.reference_number || localSheet?.referenceNumber || '',
         measurementDate: sheetData.measurement_date,
@@ -466,13 +608,13 @@ export const dbService = {
         roundLogItems: parsedMeta?.roundLogItems || localSheet?.roundLogItems,
         roundLogSlabRates: parsedMeta?.roundLogSlabRates || localSheet?.roundLogSlabRates,
         items: finalItems,
-        additionalCharges: parsedMeta?.additionalCharges || localSheet?.additionalCharges,
-        discount: parsedMeta?.discount || localSheet?.discount,
+        additionalCharges: parsedMeta ? parsedMeta.additionalCharges : localSheet?.additionalCharges,
+        discount: parsedMeta ? parsedMeta.discount : localSheet?.discount,
         customGstTaxableAmount: parsedMeta?.customGstTaxableAmount !== undefined ? parsedMeta.customGstTaxableAmount : localSheet?.customGstTaxableAmount,
         gstPercent: parsedMeta?.gstPercent !== undefined ? parsedMeta.gstPercent : localSheet?.gstPercent,
-        isConfirmed: parsedMeta?.isConfirmed !== undefined ? Boolean(parsedMeta.isConfirmed) : (localSheet?.isConfirmed ?? Boolean(sheetData.is_confirmed) ?? false),
-        finalGrandTotal: parsedMeta?.finalGrandTotal || localSheet?.finalGrandTotal,
-        proformaExportData: parsedMeta?.proformaExportData || localSheet?.proformaExportData,
+        isConfirmed: parsedMeta?.isConfirmed !== undefined ? Boolean(parsedMeta.isConfirmed) : (localSheet?.isConfirmed ?? Boolean(sheetData.is_confirmed)),
+        finalGrandTotal: parsedMeta ? parsedMeta.finalGrandTotal : localSheet?.finalGrandTotal,
+        proformaExportData: parsedMeta ? parsedMeta.proformaExportData : localSheet?.proformaExportData,
         totalEntries: sheetData.total_entries || finalItems.length,
         totalPieces: Number(sheetData.total_pieces) || localSheet?.totalPieces || 0,
         totalCft: Number(sheetData.total_cft) || localSheet?.totalCft || 0,
@@ -480,6 +622,11 @@ export const dbService = {
         createdAt: sheetData.created_at,
         updatedAt: sheetData.updated_at
       };
+
+      // Refresh local cache with authoritative cloud snapshot so local offline view stays up to date
+      localDb.saveSheet(loadedSheet);
+      setPendingSync(sheetId, false);
+      return loadedSheet;
     } catch (err) {
       console.error('Error fetching sheet by ID:', err);
       return localDb.getSheetById(sheetId, userId, role);
@@ -505,132 +652,140 @@ export const dbService = {
     userId: string
   ): Promise<{ sheet: MeasurementSheet; error?: string }> {
     const sanitized = sanitizeAndComputeSheet(sheetData, userId);
-    const { isConfigured } = getSupabaseCredentials();
-    const supabase = getSupabase();
 
-    // Always mirror to local storage as safety backup
-    localDb.saveSheet(sanitized);
+    return enqueueSheetSave(sanitized.id, async () => {
+      const { isConfigured } = getSupabaseCredentials();
+      const supabase = getSupabase();
 
-    if (!isConfigured || !supabase) {
-      return { sheet: sanitized };
-    }
+      // Always mirror to local storage as safety backup (quota-safe, never blocks Supabase)
+      localDb.saveSheet(sanitized);
 
-    try {
-      // Format valid UUID or null for open public entries
-      const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
-      const dbUserId = isValidUuid ? userId : null;
-
-      // Encode full metadata envelope into notes for 100% cloud schema compatibility
-      const metaPayload = {
-        voucherType: sanitized.voucherType || 'sales',
-        customerType: sanitized.customerType,
-        customerPhone: sanitized.customerPhone,
-        customerAddress: sanitized.customerAddress,
-        customerGstin: sanitized.customerGstin,
-        customerState: sanitized.customerState,
-        customerStateCode: sanitized.customerStateCode,
-        destination: sanitized.destination,
-        consigneeName: sanitized.consigneeName,
-        consigneePhone: sanitized.consigneePhone,
-        consigneeAddress: sanitized.consigneeAddress,
-        consigneeGstin: sanitized.consigneeGstin,
-        consigneeDistrict: sanitized.consigneeDistrict,
-        consigneeState: sanitized.consigneeState,
-        consigneeStateCode: sanitized.consigneeStateCode,
-        motorVehicleNo: sanitized.motorVehicleNo,
-        termsOfDelivery: sanitized.termsOfDelivery,
-        paymentTerms: sanitized.paymentTerms,
-        buyerOrderNo: sanitized.buyerOrderNo,
-        buyerOrderDate: sanitized.buyerOrderDate,
-        additionalCharges: sanitized.additionalCharges,
-        discount: sanitized.discount,
-        customGstTaxableAmount: sanitized.customGstTaxableAmount,
-        gstPercent: sanitized.gstPercent,
-        isConfirmed: Boolean(sanitized.isConfirmed),
-        finalGrandTotal: sanitized.finalGrandTotal,
-        proformaExportData: sanitized.proformaExportData,
-        logType: sanitized.logType,
-        roundLogOutputUnit: sanitized.roundLogOutputUnit,
-        roundLogInputUnit: sanitized.roundLogInputUnit,
-        roundLogItems: sanitized.roundLogItems,
-        roundLogSlabRates: sanitized.roundLogSlabRates,
-        rawNotes: sanitized.notes || '',
-        backupItems: sanitized.items
-      };
-      const encodedNotes = `__TIMBER_META__${JSON.stringify(metaPayload)}`;
-
-      // 1. Upsert Sheet Record
-      const { error: sheetUpsertError } = await supabase
-        .from('measurement_sheets')
-        .upsert(
-          {
-            id: sanitized.id,
-            user_id: dbUserId,
-            sheet_name: sanitized.sheetName,
-            customer_name: sanitized.customerName,
-            project_name: sanitized.projectName,
-            reference_number: sanitized.referenceNumber,
-            measurement_date: sanitized.measurementDate,
-            notes: encodedNotes,
-            total_entries: sanitized.totalEntries,
-            total_pieces: sanitized.totalPieces,
-            total_cft: sanitized.totalCft,
-            total_sqft: sanitized.totalSqft,
-            updated_at: new Date().toISOString()
-          },
-          { onConflict: 'id' }
-        );
-
-      if (sheetUpsertError) {
-        console.error('Supabase sheet upsert notice:', sheetUpsertError);
-        if (sheetUpsertError.code === '42501' || sheetUpsertError.message.includes('row-level security policy')) {
-          return {
-            sheet: sanitized,
-            error: 'Saved locally to this device! (Supabase Cloud sync requires running the 10-second open-access SQL script in your Supabase SQL editor).'
-          };
-        }
-        return { sheet: sanitized, error: sheetUpsertError.message };
+      if (!isConfigured || !supabase) {
+        setPendingSync(sanitized.id, true);
+        return { sheet: sanitized };
       }
 
-      // 2. Delete existing items for this sheet to replace cleanly
-      await supabase.from('measurement_items').delete().eq('sheet_id', sanitized.id);
+      try {
+        // Format valid UUID or null for open public entries
+        const isValidUuid = UUID_REGEX.test(userId);
+        const dbUserId = isValidUuid ? userId : null;
 
-      // 3. Insert items if any exist
-      if (sanitized.items.length > 0) {
-        const rowsToInsert = sanitized.items
-          .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0)
-          .map((it, idx) => ({
-            id: it.id || generateId(),
-            sheet_id: sanitized.id,
-            user_id: dbUserId,
-            serial_number: idx + 1,
-            length_feet: it.lengthFeet,
-            width_inches: it.widthInches,
-            thickness_inches: it.thicknessInches,
-            number_of_pieces: it.pieces,
-            cft: it.cft,
-            sqft: it.sqft,
-            wood_type: it.woodType || '',
-            remarks: it.remarks || ''
-          }));
+        // Encode full metadata envelope into notes for 100% cloud schema compatibility
+        const metaPayload = {
+          voucherType: sanitized.voucherType || 'sales',
+          customerType: sanitized.customerType,
+          customerPhone: sanitized.customerPhone,
+          customerAddress: sanitized.customerAddress,
+          customerGstin: sanitized.customerGstin,
+          customerState: sanitized.customerState,
+          customerStateCode: sanitized.customerStateCode,
+          destination: sanitized.destination,
+          consigneeName: sanitized.consigneeName,
+          consigneePhone: sanitized.consigneePhone,
+          consigneeAddress: sanitized.consigneeAddress,
+          consigneeGstin: sanitized.consigneeGstin,
+          consigneeDistrict: sanitized.consigneeDistrict,
+          consigneeState: sanitized.consigneeState,
+          consigneeStateCode: sanitized.consigneeStateCode,
+          motorVehicleNo: sanitized.motorVehicleNo,
+          termsOfDelivery: sanitized.termsOfDelivery,
+          paymentTerms: sanitized.paymentTerms,
+          buyerOrderNo: sanitized.buyerOrderNo,
+          buyerOrderDate: sanitized.buyerOrderDate,
+          additionalCharges: sanitized.additionalCharges,
+          discount: sanitized.discount,
+          customGstTaxableAmount: sanitized.customGstTaxableAmount,
+          gstPercent: sanitized.gstPercent,
+          isConfirmed: Boolean(sanitized.isConfirmed),
+          finalGrandTotal: sanitized.finalGrandTotal,
+          proformaExportData: sanitized.proformaExportData,
+          logType: sanitized.logType,
+          roundLogOutputUnit: sanitized.roundLogOutputUnit,
+          roundLogInputUnit: sanitized.roundLogInputUnit,
+          roundLogItems: sanitized.roundLogItems,
+          roundLogSlabRates: sanitized.roundLogSlabRates,
+          rawNotes: sanitized.notes || '',
+          backupItems: sanitized.items
+        };
+        const encodedNotes = `__TIMBER_META__${JSON.stringify(metaPayload)}`;
 
-        if (rowsToInsert.length > 0) {
-          const { error: itemsInsertError } = await supabase
-            .from('measurement_items')
-            .insert(rowsToInsert);
+        // 1. Upsert Sheet Record
+        const { error: sheetUpsertError } = await supabase
+          .from('measurement_sheets')
+          .upsert(
+            {
+              id: sanitized.id,
+              user_id: dbUserId,
+              sheet_name: sanitized.sheetName,
+              customer_name: sanitized.customerName,
+              project_name: sanitized.projectName,
+              reference_number: sanitized.referenceNumber,
+              measurement_date: sanitized.measurementDate,
+              notes: encodedNotes,
+              total_entries: sanitized.totalEntries,
+              total_pieces: sanitized.totalPieces,
+              total_cft: sanitized.totalCft,
+              total_sqft: sanitized.totalSqft,
+              updated_at: sanitized.updatedAt
+            },
+            { onConflict: 'id' }
+          );
 
-          if (itemsInsertError) {
-            console.error('Supabase items insert failed:', itemsInsertError);
-            return { sheet: sanitized, error: itemsInsertError.message };
+        if (sheetUpsertError) {
+          console.error('Supabase sheet upsert notice:', sheetUpsertError);
+          setPendingSync(sanitized.id, true);
+          if (sheetUpsertError.code === '42501' || sheetUpsertError.message.includes('row-level security policy')) {
+            return {
+              sheet: sanitized,
+              error: 'Saved locally to this device! (Supabase Cloud sync requires running the 10-second open-access SQL script in your Supabase SQL editor).'
+            };
+          }
+          return { sheet: sanitized, error: sheetUpsertError.message };
+        }
+
+        // 2. Delete existing items for this sheet to replace cleanly
+        await supabase.from('measurement_items').delete().eq('sheet_id', sanitized.id);
+
+        // 3. Insert items if any exist
+        if (sanitized.items.length > 0) {
+          const rowsToInsert = sanitized.items
+            .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0)
+            .map((it, idx) => ({
+              id: it.id || generateId(),
+              sheet_id: sanitized.id,
+              user_id: dbUserId,
+              serial_number: idx + 1,
+              length_feet: it.lengthFeet,
+              width_inches: it.widthInches,
+              thickness_inches: it.thicknessInches,
+              number_of_pieces: it.pieces,
+              cft: it.cft,
+              sqft: it.sqft,
+              wood_type: it.woodType || '',
+              remarks: it.remarks || ''
+            }));
+
+          if (rowsToInsert.length > 0) {
+            const { error: itemsInsertError } = await supabase
+              .from('measurement_items')
+              .insert(rowsToInsert);
+
+            if (itemsInsertError) {
+              console.error('Supabase items insert failed:', itemsInsertError);
+              setPendingSync(sanitized.id, true);
+              return { sheet: sanitized, error: itemsInsertError.message };
+            }
           }
         }
-      }
 
-      return { sheet: sanitized };
-    } catch (err: any) {
-      console.error('Error saving sheet to Supabase:', err);
-      return { sheet: sanitized, error: err.message || 'Database error occurred' };
-    }
+        setPendingSync(sanitized.id, false);
+        return { sheet: sanitized };
+      } catch (err: any) {
+        console.error('Error saving sheet to Supabase:', err);
+        setPendingSync(sanitized.id, true);
+        return { sheet: sanitized, error: err.message || 'Database error occurred' };
+      }
+    });
   },
 
   /**
@@ -679,8 +834,8 @@ export const dbService = {
   /**
    * Duplicates an existing measurement sheet with a new ID and "(Copy)" in title
    */
-  async duplicateSheet(sheetId: string, userId: string): Promise<MeasurementSheet | null> {
-    const original = await this.getSheetById(sheetId, userId);
+  async duplicateSheet(sheetId: string, userId: string, role?: string): Promise<MeasurementSheet | null> {
+    const original = await this.getSheetById(sheetId, userId, role);
     if (!original) return null;
 
     const newSheet: MeasurementSheet = {

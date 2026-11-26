@@ -107,6 +107,9 @@ const MainApp: React.FC<{ onNavigateToAdmin?: () => void }> = ({ onNavigateToAdm
           <HistoryPage
             onOpenSheet={handleOpenSheet}
             onNewSheet={handleNewSheet}
+            onSheetUpdated={(updatedSheet) => {
+              setActiveSheet((prev) => (prev?.id === updatedSheet.id ? updatedSheet : prev));
+            }}
             businessSettings={settings}
           />
         )}

@@ -1204,11 +1204,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         if (onSaved) {
           onSaved(res.sheet);
         }
-        setSaveStatus('saved');
-        setErrorMessage(null);
+        setSaveStatus(res.error ? 'error' : 'saved');
+        setErrorMessage(res.error || null);
       } catch (err) {
         console.warn('Auto-save notice:', err);
-        setSaveStatus('saved');
+        setSaveStatus('error');
       }
     }, 600);
 
@@ -1282,7 +1282,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     const sheetObj = getCurrentSheetObject();
     const result = await dbService.saveSheet(sheetObj, user?.id || 'guest');
 
-    setSaveStatus('saved');
+    setSaveStatus(result.error ? 'error' : 'saved');
+    setErrorMessage(result.error || null);
     dbService.clearDraft();
     loadedSheetIdRef.current = result.sheet.id;
     if (onSaved) {
@@ -1533,7 +1534,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   };
 
   // Sync back edits made in Proforma Invoice Modal to form state and storage
-  const handleUpdateFromProforma = (updated: Partial<MeasurementSheet>) => {
+  const handleUpdateFromProforma = async (updated: Partial<MeasurementSheet>) => {
     if (updated.consigneeName !== undefined) setConsigneeName(updated.consigneeName);
     if (updated.consigneePhone !== undefined) setConsigneePhone(updated.consigneePhone);
     if (updated.consigneeAddress !== undefined) setConsigneeAddress(updated.consigneeAddress);
@@ -1564,18 +1565,30 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     }
 
     setIsShipToTouched(true);
+    isSheetPersistedRef.current = true;
+    hasProceededPastStep1Ref.current = true;
 
     try {
       const current = getCurrentSheetObject();
-      const merged: MeasurementSheet = {
-        ...current,
-        ...updated,
-        items: (updated.items && updated.items.length > 0) ? updated.items : current.items
-      };
+      const merged = sanitizeAndComputeSheet(
+        {
+          ...current,
+          ...updated,
+          items: (updated.items && updated.items.length > 0) ? updated.items : current.items
+        },
+        user?.id || 'guest'
+      );
       dbService.saveDraft(merged);
-      dbService.saveSheet(merged, user?.id || 'guest');
+      const res = await dbService.saveSheet(merged, user?.id || 'guest');
+      loadedSheetIdRef.current = res.sheet.id;
+      if (onSaved) {
+        onSaved(res.sheet);
+      }
+      setSaveStatus(res.error ? 'error' : 'saved');
+      setErrorMessage(res.error || null);
     } catch (e) {
       console.warn('Sync notice:', e);
+      setSaveStatus('error');
     }
   };
 

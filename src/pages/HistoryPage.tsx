@@ -27,12 +27,14 @@ import { exportSheetToCsv } from '../utils/exportCsv';
 interface HistoryPageProps {
   onOpenSheet: (sheet: MeasurementSheet) => void;
   onNewSheet: () => void;
+  onSheetUpdated?: (sheet: MeasurementSheet) => void;
   businessSettings?: BusinessSettings;
 }
 
 export const HistoryPage: React.FC<HistoryPageProps> = ({
   onOpenSheet,
   onNewSheet,
+  onSheetUpdated,
   businessSettings
 }) => {
   const { user } = useAuth();
@@ -46,6 +48,20 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
   const [editingSheet, setEditingSheet] = useState<{ id: string; name: string } | null>(null);
   const [proformaSheet, setProformaSheet] = useState<MeasurementSheet | null>(null);
 
+  const loadFullSheet = async (summary: MeasurementSheet): Promise<MeasurementSheet | null> => {
+    const full = await dbService.getSheetById(
+      summary.id,
+      user?.id || summary.userId || 'guest',
+      user?.role || 'admin'
+    );
+    if (full) return full;
+    if ((summary.items && summary.items.length > 0) || summary.totalEntries === 0) {
+      return summary;
+    }
+    alert('Could not load measurement rows from the database. Please check your connection and try again.');
+    return null;
+  };
+
   const handleUpdateFromProforma = async (updated: Partial<MeasurementSheet>) => {
     if (!proformaSheet) return;
     const merged: MeasurementSheet = {
@@ -53,10 +69,11 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
       ...updated,
       updatedAt: new Date().toISOString()
     };
-    setProformaSheet(merged);
-    setSheets(prev => prev.map(s => s.id === merged.id ? merged : s));
     try {
-      await dbService.saveSheet(merged, user?.id || 'guest');
+      const res = await dbService.saveSheet(merged, user?.id || 'guest');
+      setProformaSheet(res.sheet);
+      setSheets(prev => prev.map(s => s.id === res.sheet.id ? res.sheet : s));
+      onSheetUpdated?.(res.sheet);
     } catch (e) {
       console.warn('Failed to save updated proforma sheet:', e);
     }
@@ -77,19 +94,20 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
 
   const handleToggleConfirmed = async (sheetId: string, currentStatus?: boolean) => {
     const newStatus = !currentStatus;
+    const uid = user?.id || 'guest';
+    const target = await dbService.getSheetById(sheetId, uid, user?.role || 'admin');
+    if (!target) {
+      alert('Unable to load full sheet details to update status. Please try again.');
+      return;
+    }
     setSheets((prev) =>
       prev.map((s) => (s.id === sheetId ? { ...s, isConfirmed: newStatus } : s))
     );
-    const uid = user?.id || 'guest';
-    const target = await dbService.getSheetById(sheetId, uid, user?.role);
-    if (target) {
-      await dbService.saveSheet({ ...target, isConfirmed: newStatus }, uid);
-    } else {
-      const fallback = sheets.find((s) => s.id === sheetId);
-      if (fallback) {
-        await dbService.saveSheet({ ...fallback, isConfirmed: newStatus }, uid);
-      }
-    }
+    const res = await dbService.saveSheet({ ...target, isConfirmed: newStatus }, uid);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === res.sheet.id ? res.sheet : s))
+    );
+    onSheetUpdated?.(res.sheet);
   };
 
   const confirmDelete = async () => {
@@ -103,10 +121,11 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
   const handleRenameSubmit = async (sheetId: string, newName: string) => {
     if (!newName.trim()) return;
     const uid = user?.id || 'guest';
-    const sheet = await dbService.getSheetById(sheetId, uid, user?.role);
+    const sheet = await dbService.getSheetById(sheetId, uid, user?.role || 'admin');
     if (sheet) {
       sheet.sheetName = newName.trim();
-      await dbService.saveSheet(sheet, uid);
+      const res = await dbService.saveSheet(sheet, uid);
+      onSheetUpdated?.(res.sheet);
       setEditingSheet(null);
       loadSheets();
     }
@@ -378,7 +397,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                                 fontSize: '0.95rem'
                               }}
                               onClick={async () => {
-                                const full = await dbService.getSheetById(sheet.id, user?.id || '');
+                                const full = await loadFullSheet(sheet);
                                 if (full) onOpenSheet(full);
                               }}
                             >
@@ -463,8 +482,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                           style={{ padding: '4px 8px', fontSize: '0.8rem' }}
                           title="Open & Edit"
                           onClick={async () => {
-                            const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
-                            onOpenSheet(full || sheet);
+                            const full = await loadFullSheet(sheet);
+                            if (full) onOpenSheet(full);
                           }}
                         >
                           <ExternalLink size={13} /> Open
@@ -476,8 +495,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                           title="Export PDF report"
                           style={{ padding: '5px' }}
                           onClick={async () => {
-                            const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
-                            exportSheetToPdf(full || sheet, businessSettings);
+                            const full = await loadFullSheet(sheet);
+                            if (full) exportSheetToPdf(full, businessSettings);
                           }}
                         >
                           <FileDown size={14} />
@@ -489,8 +508,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                           title="View & Print Proforma Invoice (Tally Format)"
                           style={{ padding: '5px', color: '#10b981' }}
                           onClick={async () => {
-                            const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
-                            setProformaSheet(full || sheet);
+                            const full = await loadFullSheet(sheet);
+                            if (full) setProformaSheet(full);
                           }}
                         >
                           <FileText size={14} />
@@ -502,8 +521,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                           title="Export CSV"
                           style={{ padding: '5px' }}
                           onClick={async () => {
-                            const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
-                            exportSheetToCsv(full || sheet, businessSettings);
+                            const full = await loadFullSheet(sheet);
+                            if (full) exportSheetToCsv(full, businessSettings);
                           }}
                         >
                           <Share2 size={14} />
@@ -607,7 +626,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                           whiteSpace: 'nowrap'
                         }}
                         onClick={async () => {
-                          const full = await dbService.getSheetById(sheet.id, user?.id || '');
+                          const full = await loadFullSheet(sheet);
                           if (full) onOpenSheet(full);
                         }}
                       >
@@ -689,8 +708,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                   className="btn btn-primary btn-sm"
                   style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 800, flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
                   onClick={async () => {
-                    const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
-                    onOpenSheet(full || sheet);
+                    const full = await loadFullSheet(sheet);
+                    if (full) onOpenSheet(full);
                   }}
                 >
                   <ExternalLink size={13} /> Open
@@ -703,8 +722,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                     title="Export PDF"
                     style={{ padding: '0.35rem 0.5rem' }}
                     onClick={async () => {
-                      const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
-                      exportSheetToPdf(full || sheet, businessSettings);
+                      const full = await loadFullSheet(sheet);
+                      if (full) exportSheetToPdf(full, businessSettings);
                     }}
                   >
                     <FileDown size={13} />
@@ -716,8 +735,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                     title="Proforma Invoice"
                     style={{ padding: '0.35rem 0.5rem', color: '#059669' }}
                     onClick={async () => {
-                      const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
-                      setProformaSheet(full || sheet);
+                      const full = await loadFullSheet(sheet);
+                      if (full) setProformaSheet(full);
                     }}
                   >
                     <FileText size={13} />
@@ -729,8 +748,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                     title="Export CSV"
                     style={{ padding: '0.35rem 0.5rem' }}
                     onClick={async () => {
-                      const full = await dbService.getSheetById(sheet.id, user?.id || sheet.userId || 'guest', user?.role);
-                      exportSheetToCsv(full || sheet, businessSettings);
+                      const full = await loadFullSheet(sheet);
+                      if (full) exportSheetToCsv(full, businessSettings);
                     }}
                   >
                     <Share2 size={13} />

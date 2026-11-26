@@ -139,10 +139,42 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
   // Custom per-item rates map: index/id -> rate
   const [customRates, setCustomRates] = useState<Record<string | number, number>>({});
+  // Transient raw text while typing in rate inputs so clearing a field doesn't coerce '' to 0 -> 1200
+  const [draftRateInputs, setDraftRateInputs] = useState<Record<string, string>>({});
   // Custom per-item HSN map: index/id -> HSN
   const [customHsn, setCustomHsn] = useState<Record<string | number, string>>({});
   // Custom per-item discount map: index/id -> discount
   const [customDisc, setCustomDisc] = useState<Record<string | number, string>>({});
+
+  const isFirstRender = useRef(true);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasPendingSyncRef = useRef(false);
+  const prevSheetIdRef = useRef<string | undefined>(sheet?.id);
+
+  // Reset modal-local overrides only if the parent switches to a different sheet ID
+  useEffect(() => {
+    if (sheet?.id && sheet.id !== prevSheetIdRef.current) {
+      prevSheetIdRef.current = sheet.id;
+      isFirstRender.current = true;
+      hasPendingSyncRef.current = false;
+      setCustomRates({});
+      setCustomHsn({});
+      setCustomDisc({});
+      setDraftRateInputs({});
+      setConsigneeName(sheet.consigneeName || sheet.customerName || '');
+      setConsigneePhone(sheet.consigneePhone || sheet.customerPhone || '');
+      setConsigneeAddress(sheet.consigneeAddress || sheet.customerAddress || '');
+      setConsigneeGstin(sheet.consigneeGstin || '');
+      setConsigneeState(sheet.consigneeState?.trim() || sheet.destination?.trim() || sheet.customerState?.trim() || 'Karnataka');
+      setConsigneeStateCode(sheet.consigneeStateCode || sheet.customerStateCode || '29');
+      setBuyerName(sheet.customerName || sheet.consigneeName || '');
+      setBuyerPhone(sheet.customerPhone || sheet.consigneePhone || '');
+      setBuyerAddress(sheet.customerAddress || sheet.consigneeAddress || '');
+      setBuyerGstin(sheet.customerGstin || '');
+      setBuyerState(sheet.customerState?.trim() || sheet.destination?.trim() || sheet.consigneeState?.trim() || 'Karnataka');
+      setBuyerStateCode(sheet.customerStateCode || '29');
+    }
+  }, [sheet]);
 
   // Save changes to localStorage draft
   useEffect(() => {
@@ -499,17 +531,26 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
     };
   };
 
-  // Manual save handler for toolbar button
-  const handleManualSave = () => {
-    if (onUpdateSheet) {
+  const syncLatestUpdate = (force = false) => {
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+    const shouldSync = force || hasPendingSyncRef.current;
+    hasPendingSyncRef.current = false;
+    if (shouldSync && onUpdateSheet) {
       onUpdateSheet(getLatestPayload());
     }
+  };
+
+  // Manual save handler for toolbar button
+  const handleManualSave = () => {
+    syncLatestUpdate(true);
     setIsSavedNotice(true);
     setTimeout(() => setIsSavedNotice(false), 2500);
   };
 
   // Real-time debounced auto-sync when user edits any field or rate inside modal
-  const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -517,11 +558,19 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
     }
     if (!onUpdateSheet) return;
 
-    const timer = setTimeout(() => {
+    hasPendingSyncRef.current = true;
+    syncTimerRef.current = setTimeout(() => {
+      syncTimerRef.current = null;
+      hasPendingSyncRef.current = false;
       onUpdateSheet(getLatestPayload());
     }, 350);
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+    };
   }, [
     consigneeName,
     consigneePhone,
@@ -626,9 +675,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
   const handleDownloadPdf = () => {
     if (!sheet) return;
-    if (onUpdateSheet) {
-      onUpdateSheet(getLatestPayload());
-    }
+    syncLatestUpdate(true);
     exportSheetToPdf(sheet, businessSettings, {
       logType: sheet.logType,
       roundLogOutputUnit: sheet.roundLogOutputUnit,
@@ -675,9 +722,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
   const handlePrint = () => {
     if (!sheet) return;
-    if (onUpdateSheet) {
-      onUpdateSheet(getLatestPayload());
-    }
+    syncLatestUpdate(true);
     printProformaInvoicePdf(sheet, businessSettings, {
       logType: sheet.logType,
       roundLogOutputUnit: sheet.roundLogOutputUnit,
@@ -811,7 +856,10 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={onClose}
+            onClick={() => {
+              syncLatestUpdate(false);
+              onClose();
+            }}
             title="Close Preview"
           >
             <X size={16} />
@@ -1411,22 +1459,40 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                               <td className="text-right p-mono">{renderWithSmallDecimalHtml(isRftBilled && itemRft > 0 ? `${itemRft.toFixed(2)} RFT` : '')}</td>
                             )}
                             <td className="text-right p-mono">
-                              <input
-                                type="number"
-                                className="p-input text-right p-mono"
-                                value={item.rate}
-                                onChange={(e) => {
-                                  const val = Number(e.target.value) || 0;
-                                  const origIdx = item.sourceIndex !== undefined ? item.sourceIndex : (item.slNo - 1);
-                                  setCustomRates((prev) => {
-                                    const next = { ...prev };
-                                    if (item.id) next[item.id] = val;
-                                    if (item.sourceIndex !== undefined) next[item.sourceIndex] = val;
-                                    next[origIdx] = val;
-                                    return next;
-                                  });
-                                }}
-                              />
+                            {(() => {
+                              const origIdx = item.sourceIndex !== undefined ? item.sourceIndex : (item.slNo - 1);
+                              const rateInputKey = item.id || String(origIdx);
+                              const displayVal = draftRateInputs[rateInputKey] !== undefined ? draftRateInputs[rateInputKey] : item.rate;
+                              return (
+                                <input
+                                  type="number"
+                                  className="p-input text-right p-mono"
+                                  value={displayVal}
+                                  onChange={(e) => {
+                                    const raw = e.target.value;
+                                    setDraftRateInputs((prev) => ({ ...prev, [rateInputKey]: raw }));
+                                    const parsed = parseFloat(raw);
+                                    const isValidRate = raw.trim() !== '' && !isNaN(parsed) && (parsed > 0 || (item.per === 'RFT' && parsed >= 0));
+                                    if (!isValidRate) return;
+                                    setCustomRates((prev) => {
+                                      const next = { ...prev };
+                                      if (item.id) next[item.id] = parsed;
+                                      if (item.sourceIndex !== undefined) next[item.sourceIndex] = parsed;
+                                      next[origIdx] = parsed;
+                                      return next;
+                                    });
+                                  }}
+                                  onBlur={() => {
+                                    setDraftRateInputs((prev) => {
+                                      if (prev[rateInputKey] === undefined) return prev;
+                                      const next = { ...prev };
+                                      delete next[rateInputKey];
+                                      return next;
+                                    });
+                                  }}
+                                />
+                              );
+                            })()}
                             </td>
                             <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{perUnit}</td>
                             <td className="text-left p-mono font-bold" style={{ paddingLeft: '8px' }}>
