@@ -8,16 +8,16 @@ import { generateId } from '../services/db';
 
 export const CUT_LOG_WOOD_OPTIONS = [
   'Silver Wood',
+  'Plywoods(30kg)',
+  'Plywoods(34kg)',
+  'ReadyBoards(30kg)',
+  'ReadyBoards(34kg)',
   'Teak Wood',
   'Mahogany',
   'Pine',
   'Neem',
   'Jungle',
-  'Plywood(30)',
-  'Plywood(34)',
-  'Readywood(30)',
-  'Readywood(34)',
-  'Other (Custom...)'
+  'Other (Custom)'
 ];
 export const WOOD_SPECIES_OPTIONS = CUT_LOG_WOOD_OPTIONS;
 
@@ -71,7 +71,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     };
   }, [editPriceRowIndex]);
 
-  const [selectedWoodOption, setSelectedWoodOption] = useState<string>('Mahogany');
+  const [selectedWoodOption, setSelectedWoodOption] = useState<string>('Silver Wood');
   const [customWoodType, setCustomWoodType] = useState<string>('');
   const [quickError, setQuickError] = useState<string | null>(null);
 
@@ -331,7 +331,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           const valUpper = (rawValue || '').toUpperCase();
           if (valUpper.includes('PLYWOOD')) {
             target.itemCategory = 'plywood';
-            target.woodType = rawValue.includes('34') ? 'Plywood(34)' : 'Plywood(30)';
+            target.woodType = rawValue.includes('34') ? 'Plywoods(34kg)' : 'Plywoods(30kg)';
             target.brand = target.brand || selectedBrand || 'Red Tag';
             target.lengthFeet = 8;
             target.widthInches = 4;
@@ -346,7 +346,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
             target.amount = sheetCalc.amount;
           } else if (valUpper.includes('READY')) {
             target.itemCategory = 'ready_board';
-            target.woodType = rawValue.includes('34') ? 'Readywood(34)' : 'Readywood(30)';
+            target.woodType = rawValue.includes('34') ? 'ReadyBoards(34kg)' : 'ReadyBoards(30kg)';
             target.brand = target.brand || selectedBrand || 'Mine Gold';
             target.boardSize = target.boardSize || selectedReadyBoardSize || '8 × 12';
             target.lengthFeet = 8;
@@ -410,7 +410,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           target.teakGrade = normalizeTeakGrade(target.teakGrade || selectedTeakGrade || '1st');
         } else if (valUpper.includes('PLYWOOD')) {
           target.itemCategory = 'plywood';
-          target.woodType = rawValue.includes('34') ? 'Plywood(34)' : 'Plywood(30)';
+          target.woodType = rawValue.includes('34') ? 'Plywoods(34kg)' : 'Plywoods(30kg)';
           target.brand = target.brand || selectedBrand || 'Red Tag';
           target.lengthFeet = 8;
           target.widthInches = 4;
@@ -425,7 +425,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           target.amount = sheetCalc.amount;
         } else if (valUpper.includes('READY')) {
           target.itemCategory = 'ready_board';
-          target.woodType = rawValue.includes('34') ? 'Readywood(34)' : 'Readywood(30)';
+          target.woodType = rawValue.includes('34') ? 'ReadyBoards(34kg)' : 'ReadyBoards(30kg)';
           target.brand = target.brand || selectedBrand || 'Mine Gold';
           target.boardSize = target.boardSize || selectedReadyBoardSize || '8 × 12';
           target.lengthFeet = 8;
@@ -747,8 +747,8 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
     const calc = calculateRow(l, w, t, p, sqftConvention);
     const multiplier = (isWide && finalRateUnit === 'SQFT') ? calc.sqft : calc.cft;
     const itemAmount = Math.round(multiplier * itemRate * 100) / 100;
-    const finalWood = selectedWoodOption === 'Other (Custom...)' 
-      ? (customWoodType.trim() || 'Custom Wood') 
+    const finalWood = selectedWoodOption.startsWith('Other')
+      ? (customWoodType.trim() || 'Custom Wood')
       : selectedWoodOption;
 
     const newItem: MeasurementItem = {
@@ -1258,7 +1258,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           </button>
         </div>
 
-        {selectedWoodOption === 'Other (Custom...)' && (
+        {selectedWoodOption.startsWith('Other') && (
           <div style={{ marginTop: '0.35rem' }}>
             <input
               type="text"
@@ -1385,11 +1385,11 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
                 const rowAmount = isSheet
                   ? calculateSheetAmount(isPly, p, rowRate, sheetUnit || 'SQFT', item.widthInches, item.boardSize).amount
                   : (typeof item.amount === 'number' && item.amount > 0 && item.rateUnit === 'SQFT' ? item.amount : Math.round(multiplier * rowRate * 100) / 100);
-                let dropdownWoodVal = item.woodType || selectedWoodOption || 'Mahogany';
+                let dropdownWoodVal = item.woodType || selectedWoodOption || 'Silver Wood';
                 if (item.itemCategory === 'plywood' && !WOOD_SPECIES_OPTIONS.includes(dropdownWoodVal)) {
-                  dropdownWoodVal = dropdownWoodVal.includes('34') ? 'Plywood(34)' : 'Plywood(30)';
+                  dropdownWoodVal = dropdownWoodVal.includes('34') ? 'Plywoods(34kg)' : 'Plywoods(30kg)';
                 } else if (item.itemCategory === 'ready_board' && !WOOD_SPECIES_OPTIONS.includes(dropdownWoodVal)) {
-                  dropdownWoodVal = dropdownWoodVal.includes('34') ? 'Readywood(34)' : 'Readywood(30)';
+                  dropdownWoodVal = dropdownWoodVal.includes('34') ? 'ReadyBoards(34kg)' : 'ReadyBoards(30kg)';
                 }
 
                 return (

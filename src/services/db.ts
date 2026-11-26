@@ -35,9 +35,9 @@ export function sanitizeAndComputeSheet(
       const sheetCalc = calculateSheetAmount(isPlywood, p, r, rateUnit, sheetW, item.boardSize);
       let resolvedWoodType = item.woodType || '';
       if (isPlywood) {
-        resolvedWoodType = resolvedWoodType.includes('34') ? 'Plywood(34)' : 'Plywood(30)';
+        resolvedWoodType = resolvedWoodType.includes('34') ? 'Plywoods(34kg)' : 'Plywoods(30kg)';
       } else if (isReady) {
-        resolvedWoodType = resolvedWoodType.includes('34') ? 'Readywood(34)' : 'Readywood(30)';
+        resolvedWoodType = resolvedWoodType.includes('34') ? 'ReadyBoards(34kg)' : 'ReadyBoards(30kg)';
       }
       return {
         id: item.id || generateId(),

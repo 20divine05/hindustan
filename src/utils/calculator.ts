@@ -284,9 +284,9 @@ export function normalizeTeakGrade(grade?: string): TeakGrade {
 /**
  * Returns clean Wood Section Heading for Proforma Invoice and sorting:
  * - TEAK WOOD (1st), TEAK WOOD (M), TEAK WOOD (2nd)
- * - PLYWOOD(30), PLYWOOD(34)
- * - READYWOOD(30), READYWOOD(34)
- * - Other wood species (SILVER WOOD, MAHAGONY, PINE, NEEM, JUNGLE, etc.)
+ * - PLYWOODS(30KG), PLYWOODS(34KG)
+ * - READYBOARDS(30KG), READYBOARDS(34KG)
+ * - Other wood species (SILVER WOOD, MAHOGANY, PINE, NEEM, JUNGLE, etc.)
  */
 export function getCutLogItemSectionHeading(it: {
   woodType?: string;
@@ -301,16 +301,16 @@ export function getCutLogItemSectionHeading(it: {
   const isPlywood = (it.itemCategory === 'plywood' || woodUpper.includes('PLYWOOD') || descUpper.includes('PLYWOOD')) && it.itemCategory !== 'timber';
   const isReady = (it.itemCategory === 'ready_board' || woodUpper.includes('READY') || descUpper.includes('READY')) && it.itemCategory !== 'timber';
 
-  if (isPlywood && (isExplicitSheetWood || !it.woodType || it.woodType.toUpperCase() === 'PLYWOOD')) {
-    if (woodUpper.includes('34') || descUpper.includes('34')) return 'PLYWOOD(34)';
-    return 'PLYWOOD(30)';
+  if (isPlywood && (isExplicitSheetWood || !it.woodType || it.woodType.toUpperCase() === 'PLYWOOD' || it.woodType.toUpperCase() === 'PLYWOODS')) {
+    if (woodUpper.includes('34') || descUpper.includes('34')) return 'PLYWOODS(34KG)';
+    return 'PLYWOODS(30KG)';
   }
-  if (isReady && (isExplicitSheetWood || !it.woodType || it.woodType.toUpperCase() === 'READY BOARD' || it.woodType.toUpperCase() === 'READYWOOD')) {
-    if (woodUpper.includes('34') || descUpper.includes('34')) return 'READYWOOD(34)';
-    return 'READYWOOD(30)';
+  if (isReady && (isExplicitSheetWood || !it.woodType || it.woodType.toUpperCase() === 'READY BOARD' || it.woodType.toUpperCase() === 'READYWOOD' || it.woodType.toUpperCase() === 'READYBOARDS')) {
+    if (woodUpper.includes('34') || descUpper.includes('34')) return 'READYBOARDS(34KG)';
+    return 'READYBOARDS(30KG)';
   }
 
-  const wt = (it.woodType || 'MAHAGONY').trim().toUpperCase();
+  const wt = (it.woodType || 'SILVER WOOD').trim().toUpperCase();
   if (wt.includes('TEAK') || descUpper.includes('TEAK')) {
     const rawGrade = it.teakGrade || descUpper.match(/TEAK WOOD\s*\(([^)]+)\)/)?.[1] || wt.match(/\(([^)]+)\)/)?.[1];
     const grade = normalizeTeakGrade(rawGrade);
@@ -422,8 +422,8 @@ export function sortTimberEntries(items: MeasurementItem[]): MeasurementItem[] {
         const sheetW = resolveSheetWidth(isPlywood, it.widthInches, it.boardSize);
         const sqft = calculateSheetSqft(isPlywood, p, sheetW, it.boardSize);
         const resolvedSheetWood = isPlywood
-          ? (itWood.includes('34') ? 'Plywood(34)' : 'Plywood(30)')
-          : (itWood.includes('34') ? 'Readywood(34)' : 'Readywood(30)');
+          ? (itWood.includes('34') ? 'Plywoods(34kg)' : 'Plywoods(30kg)')
+          : (itWood.includes('34') ? 'ReadyBoards(34kg)' : 'ReadyBoards(30kg)');
         validItems.push({
           ...it,
           itemCategory: isPlywood ? 'plywood' : 'ready_board',
@@ -644,7 +644,7 @@ export function groupTimberByWood(items: MeasurementItem[], defaultRate = 1200):
 
   return woodOrder.map((wood) => {
     const groupItems = groupsMap.get(wood) || [];
-    const isSheet = wood === 'PLYWOOD' || wood === 'READY BOARD';
+    const isSheet = wood.includes('PLYWOOD') || wood.includes('READY');
     const totalPieces = groupItems.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
     // Plywood and Ready Board have 0 CFT
     const totalCft = isSheet ? 0 : groupItems.reduce((acc, it) => acc + (it.cft || 0), 0);

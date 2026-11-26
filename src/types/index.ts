@@ -1,5 +1,9 @@
 export type WoodSpeciesCutLog =
   | 'Silver Wood'
+  | 'Plywoods(30kg)'
+  | 'Plywoods(34kg)'
+  | 'ReadyBoards(30kg)'
+  | 'ReadyBoards(34kg)'
   | 'Teak Wood'
   | 'Mahogany'
   | 'Mahagony'
@@ -12,6 +16,7 @@ export type WoodSpeciesCutLog =
   | 'Readywood(34)'
   | 'Plywood'
   | 'Ready Board'
+  | 'Other (Custom)'
   | 'Other (Custom...)';
 
 export type TeakGrade = '1st' | 'M' | '2nd' | '1st Teak' | 'Medium Teak' | '2nd Teak';

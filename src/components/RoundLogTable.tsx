@@ -63,7 +63,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
     };
   }, [isUnitModalOpen]);
 
-  const [selectedWoodOption, setSelectedWoodOption] = useState<string>('Mahagony');
+  const [selectedWoodOption, setSelectedWoodOption] = useState<string>('Silver Wood');
   const [customWoodType, setCustomWoodType] = useState<string>('');
   const [quickError, setQuickError] = useState<string | null>(null);
 
@@ -134,12 +134,12 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
   // Real-time table totals
   const totals = calculateRoundLogTotals(items, outputUnit);
 
-  const activeWoodSpecies = selectedWoodOption === 'Other (Custom...)'
+  const activeWoodSpecies = selectedWoodOption.startsWith('Other')
     ? (customWoodType.trim() || 'Custom Wood')
     : selectedWoodOption;
 
   const nextLogNumberForActiveWood = items.filter(
-    (it) => (it.woodType || 'Mahagony').trim().toUpperCase() === activeWoodSpecies.trim().toUpperCase()
+    (it) => (it.woodType || 'Silver Wood').trim().toUpperCase() === activeWoodSpecies.trim().toUpperCase()
   ).length + 1;
 
   // In-place row field updates (Girth, Length, Wood Type)
@@ -297,12 +297,12 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
       outputUnit
     });
 
-    const finalWood = selectedWoodOption === 'Other (Custom...)'
+    const finalWood = selectedWoodOption.startsWith('Other')
       ? (customWoodType.trim() || 'Custom Wood')
       : selectedWoodOption;
 
     const existingCountForSpecies = items.filter(
-      (it) => (it.woodType || 'Mahagony').trim().toUpperCase() === finalWood.trim().toUpperCase()
+      (it) => (it.woodType || 'Silver Wood').trim().toUpperCase() === finalWood.trim().toUpperCase()
     ).length;
 
     const newItem: RoundLogItem = {
@@ -604,7 +604,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
                 ))}
               </select>
 
-              {selectedWoodOption === 'Other (Custom...)' && (
+              {selectedWoodOption.startsWith('Other') && (
                 <input
                   type="text"
                   placeholder="Type custom wood..."
@@ -703,7 +703,7 @@ export const RoundLogTable: React.FC<RoundLogTableProps> = ({
 
                       <td>
                         <select
-                          value={item.woodType || selectedWoodOption || 'Mahagony'}
+                          value={item.woodType || selectedWoodOption || 'Silver Wood'}
                           onChange={(e) => handleUpdateItem(index, 'woodType', e.target.value)}
                           style={{
                             fontSize: '0.8rem',
