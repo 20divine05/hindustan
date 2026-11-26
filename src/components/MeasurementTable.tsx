@@ -45,7 +45,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
   const [quickPieces, setQuickPieces] = useState<string>('');
   const [quickRate, setQuickRate] = useState<string>('');
   const [quickRateUnit, setQuickRateUnit] = useState<'CFT' | 'SQFT'>('CFT');
-  const [quickSheetRateUnit, setQuickSheetRateUnit] = useState<'SQFT' | 'PCS'>('SQFT');
+  const [quickSheetRateUnit, setQuickSheetRateUnit] = useState<'SQFT' | 'PCS'>('PCS');
   const [quickRateCft, setQuickRateCft] = useState<string>('');
   const [quickRateSqft, setQuickRateSqft] = useState<string>('');
 
@@ -417,7 +417,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           target.thicknessInches = 0;
           target.cft = 0;
           const p = typeof target.pieces === 'number' && target.pieces > 0 ? target.pieces : 0;
-          const sheetUnit = resolveSheetRateUnit(target.rateUnit);
+          const sheetUnit = 'PCS';
           const r = typeof target.rate === 'number' && target.rate > 0 ? target.rate : 0;
           const sheetCalc = calculateSheetAmount(true, p, r, sheetUnit, 4, target.boardSize);
           target.sqft = sheetCalc.sqft;
@@ -433,7 +433,7 @@ export const MeasurementTable: React.FC<MeasurementTableProps> = ({
           target.thicknessInches = 0;
           target.cft = 0;
           const p = typeof target.pieces === 'number' && target.pieces > 0 ? target.pieces : 0;
-          const sheetUnit = resolveSheetRateUnit(target.rateUnit);
+          const sheetUnit = 'PCS';
           const r = typeof target.rate === 'number' && target.rate > 0 ? target.rate : 0;
           const sheetCalc = calculateSheetAmount(false, p, r, sheetUnit, target.widthInches, target.boardSize);
           target.sqft = sheetCalc.sqft;

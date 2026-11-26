@@ -976,19 +976,42 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
   // Add row to a specific wood species in Step 8
   const handleStep8AddRow = (woodType: string) => {
-    const newRow: MeasurementItem = {
-      id: generateId(),
-      serialNumber: items.length + 1,
-      lengthFeet: '',
-      widthInches: '',
-      thicknessInches: '',
-      pieces: 1,
-      cft: 0,
-      sqft: 0,
-      rate: ratePerCft,
-      amount: 0,
-      woodType: woodType || 'MAHAGONY'
-    };
+    const wtUpper = (woodType || '').toUpperCase();
+    const isPly = wtUpper.includes('PLYWOOD');
+    const isReady = wtUpper.includes('READY');
+    const newRow: MeasurementItem = (isPly || isReady)
+      ? {
+          id: generateId(),
+          serialNumber: items.length + 1,
+          itemCategory: isPly ? 'plywood' : 'ready_board',
+          brand: isPly ? 'Red Tag' : 'Mine Gold',
+          boardSize: isReady ? '8 × 12' : undefined,
+          lengthFeet: 8,
+          widthInches: isPly ? 4 : 12,
+          thicknessInches: 0,
+          pieces: 1,
+          cft: 0,
+          sqft: isPly ? 32 : 8,
+          rate: 0,
+          rateUnit: 'PCS',
+          amount: 0,
+          woodType: isPly
+            ? (wtUpper.includes('34') ? 'Plywoods(34kg)' : 'Plywoods(30kg)')
+            : (wtUpper.includes('34') ? 'ReadyBoards(34kg)' : 'ReadyBoards(30kg)')
+        }
+      : {
+          id: generateId(),
+          serialNumber: items.length + 1,
+          lengthFeet: '',
+          widthInches: '',
+          thicknessInches: '',
+          pieces: 1,
+          cft: 0,
+          sqft: 0,
+          rate: ratePerCft,
+          amount: 0,
+          woodType: woodType || 'SILVER WOOD'
+        };
     setItems([...items, newRow]);
   };
 
