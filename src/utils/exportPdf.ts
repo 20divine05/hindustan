@@ -849,7 +849,7 @@ export function createProformaInvoiceDoc(
           groupSqftBilled += isSheet ? sheetSqft : (typeof it.sqft === 'number' ? it.sqft : (it.cft || 0) * 12);
         }
 
-        const cftText = !isSheet && it.cft > 0 ? `${it.cft.toFixed(4)} CFT` : '';
+        const cftText = !isSheet && it.cft > 0 ? it.cft.toFixed(4) : '';
         const sqftText = isSqftBilled
           ? (isSheet ? `${sheetSqft.toFixed(2)} SQFT` : (it.sqft && it.sqft > 0 ? `${it.sqft.toFixed(2)} SQFT` : `${((it.cft || 0) * 12).toFixed(2)} SQFT`))
           : '';
@@ -860,7 +860,7 @@ export function createProformaInvoiceDoc(
         tableBody.push([
           { content: slStr, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: dimOnly, styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { left: 3.6, top: 0.45, bottom: 0.45 } } },
-          { content: itPieces > 0 ? `${itPieces} PCS` : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: itPieces > 0 ? `${itPieces}` : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: cftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: sqftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: itRate !== 0 ? formatIndianCurrency(itRate) : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
@@ -1042,8 +1042,8 @@ export function createProformaInvoiceDoc(
   const cutHead = [[
     'Sl\nNo.',
     'Description of Goods',
-    'Quantity',
-    'Alt. Quantity',
+    { content: 'Quantity (PCS)', styles: { fontSize: 7.4 } },
+    'Alt. Quantity (CFT)',
     'SQFT',
     'Rate',
     'per',
@@ -1094,9 +1094,9 @@ export function createProformaInvoiceDoc(
   const cutColumnStyles = {
     0: { halign: 'center', cellWidth: 7 },
     1: { halign: 'left', cellWidth: 31, fontStyle: 'bold' },
-    2: { halign: 'right', cellWidth: 15 },
-    3: { halign: 'right', cellWidth: 32 },
-    4: { halign: 'right', cellWidth: 32 },
+    2: { halign: 'right', cellWidth: 20 },
+    3: { halign: 'right', cellWidth: 30 },
+    4: { halign: 'right', cellWidth: 29 },
     5: { halign: 'right', cellWidth: 15 },
     6: { halign: 'center', cellWidth: 9, cellPadding: { left: 0.5, right: 0.5 } },
     7: { halign: 'left', cellWidth: 49, fontStyle: 'bold', cellPadding: { left: 2.2 } }

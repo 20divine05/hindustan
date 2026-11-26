@@ -1306,9 +1306,9 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                 <tr>
                   <th style={{ width: '3.5%' }}>Sl<br />No.</th>
                   <th style={{ width: '17.5%', textAlign: 'left', paddingLeft: '8px' }}>Description of Goods</th>
-                  <th style={{ width: '8.5%', textAlign: 'right' }}>Quantity</th>
-                  <th style={{ width: '16.5%', textAlign: 'right' }}>Alt. Quantity</th>
-                  <th style={{ width: '16.5%', textAlign: 'right' }}>SQFT</th>
+                  <th style={{ width: '10%', textAlign: 'right' }}>Quantity (PCS)</th>
+                  <th style={{ width: '16.5%', textAlign: 'right' }}>Alt. Quantity (CFT)</th>
+                  <th style={{ width: '15%', textAlign: 'right' }}>SQFT</th>
                   <th style={{ width: '9%', textAlign: 'right' }}>Rate</th>
                   <th style={{ width: '5%', textAlign: 'center', whiteSpace: 'nowrap' }}>per</th>
                   <th style={{ width: '23.5%', textAlign: 'left', paddingLeft: '8px' }}>Amount</th>
@@ -1366,8 +1366,8 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                             <td className="p-item-desc p-item-desc-indent" style={{ paddingLeft: '14px', fontWeight: 700 }}>
                               {renderDimensionHtml(dimOnly)}
                             </td>
-                            <td className="text-right p-mono">{item.pieces} PCS</td>
-                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && item.cft > 0 ? `${item.cft.toFixed(4)} CFT` : '')}</td>
+                            <td className="text-right p-mono">{item.pieces}</td>
+                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && item.cft > 0 ? item.cft.toFixed(4) : '')}</td>
                             <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled && (item.sqft || (!isSheet && item.cft * 12)) ? `${(item.sqft || item.cft * 12).toFixed(2)} SQFT` : '')}</td>
                             <td className="text-right p-mono">
                               <input
