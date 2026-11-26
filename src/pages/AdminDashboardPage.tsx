@@ -40,6 +40,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBackTo
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Visitors State
   const [visitors, setVisitors] = useState<AppVisitor[]>([]);
@@ -78,15 +79,48 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBackTo
     }
   }, [isAuthenticated, loadVisitors]);
 
-  // Handle Login
-  const handleLogin = (e: React.FormEvent) => {
+  // Handle Login (supports server-side ADMIN_PASSWORD via /api/verify-admin and Vite VITE_ADMIN_PASSWORD fallback)
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === DEFAULT_ADMIN_PASSWORD) {
-      sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
-      setIsAuthenticated(true);
-      setLoginError(null);
-    } else {
-      setLoginError('Invalid Administrator Password. Please check and try again.');
+    setLoginError(null);
+    setIsLoggingIn(true);
+    try {
+      const res = await fetch('/api/verify-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: passwordInput })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.success) {
+          sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+          setIsAuthenticated(true);
+          return;
+        }
+      }
+
+      if (res.status === 401) {
+        setLoginError('Invalid Administrator Password. Please check and try again.');
+        return;
+      }
+
+      // If /api/verify-admin is unavailable (e.g. local Vite static dev), check client env fallback
+      if (passwordInput === DEFAULT_ADMIN_PASSWORD) {
+        sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+        setIsAuthenticated(true);
+      } else {
+        setLoginError('Invalid Administrator Password. Please check and try again.');
+      }
+    } catch {
+      if (passwordInput === DEFAULT_ADMIN_PASSWORD) {
+        sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+        setIsAuthenticated(true);
+      } else {
+        setLoginError('Invalid Administrator Password. Please check and try again.');
+      }
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -286,6 +320,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBackTo
 
             <button
               type="submit"
+              disabled={isLoggingIn}
               style={{
                 width: '100%',
                 padding: '0.85rem',
@@ -295,11 +330,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBackTo
                 fontWeight: 700,
                 fontSize: '0.95rem',
                 border: 'none',
-                cursor: 'pointer',
-                marginBottom: '1rem'
+                cursor: isLoggingIn ? 'wait' : 'pointer',
+                marginBottom: '1rem',
+                opacity: isLoggingIn ? 0.8 : 1
               }}
             >
-              Sign In to Dashboard
+              {isLoggingIn ? 'Verifying...' : 'Sign In to Dashboard'}
             </button>
           </form>
 

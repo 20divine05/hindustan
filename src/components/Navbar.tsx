@@ -7,7 +7,8 @@ import {
   Database,
   UserCheck,
   ChevronDown,
-  SlidersHorizontal
+  SlidersHorizontal,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { SupabaseConfigModal } from './SupabaseConfigModal';
@@ -15,10 +16,11 @@ import { SupabaseConfigModal } from './SupabaseConfigModal';
 interface NavbarProps {
   currentView: 'dashboard' | 'calculator' | 'history' | 'settings';
   onNavigate: (view: 'dashboard' | 'calculator' | 'history' | 'settings') => void;
+  onNavigateToAdmin?: () => void;
   activeSheetName?: string;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeSheetName }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onNavigateToAdmin, activeSheetName }) => {
   const { user, isSupabaseConnected, switchDemoUser } = useAuth();
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -439,7 +441,37 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, activeS
                       </div>
                     )}
 
-                    <div style={{ paddingTop: '0.25rem' }}>
+                    <div style={{ paddingTop: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {onNavigateToAdmin && (
+                        <a
+                          href="/admin"
+                          onClick={(e) => {
+                            if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+                              e.preventDefault();
+                              setIsUserMenuOpen(false);
+                              onNavigateToAdmin();
+                            }
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem 0.65rem',
+                            borderRadius: '6px',
+                            backgroundColor: '#0f172a',
+                            color: '#ffffff',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.4rem',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <ShieldCheck size={14} color="#22c55e" />
+                          <span>Visitor Access Admin (/admin)</span>
+                        </a>
+                      )}
                       <div
                         style={{
                           fontSize: '0.78rem',

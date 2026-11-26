@@ -80,6 +80,7 @@ const MainApp: React.FC<{ onNavigateToAdmin?: () => void }> = ({ onNavigateToAdm
           }
           setCurrentView(view);
         }}
+        onNavigateToAdmin={onNavigateToAdmin}
         activeSheetName={activeSheet?.sheetName}
       />
 
@@ -125,12 +126,15 @@ const MainApp: React.FC<{ onNavigateToAdmin?: () => void }> = ({ onNavigateToAdm
             <img src="/logo-icon-transparent.png" alt="Logo" className="app-footer-logo" />
             <span>Hindustan Saw Mill &bull; Since 1971</span>
             {onNavigateToAdmin && (
-              <button
-                type="button"
-                onClick={onNavigateToAdmin}
+              <a
+                href="/admin"
+                onClick={(e) => {
+                  if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+                    e.preventDefault();
+                    onNavigateToAdmin();
+                  }
+                }}
                 style={{
-                  background: 'none',
-                  border: 'none',
                   color: 'var(--text-muted)',
                   fontSize: '0.78rem',
                   textDecoration: 'underline',
@@ -139,7 +143,7 @@ const MainApp: React.FC<{ onNavigateToAdmin?: () => void }> = ({ onNavigateToAdm
                 }}
               >
                 Admin
-              </button>
+              </a>
             )}
           </div>
           <div className="app-footer-formula">
