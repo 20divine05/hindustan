@@ -1817,10 +1817,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             ========================================================================= */}
         {currentStep === 3 && (
           <div className="card calc-step-card">
-            {/* Top Indicator: Bill to with instant B2C / B2B toggle */}
+            {/* Top Indicator: Bill To */}
             <div style={{
               display: 'flex',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-start',
               alignItems: 'center',
               paddingBottom: '0.45rem',
               borderBottom: '1px solid var(--border-light, #e2e8f0)',
@@ -1844,46 +1844,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
               }}>
                 BILL TO ({customerType.toUpperCase()})
               </span>
-
-              {/* Instant B2C / B2B toggle switcher */}
-              <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1.5px solid #cbd5e1', gap: '3px' }}>
-                <button
-                  type="button"
-                  onClick={() => setCustomerType('b2c')}
-                  style={{
-                    padding: '3px 12px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    fontWeight: 800,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer',
-                    background: customerType === 'b2c' ? '#0284c7' : 'transparent',
-                    color: customerType === 'b2c' ? '#ffffff' : '#64748b',
-                    boxShadow: customerType === 'b2c' ? '0 1px 3px rgba(2, 132, 199, 0.35)' : 'none',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  👤 B2C
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCustomerType('b2b')}
-                  style={{
-                    padding: '3px 12px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    fontWeight: 800,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer',
-                    background: customerType === 'b2b' ? '#1d4ed8' : 'transparent',
-                    color: customerType === 'b2b' ? '#ffffff' : '#64748b',
-                    boxShadow: customerType === 'b2b' ? '0 1px 3px rgba(29, 78, 216, 0.35)' : 'none',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  🏢 B2B
-                </button>
-              </div>
             </div>
 
             {/* Customer Inputs Form */}
