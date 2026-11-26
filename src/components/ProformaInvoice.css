@@ -399,6 +399,14 @@
   background-color: #ffffff !important;
 }
 
+.p-dim-grid {
+  display: inline-grid;
+  grid-template-columns: 3.4em 1.2em 2.8em 1.2em 2.8em;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+}
+
 /* Dimension & Decimal Fine Typography */
 .p-dim-num {
   font-weight: 800;
@@ -457,6 +465,10 @@
   font-size: 10.5px;
   color: #000000;
   padding-left: 8px !important;
+}
+
+.p-item-desc-indent {
+  padding-left: 14px !important;
 }
 
 .p-mono {
@@ -997,5 +1009,13 @@
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+
+  .p-item-desc-indent {
+    padding-left: 12px !important;
+  }
+
+  .p-dim-grid {
+    font-size: 9.6px !important;
   }
 }

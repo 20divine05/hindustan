@@ -1363,7 +1363,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                         return (
                           <tr key={item.slNo} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                             <td className="text-center">{slStr}</td>
-                            <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 700 }}>
+                            <td className="p-item-desc p-item-desc-indent" style={{ paddingLeft: '14px', fontWeight: 700 }}>
                               {renderDimensionHtml(dimOnly)}
                             </td>
                             <td className="text-right p-mono">{item.pieces} PCS</td>

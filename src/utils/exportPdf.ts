@@ -859,7 +859,7 @@ export function createProformaInvoiceDoc(
 
         tableBody.push([
           { content: slStr, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
-          { content: `   ${dimOnly}`, styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
+          { content: dimOnly, styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { left: 3.6, top: 0.45, bottom: 0.45 } } },
           { content: itPieces > 0 ? `${itPieces} PCS` : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: cftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
           { content: sqftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
@@ -1223,19 +1223,47 @@ export function createProformaInvoiceDoc(
         }
 
         if (dimParts) {
-          // Align exactly under wood species name (x + 2.2) and bigger numbers (9.6pt)
-          let curX = x + 2.2;
-          for (const p of dimParts) {
-            if (p.toLowerCase() === 'x' || p === '×') {
-              doc.setFont('helvetica', 'normal');
-              doc.setFontSize(6.8);
-              doc.text('x', curX, baseline - 0.2);
-              curX += doc.getTextWidth('x') + 0.8;
-            } else {
-              doc.setFont('helvetica', 'bold');
-              doc.setFontSize(9.6);
-              doc.text(p, curX, baseline);
-              curX += doc.getTextWidth(p) + 0.8;
+          // 5-track tabular layout matching HTML grid (3.4em, 1.2em, 2.8em, 1.2em, 2.8em) with clean indent past species header (x + 2.2)
+          const startX = x + 3.6;
+          if (dimParts.length === 5) {
+            const emMm = Math.min(2.26, Math.max(1.8, (w - 4.8) / 11.4));
+            const trackWidths = [3.4 * emMm, 1.2 * emMm, 2.8 * emMm, 1.2 * emMm, 2.8 * emMm];
+            let trackX = startX;
+            for (let i = 0; i < 5; i++) {
+              const part = dimParts[i];
+              const trackW = trackWidths[i];
+              if (part.toLowerCase() === 'x' || part === '×') {
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(6.8);
+                doc.text('x', trackX + trackW / 2, baseline - 0.2, { align: 'center' });
+              } else {
+                doc.setFont('helvetica', 'bold');
+                let fontSize = 9.4;
+                doc.setFontSize(fontSize);
+                const maxPartW = Math.max(2, trackW - 0.4);
+                const partW = doc.getTextWidth(part);
+                if (partW > maxPartW && partW > 0) {
+                  fontSize = Math.max(6.0, fontSize * (maxPartW / partW));
+                  doc.setFontSize(fontSize);
+                }
+                doc.text(part, trackX, baseline);
+              }
+              trackX += trackW;
+            }
+          } else {
+            let curX = startX;
+            for (const p of dimParts) {
+              if (p.toLowerCase() === 'x' || p === '×') {
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(6.8);
+                doc.text('x', curX, baseline - 0.2);
+                curX += doc.getTextWidth('x') + 0.8;
+              } else {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(9.4);
+                doc.text(p, curX, baseline);
+                curX += doc.getTextWidth(p) + 0.8;
+              }
             }
           }
         } else if (decParts) {

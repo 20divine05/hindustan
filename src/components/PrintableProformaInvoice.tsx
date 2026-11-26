@@ -31,6 +31,31 @@ export const renderDimensionHtml = (dim: string) => {
       </span>
     );
   }
+
+  // Standard 3-axis L × W × T timber dimension row: fixed 5-track tabular grid alignment
+  if (!brandSuffix && parts.length === 5 && /^[xX×*]$/.test(parts[1]) && /^[xX×*]$/.test(parts[3])) {
+    const lenStr = parts[0].trim().replace(/^0+(\d)/, '$1');
+    const widStr = parts[2].trim().replace(/^0+(\d)/, '$1');
+    const thkStr = parts[4].trim().replace(/^0+(\d)/, '$1');
+    return (
+      <span
+        className="p-dim-grid"
+        style={{
+          display: 'inline-grid',
+          gridTemplateColumns: '3.4em 1.2em 2.8em 1.2em 2.8em',
+          alignItems: 'center',
+          fontVariantNumeric: 'tabular-nums'
+        }}
+      >
+        <span className="p-dim-num" style={{ textAlign: 'left' }}>{lenStr}</span>
+        <span className="p-dim-mul" style={{ textAlign: 'center', padding: 0 }}>×</span>
+        <span className="p-dim-num" style={{ textAlign: 'left' }}>{widStr}</span>
+        <span className="p-dim-mul" style={{ textAlign: 'center', padding: 0 }}>×</span>
+        <span className="p-dim-num" style={{ textAlign: 'left' }}>{thkStr}</span>
+      </span>
+    );
+  }
+
   return (
     <span>
       {parts.map((p, idx) => {
@@ -873,7 +898,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         return (
                           <tr key={`item-${currentSl}`} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
                             <td className="text-center">{slStr}</td>
-                            <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 700 }}>
+                            <td className="p-item-desc p-item-desc-indent" style={{ paddingLeft: '14px', fontWeight: 700 }}>
                               {renderDimensionHtml(descStr)}
                             </td>
                             <td className="text-right p-mono">{itPieces > 0 ? `${itPieces} PCS` : ''}</td>
