@@ -789,3 +789,53 @@ export function groupTimberByWidth(items: MeasurementItem[], defaultRate = 1200)
 
   return result;
 }
+
+/**
+ * Extracts numeric width (in inches) from a timber item or LxWxT description string
+ */
+export function getInvoiceItemWidth(item: {
+  widthInches?: number | string;
+  description?: string;
+}): number {
+  if (typeof item.widthInches === 'number' && item.widthInches > 0) {
+    return item.widthInches;
+  }
+  if (typeof item.widthInches === 'string' && item.widthInches.trim() !== '') {
+    const parsed = parseFloat(item.widthInches);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  if (item.description) {
+    const match = item.description.match(/^[\d.]+\s*[xX×]\s*([\d.]+)\s*[xX×]/);
+    if (match) {
+      return parseFloat(match[1]) || 0;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Returns true when consecutive timber rows in the same wood group transition to a new width
+ */
+export function hasWidthGroupTransition(
+  currentItem: { widthInches?: number | string; description?: string; itemCategory?: string; woodType?: string; rateUnit?: string; per?: string },
+  nextItem: { widthInches?: number | string; description?: string; itemCategory?: string; woodType?: string; rateUnit?: string; per?: string } | undefined,
+  groupWoodHeading?: string
+): boolean {
+  if (!nextItem) return false;
+  const isSheetItem = (it: typeof currentItem) => {
+    const wUpper = (groupWoodHeading || it.woodType || '').toUpperCase();
+    return (
+      (it.itemCategory === 'plywood' ||
+        it.itemCategory === 'ready_board' ||
+        wUpper.includes('PLYWOOD') ||
+        wUpper.includes('READY') ||
+        it.rateUnit === 'PCS' ||
+        it.per === 'PCS') &&
+      it.itemCategory !== 'timber'
+    );
+  };
+  if (isSheetItem(currentItem) || isSheetItem(nextItem)) return false;
+  const currW = getInvoiceItemWidth(currentItem);
+  const nextW = getInvoiceItemWidth(nextItem);
+  return currW > 0 && nextW > 0 && currW !== nextW;
+}

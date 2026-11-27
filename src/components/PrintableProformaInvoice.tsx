@@ -9,7 +9,7 @@ import type {
 import { formatIndianCurrency, numberToIndianCurrencyWords } from '../utils/indianNumberWords';
 import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
 import { groupRoundLogsBySpeciesFirst, getRoundLogUnitConfig } from '../utils/roundLogCalculator';
-import { calculateRFT, formatValue, calculateSheetAmount, calculateSheetSqft, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, resolveSheetRateUnit, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
+import { calculateRFT, formatValue, calculateSheetAmount, calculateSheetSqft, getCutLogItemDescription, getCutLogItemSectionHeading, hasWidthGroupTransition, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, resolveSheetRateUnit } from '../utils/calculator';
 import './ProformaInvoice.css';
 
 export const renderDimensionHtml = (dim: string) => {
@@ -163,6 +163,14 @@ export const renderAdvanceFooterRows = (
     </>
   );
 };
+
+export const renderWidthSpacerRow = (colCount: number, key: string) => (
+  <tr key={key} className="p-width-spacer-row" aria-hidden="true">
+    {Array.from({ length: colCount }, (_, idx) => (
+      <td key={idx}></td>
+    ))}
+  </tr>
+);
 
 export interface PrintableProformaInvoiceProps {
   businessSettings?: BusinessSettings;
@@ -977,27 +985,32 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         const slStr = String(currentSl);
                         const descStr = isSheet ? getCutLogItemDescription({ ...it, woodType: group.wood || it.woodType }) : `${it.lengthFeet}X${it.widthInches}X${it.thicknessInches}`;
                         const perUnit = isSheet ? sheetUnit! : (isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : 'CFT'));
+                        const showWidthSpacer = hasWidthGroupTransition(it, group.items[itemIdx + 1], group.wood);
+                        const totalColsCount = 7 + (showSqftCol ? 1 : 0) + (showRftCol ? 1 : 0);
 
                         return (
-                          <tr key={`item-${currentSl}`} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                            <td className="text-center">{slStr}</td>
-                            <td className="p-item-desc p-item-desc-indent" style={{ paddingLeft: '14px', fontWeight: 700 }}>
-                              {renderDimensionHtml(descStr)}
-                            </td>
-                            <td className="text-right p-mono">{itPieces > 0 ? itPieces : ''}</td>
-                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && !isRftBilled && it.cft > 0 ? it.cft.toFixed(4) : '')}</td>
-                            {showSqftCol && (
-                              <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled && (isSheet ? sheetSqft > 0 : it.sqft > 0) ? `${(isSheet ? sheetSqft : it.sqft).toFixed(2)} SQFT` : '')}</td>
-                            )}
-                            {showRftCol && (
-                              <td className="text-right p-mono">{renderWithSmallDecimalHtml(isRftBilled && rftVal > 0 ? `${rftVal.toFixed(2)} RFT` : '')}</td>
-                            )}
-                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(itemRate.toFixed(2))}</td>
-                            <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{perUnit}</td>
-                            <td className="text-left p-mono p-item-amount" style={{ paddingLeft: '8px', fontWeight: 500, color: '#4b5563' }}>
-                              {renderWithSmallDecimalHtml(formatIndianCurrency(amount))}
-                            </td>
-                          </tr>
+                          <React.Fragment key={`item-${currentSl}`}>
+                            <tr className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                              <td className="text-center">{slStr}</td>
+                              <td className="p-item-desc p-item-desc-indent" style={{ paddingLeft: '14px', fontWeight: 700 }}>
+                                {renderDimensionHtml(descStr)}
+                              </td>
+                              <td className="text-right p-mono">{itPieces > 0 ? itPieces : ''}</td>
+                              <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && !isRftBilled && it.cft > 0 ? it.cft.toFixed(4) : '')}</td>
+                              {showSqftCol && (
+                                <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled && (isSheet ? sheetSqft > 0 : it.sqft > 0) ? `${(isSheet ? sheetSqft : it.sqft).toFixed(2)} SQFT` : '')}</td>
+                              )}
+                              {showRftCol && (
+                                <td className="text-right p-mono">{renderWithSmallDecimalHtml(isRftBilled && rftVal > 0 ? `${rftVal.toFixed(2)} RFT` : '')}</td>
+                              )}
+                              <td className="text-right p-mono">{renderWithSmallDecimalHtml(itemRate.toFixed(2))}</td>
+                              <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{perUnit}</td>
+                              <td className="text-left p-mono p-item-amount" style={{ paddingLeft: '8px', fontWeight: 500, color: '#4b5563' }}>
+                                {renderWithSmallDecimalHtml(formatIndianCurrency(amount))}
+                              </td>
+                            </tr>
+                            {showWidthSpacer && renderWidthSpacerRow(totalColsCount, `width-sep-${gIdx}-${itemIdx}`)}
+                          </React.Fragment>
                         );
                       })}
 

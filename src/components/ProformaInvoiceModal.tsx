@@ -5,9 +5,9 @@ import type { MeasurementSheet, BusinessSettings } from '../types';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from '../utils/indianNumberWords';
 import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
 import { exportSheetToPdf, printProformaInvoicePdf } from '../utils/exportPdf';
-import { renderDimensionHtml, renderWithSmallDecimalHtml, renderAdvanceFooterRows } from './PrintableProformaInvoice';
+import { renderDimensionHtml, renderWithSmallDecimalHtml, renderAdvanceFooterRows, renderWidthSpacerRow } from './PrintableProformaInvoice';
 import { groupRoundLogsBySpeciesFirst, getRoundLogUnitConfig } from '../utils/roundLogCalculator';
-import { calculateRFT, formatValue, calculateSheetAmount, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, resolveSheetRateUnit, resolveSheetWidth, getCutLogItemDescription, getCutLogItemSectionHeading } from '../utils/calculator';
+import { calculateRFT, formatValue, calculateSheetAmount, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, resolveSheetRateUnit, resolveSheetWidth, getCutLogItemDescription, getCutLogItemSectionHeading, hasWidthGroupTransition } from '../utils/calculator';
 import './ProformaInvoice.css';
 
 export interface ProformaInvoiceProps {
@@ -1450,61 +1450,66 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
                         const isSqftBilled = isSheet ? sheetUnit === 'SQFT' : isTimberSqftBilled(item);
                         const slStr = String(item.slNo);
                         const perUnit = isSheet ? sheetUnit! : (isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : 'CFT'));
+                        const showWidthSpacer = hasWidthGroupTransition(item, group.items[itemIdx + 1], group.wood);
+                        const totalColsCount = 7 + (showSqftCol ? 1 : 0) + (showRftCol ? 1 : 0);
                         return (
-                          <tr key={item.slNo} className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                            <td className="text-center">{slStr}</td>
-                            <td className="p-item-desc p-item-desc-indent" style={{ paddingLeft: '14px', fontWeight: 700 }}>
-                              {renderDimensionHtml(dimOnly)}
-                            </td>
-                            <td className="text-right p-mono">{item.pieces}</td>
-                            <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && !isRftBilled && item.cft > 0 ? item.cft.toFixed(4) : '')}</td>
-                            {showSqftCol && (
-                              <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled && (item.sqft || (!isSheet && item.cft * 12)) ? `${(item.sqft || item.cft * 12).toFixed(2)} SQFT` : '')}</td>
-                            )}
-                            {showRftCol && (
-                              <td className="text-right p-mono">{renderWithSmallDecimalHtml(isRftBilled && itemRft > 0 ? `${itemRft.toFixed(2)} RFT` : '')}</td>
-                            )}
-                            <td className="text-right p-mono">
-                            {(() => {
-                              const origIdx = item.sourceIndex !== undefined ? item.sourceIndex : (item.slNo - 1);
-                              const rateInputKey = item.id || String(origIdx);
-                              const displayVal = draftRateInputs[rateInputKey] !== undefined ? draftRateInputs[rateInputKey] : item.rate;
-                              return (
-                                <input
-                                  type="number"
-                                  className="p-input text-right p-mono"
-                                  value={displayVal}
-                                  onChange={(e) => {
-                                    const raw = e.target.value;
-                                    setDraftRateInputs((prev) => ({ ...prev, [rateInputKey]: raw }));
-                                    const parsed = parseFloat(raw);
-                                    const isValidRate = raw.trim() !== '' && !isNaN(parsed) && (parsed > 0 || (item.per === 'RFT' && parsed >= 0));
-                                    if (!isValidRate) return;
-                                    setCustomRates((prev) => {
-                                      const next = { ...prev };
-                                      if (item.id) next[item.id] = parsed;
-                                      if (item.sourceIndex !== undefined) next[item.sourceIndex] = parsed;
-                                      next[origIdx] = parsed;
-                                      return next;
-                                    });
-                                  }}
-                                  onBlur={() => {
-                                    setDraftRateInputs((prev) => {
-                                      if (prev[rateInputKey] === undefined) return prev;
-                                      const next = { ...prev };
-                                      delete next[rateInputKey];
-                                      return next;
-                                    });
-                                  }}
-                                />
-                              );
-                            })()}
-                            </td>
-                            <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{perUnit}</td>
-                            <td className="text-left p-mono font-bold" style={{ paddingLeft: '8px' }}>
-                              {renderWithSmallDecimalHtml(formatIndianCurrency(item.amount))}
-                            </td>
-                          </tr>
+                          <React.Fragment key={item.slNo}>
+                            <tr className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                              <td className="text-center">{slStr}</td>
+                              <td className="p-item-desc p-item-desc-indent" style={{ paddingLeft: '14px', fontWeight: 700 }}>
+                                {renderDimensionHtml(dimOnly)}
+                              </td>
+                              <td className="text-right p-mono">{item.pieces}</td>
+                              <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && !isRftBilled && item.cft > 0 ? item.cft.toFixed(4) : '')}</td>
+                              {showSqftCol && (
+                                <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled && (item.sqft || (!isSheet && item.cft * 12)) ? `${(item.sqft || item.cft * 12).toFixed(2)} SQFT` : '')}</td>
+                              )}
+                              {showRftCol && (
+                                <td className="text-right p-mono">{renderWithSmallDecimalHtml(isRftBilled && itemRft > 0 ? `${itemRft.toFixed(2)} RFT` : '')}</td>
+                              )}
+                              <td className="text-right p-mono">
+                              {(() => {
+                                const origIdx = item.sourceIndex !== undefined ? item.sourceIndex : (item.slNo - 1);
+                                const rateInputKey = item.id || String(origIdx);
+                                const displayVal = draftRateInputs[rateInputKey] !== undefined ? draftRateInputs[rateInputKey] : item.rate;
+                                return (
+                                  <input
+                                    type="number"
+                                    className="p-input text-right p-mono"
+                                    value={displayVal}
+                                    onChange={(e) => {
+                                      const raw = e.target.value;
+                                      setDraftRateInputs((prev) => ({ ...prev, [rateInputKey]: raw }));
+                                      const parsed = parseFloat(raw);
+                                      const isValidRate = raw.trim() !== '' && !isNaN(parsed) && (parsed > 0 || (item.per === 'RFT' && parsed >= 0));
+                                      if (!isValidRate) return;
+                                      setCustomRates((prev) => {
+                                        const next = { ...prev };
+                                        if (item.id) next[item.id] = parsed;
+                                        if (item.sourceIndex !== undefined) next[item.sourceIndex] = parsed;
+                                        next[origIdx] = parsed;
+                                        return next;
+                                      });
+                                    }}
+                                    onBlur={() => {
+                                      setDraftRateInputs((prev) => {
+                                        if (prev[rateInputKey] === undefined) return prev;
+                                        const next = { ...prev };
+                                        delete next[rateInputKey];
+                                        return next;
+                                      });
+                                    }}
+                                  />
+                                );
+                              })()}
+                              </td>
+                              <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{perUnit}</td>
+                              <td className="text-left p-mono font-bold" style={{ paddingLeft: '8px' }}>
+                                {renderWithSmallDecimalHtml(formatIndianCurrency(item.amount))}
+                              </td>
+                            </tr>
+                            {showWidthSpacer && renderWidthSpacerRow(totalColsCount, `width-sep-${gIdx}-${itemIdx}`)}
+                          </React.Fragment>
                         );
                       })}
 
