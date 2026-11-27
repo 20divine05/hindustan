@@ -318,19 +318,36 @@ export function createProformaInvoiceDoc(
     }
   }
 
+  const resolvedAdditionalCharges = invoiceData?.additionalCharges ?? sheet.additionalCharges;
   const additionalChargesSum =
-    ((invoiceData?.additionalCharges?.carpentry || 0) + (invoiceData?.additionalCharges?.sawing || 0)) +
-    (invoiceData?.additionalCharges?.transportation || 0) +
-    (invoiceData?.additionalCharges?.planing || 0) +
-    (invoiceData?.additionalCharges?.other || 0);
-  const gstAmt = invoiceData?.gstAmount || 0;
-  const discAmt = invoiceData?.discountAmount || 0;
+    ((resolvedAdditionalCharges?.carpentry || 0) + (resolvedAdditionalCharges?.sawing || 0)) +
+    (resolvedAdditionalCharges?.transportation || 0) +
+    (resolvedAdditionalCharges?.planing || 0) +
+    (resolvedAdditionalCharges?.other || 0);
+  const effectiveGstPercent = invoiceData?.gstPercent ?? sheet.gstPercent ?? 0;
+  const gstTaxableBase = invoiceData?.gstTaxableBase ?? (
+    (sheet.customGstTaxableAmount && sheet.customGstTaxableAmount > 0)
+      ? sheet.customGstTaxableAmount
+      : (totalAmount + additionalChargesSum)
+  );
+  const gstAmt = invoiceData?.gstAmount !== undefined
+    ? invoiceData.gstAmount
+    : (effectiveGstPercent > 0 ? Math.round((gstTaxableBase * (effectiveGstPercent / 100)) * 100) / 100 : 0);
+  const discAmt = invoiceData?.discountAmount !== undefined
+    ? invoiceData.discountAmount
+    : (sheet.discount?.amount !== undefined
+        ? sheet.discount.amount
+        : (sheet.discount?.type === 'percentage' && sheet.discount.value > 0
+            ? Math.round(((totalAmount + additionalChargesSum + gstAmt) * (sheet.discount.value / 100)) * 100) / 100
+            : (sheet.discount?.type === 'rupees' ? (sheet.discount.value || 0) : 0)));
+  const discDescResolved = invoiceData?.discountDesc ?? (sheet.discount?.type === 'percentage' && sheet.discount.value ? `${sheet.discount.value}%` : undefined);
   const computedFallback = Math.max(0, totalAmount + additionalChargesSum + gstAmt - discAmt);
 
+  const fallbackGrandTotal = invoiceData?.finalGrandTotal ?? sheet.finalGrandTotal;
   const effectiveTotal = (isRoundLog || totalAmount > 0 || additionalChargesSum > 0)
     ? computedFallback
-    : ((invoiceData?.finalGrandTotal !== undefined && invoiceData.finalGrandTotal > 0)
-        ? invoiceData.finalGrandTotal
+    : ((fallbackGrandTotal !== undefined && fallbackGrandTotal > 0)
+        ? fallbackGrandTotal
         : 0);
   const advanceAmt = Math.max(0, Math.round((invoiceData?.advanceAmount ?? sheet.advanceAmount ?? 0) * 100) / 100);
   const remainingAmt = Math.max(0, Math.round((effectiveTotal - advanceAmt) * 100) / 100);
@@ -958,7 +975,7 @@ export function createProformaInvoiceDoc(
     }
   }
 
-  const ac = invoiceData?.additionalCharges;
+  const ac = resolvedAdditionalCharges;
 
   let isFirstChargeRow = true;
   let chargeRowIdx = 0;
@@ -1022,17 +1039,17 @@ export function createProformaInvoiceDoc(
   }
 
   // 5. Next: GST Line
-  if (invoiceData?.gstAmount && invoiceData.gstAmount > 0) {
-    const gstLabel = invoiceData?.gstPercent ? `GST (${invoiceData.gstPercent}%)` : 'GST';
-    tableBody.push(chargeRow(gstLabel, formatIndianCurrency(invoiceData.gstAmount)));
+  if (gstAmt > 0) {
+    const gstLabel = effectiveGstPercent > 0 ? `GST (${effectiveGstPercent}%)` : 'GST';
+    tableBody.push(chargeRow(gstLabel, formatIndianCurrency(gstAmt)));
   }
 
   // 6. Next: DISCOUNT (if any)
-  if (invoiceData?.discountAmount && invoiceData.discountAmount > 0) {
-    const totalBeforeDisc = totalAmount + additionalChargesSum + (invoiceData?.gstAmount || 0);
+  if (discAmt > 0) {
+    const totalBeforeDisc = totalAmount + additionalChargesSum + gstAmt;
     tableBody.push(chargeRow('TOTAL PRICE BEFORE DISCOUNT', formatIndianCurrency(totalBeforeDisc), false));
-    const discLabel = (invoiceData.discountDesc && invoiceData.discountDesc !== 'LESS: DISCOUNT') ? `LESS: DISCOUNT (${invoiceData.discountDesc})` : 'LESS: DISCOUNT';
-    tableBody.push(chargeRow(discLabel, `- ${formatIndianCurrency(invoiceData.discountAmount)}`, true));
+    const discLabel = (discDescResolved && discDescResolved !== 'LESS: DISCOUNT') ? `LESS: DISCOUNT (${discDescResolved})` : 'LESS: DISCOUNT';
+    tableBody.push(chargeRow(discLabel, `- ${formatIndianCurrency(discAmt)}`, true));
   }
 
   // For clean vertical page filling, pad with empty rows if under 12 items
