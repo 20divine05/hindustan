@@ -112,12 +112,16 @@ function normalizeLoadedItem(raw: MeasurementItem, idx: number): MeasurementItem
   };
 }
 
-// Helper to generate IDs
+// Helper to generate valid RFC 4122 v4 UUIDs (safe even in non-HTTPS contexts)
 export function generateId(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
-  return 'id_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 /**
@@ -754,21 +758,31 @@ export const dbService = {
         // 2. Delete existing items for this sheet to replace cleanly
         await supabase.from('measurement_items').delete().eq('sheet_id', sanitized.id);
 
-        // 3. Insert items if any exist
+        // 3. Insert cut-timber items with strictly positive dimensions into measurement_items
+        // (Plywood/ReadyBoard rows use thicknessInches = 0 and are persisted in metaPayload.backupItems;
+        // Postgres enforces CHECK (> 0) on length_feet, width_inches, thickness_inches, number_of_pieces)
         if (sanitized.items.length > 0) {
           const rowsToInsert = sanitized.items
-            .filter((it) => typeof it.lengthFeet === 'number' && it.lengthFeet > 0)
+            .filter(
+              (it) =>
+                it.itemCategory !== 'plywood' &&
+                it.itemCategory !== 'ready_board' &&
+                typeof it.lengthFeet === 'number' && it.lengthFeet > 0 &&
+                typeof it.widthInches === 'number' && it.widthInches > 0 &&
+                typeof it.thicknessInches === 'number' && it.thicknessInches > 0 &&
+                typeof it.pieces === 'number' && it.pieces > 0
+            )
             .map((it, idx) => ({
-              id: it.id || generateId(),
+              id: it.id && UUID_REGEX.test(it.id) ? it.id : generateId(),
               sheet_id: sanitized.id,
               user_id: dbUserId,
-              serial_number: idx + 1,
+              serial_number: typeof it.serialNumber === 'number' && it.serialNumber > 0 ? it.serialNumber : idx + 1,
               length_feet: it.lengthFeet,
               width_inches: it.widthInches,
               thickness_inches: it.thicknessInches,
               number_of_pieces: it.pieces,
-              cft: it.cft,
-              sqft: it.sqft,
+              cft: typeof it.cft === 'number' && Number.isFinite(it.cft) ? it.cft : 0,
+              sqft: typeof it.sqft === 'number' && Number.isFinite(it.sqft) ? it.sqft : 0,
               wood_type: it.woodType || '',
               remarks: it.remarks || ''
             }));
