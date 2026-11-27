@@ -411,15 +411,15 @@
   font-size: 10.5px;
 }
 
-/* Thin crisp separation spacing between different width groups */
+/* Thin crisp empty spacing between different width groups (no horizontal lines) */
 .p-width-spacer-row td {
-  height: 3.5px !important;
+  height: 4px !important;
   padding: 0 !important;
   line-height: 0 !important;
   font-size: 0 !important;
   background-color: #ffffff !important;
-  border-top: 1px solid #222222 !important;
-  border-bottom: 1px solid #222222 !important;
+  border-top: none !important;
+  border-bottom: none !important;
   border-right: 1px solid #222222 !important;
   border-left: none !important;
 }

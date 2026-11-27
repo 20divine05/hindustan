@@ -913,7 +913,7 @@ export function createProformaInvoiceDoc(
               content: '',
               ...(colI === 0 ? { isWidthSpacer: true } : {}),
               styles: {
-                lineWidth: { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 },
+                lineWidth: { top: 0, bottom: 0, left: 0.2, right: 0.2 },
                 fillColor: [255, 255, 255],
                 fontSize: 1,
                 minCellHeight: 1.2,
@@ -1313,10 +1313,10 @@ export function createProformaInvoiceDoc(
         const isChargeRow = (rawRow[1] as any)?.colSpan === chargeColSpan;
         const isEmptyPaddingRow = c0 === '' && c1 === '' && !isSectionBanner && !isSubtotalRow && !isWidthSpacer;
 
-        if (isSectionBanner || isSubtotalRow || isFootRow || isWidthSpacer) {
+        if (isSectionBanner || isSubtotalRow || isFootRow) {
           doc.line(10, data.cell.y, 200, data.cell.y);
           doc.line(10, data.cell.y + data.cell.height, 200, data.cell.y + data.cell.height);
-        } else if (!isChargeRow && !isEmptyPaddingRow) {
+        } else if (!isChargeRow && !isEmptyPaddingRow && !isWidthSpacer) {
           doc.line(10, data.cell.y + data.cell.height, 200, data.cell.y + data.cell.height);
         }
       }
