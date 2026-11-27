@@ -915,9 +915,9 @@ export function createProformaInvoiceDoc(
               styles: {
                 lineWidth: { top: 0, bottom: 0, left: 0.2, right: 0.2 },
                 fillColor: [255, 255, 255],
-                fontSize: 1,
-                minCellHeight: 1.2,
-                cellPadding: { top: 0.15, bottom: 0.15, left: 0, right: 0 }
+                fontSize: 0.5,
+                minCellHeight: 0.4,
+                cellPadding: { top: 0.1, bottom: 0.1, left: 0, right: 0 }
               }
             }))
           );

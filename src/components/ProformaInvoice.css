@@ -413,7 +413,8 @@
 
 /* Thin crisp empty spacing between different width groups (no horizontal lines) */
 .p-width-spacer-row td {
-  height: 4px !important;
+  height: 1.5px !important;
+  max-height: 1.5px !important;
   padding: 0 !important;
   line-height: 0 !important;
   font-size: 0 !important;
