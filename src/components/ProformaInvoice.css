@@ -94,7 +94,7 @@
   margin: 0 auto;
   color: #111111;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.25;
   box-sizing: border-box;
 }
@@ -111,7 +111,7 @@
 .p-header-title {
   position: relative;
   text-align: center;
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 800;
   letter-spacing: 1.5px;
   padding: 5px 0;
@@ -130,7 +130,7 @@
   transform: translateY(-50%);
   border: 1.5px solid #000000;
   padding: 1px 7px;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 1px;
   line-height: 1.2;
@@ -214,7 +214,7 @@
 }
 
 .p-seller-name {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 800;
   line-height: 1.15;
   margin-bottom: 2px;
@@ -222,7 +222,7 @@
 }
 
 .p-seller-line {
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1.25;
   color: #111111;
 }
@@ -234,21 +234,21 @@
 }
 
 .p-party-heading {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   color: #333333;
   margin-bottom: 2px;
 }
 
 .p-party-name-input {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 800;
   color: #000000;
   margin-bottom: 2px;
 }
 
 .p-party-addr-input {
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1.3;
   color: #222222;
   margin-bottom: 2px;
@@ -258,7 +258,7 @@
 .p-party-meta {
   display: flex;
   align-items: center;
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1.25;
   margin-top: 1px;
 }
@@ -276,7 +276,7 @@
 
 .p-party-meta-input {
   font-weight: 600;
-  font-size: 10.5px;
+  font-size: 11px;
   color: #000000;
 }
 
@@ -306,7 +306,7 @@
 .p-meta-cell {
   padding: 3px 6px;
   border-right: 1px solid #222222;
-  font-size: 11px;
+  font-size: 11.5px;
   min-height: 25px;
   display: flex;
   flex-direction: column;
@@ -318,7 +318,7 @@
 }
 
 .p-label {
-  font-size: 10px;
+  font-size: 10.5px;
   color: #444444;
   display: block;
   line-height: 1.1;
@@ -327,14 +327,14 @@
 }
 
 .p-val-input {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   color: #000000;
   padding: 1px 2px;
 }
 
 .p-val-textarea {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #000000;
   line-height: 1.3;
@@ -349,7 +349,7 @@
 .p-items-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11px;
+  font-size: 11.5px;
   table-layout: fixed;
 }
 
@@ -358,7 +358,7 @@
   border-right: 1px solid #222222;
   padding: 2px 3px;
   font-weight: 700;
-  font-size: 10px;
+  font-size: 10.5px;
   background-color: #f6f7f6;
   vertical-align: middle;
   overflow: hidden;
@@ -408,13 +408,12 @@
   grid-template-columns: 3.4em 1.2em 2.8em 1.2em 2.8em;
   align-items: center;
   font-variant-numeric: tabular-nums;
-  font-size: 10.5px;
+  font-size: 11px;
 }
 
 /* Thin crisp empty spacing between different width groups (no horizontal lines) */
 .p-width-spacer-row td {
-  height: 1.5px !important;
-  max-height: 1.5px !important;
+  height: 5px !important;
   padding: 0 !important;
   line-height: 0 !important;
   font-size: 0 !important;
@@ -476,7 +475,7 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #000000;
-  font-size: 11.5px;
+  font-size: 12px;
   text-align: left !important;
   padding: 3px 8px !important;
   background-color: #e2e8f0 !important;
@@ -484,7 +483,7 @@
 
 .p-item-desc {
   font-weight: 700;
-  font-size: 11px;
+  font-size: 11.5px;
   color: #000000;
   padding-left: 8px !important;
 }
@@ -496,7 +495,7 @@
 .p-mono {
   font-family: 'JetBrains Mono', Courier, monospace;
   font-variant-numeric: tabular-nums;
-  font-size: 10px;
+  font-size: 10.5px;
   letter-spacing: -0.01em;
 }
 
@@ -567,17 +566,17 @@
 
 /* Compact layout for 15-column Round Log Table */
 .p-round-table {
-  font-size: 9px !important;
+  font-size: 9.5px !important;
 }
 
 .p-round-table th {
-  font-size: 8.5px !important;
+  font-size: 9px !important;
   padding: 1.5px 1px !important;
   line-height: 1.15 !important;
 }
 
 .p-round-table td {
-  font-size: 8.5px !important;
+  font-size: 9px !important;
   padding: 0.8px 1.5px !important;
 }
 
@@ -605,7 +604,7 @@
 /* Final Total Price Highlight (bolded and clear, standard row size) */
 .p-final-total-highlight {
   color: #000000 !important;
-  font-size: 13px !important;
+  font-size: 13.5px !important;
   font-weight: 900 !important;
   padding-right: 6px !important;
   letter-spacing: -0.015em;
@@ -622,19 +621,19 @@
 }
 
 .p-words-label {
-  font-size: 10px;
+  font-size: 10.5px;
   color: #444444;
   display: block;
 }
 
 .p-words-text {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 800;
   color: #000000;
 }
 
 .p-eoe {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #333333;
 }
@@ -655,7 +654,7 @@
 .p-hsn-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 10.5px;
+  font-size: 11px;
   border: 1px solid #222222;
 }
 
@@ -663,7 +662,7 @@
   border: 1px solid #222222;
   padding: 2px 6px;
   font-weight: 700;
-  font-size: 10px;
+  font-size: 10.5px;
   background-color: #f6f7f6;
 }
 
@@ -678,7 +677,7 @@
 }
 
 .p-tax-words-line {
-  font-size: 10.5px;
+  font-size: 11px;
   margin-top: 2px;
   color: #111111;
 }
@@ -702,7 +701,7 @@
 }
 
 .p-bank-heading {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 800;
   color: #000000;
   text-transform: uppercase;
@@ -714,7 +713,7 @@
 
 .p-bank-row {
   display: flex;
-  font-size: 9.5px;
+  font-size: 10px;
   line-height: 1.35;
   margin-bottom: 1.5px;
   color: #111111;
@@ -756,14 +755,14 @@
 }
 
 .p-declaration-heading {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 800;
   margin-bottom: 2px;
   color: #000000;
 }
 
 .p-declaration-text {
-  font-size: 10px;
+  font-size: 10.5px;
   line-height: 1.3;
   color: #222222;
 }
@@ -782,7 +781,7 @@
 }
 
 .p-qr-header {
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 800;
   color: #15803d;
   text-transform: uppercase;
@@ -806,14 +805,14 @@
 }
 
 .p-qr-apps {
-  font-size: 8px;
+  font-size: 8.5px;
   font-weight: 700;
   color: #444444;
   margin-top: 2px;
 }
 
 .p-qr-upi-id {
-  font-size: 8.5px;
+  font-size: 9px;
   color: #111111;
   margin-top: 1px;
 }
@@ -834,7 +833,7 @@
 }
 
 .p-seal-title {
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
   color: #333333;
   line-height: 1.2;
@@ -854,7 +853,7 @@
 }
 
 .p-for-company {
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 800;
   color: #000000;
   word-break: break-word;
@@ -866,7 +865,7 @@
 }
 
 .p-auth-title {
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
   color: #222222;
 }
@@ -874,7 +873,7 @@
 /* Footnote */
 .p-computer-note {
   text-align: center;
-  font-size: 10.5px;
+  font-size: 11px;
   color: #444444;
   padding: 3px 0;
   font-style: italic;
@@ -1038,6 +1037,6 @@
   }
 
   .p-dim-grid {
-    font-size: 10.1px !important;
+    font-size: 10.6px !important;
   }
 }

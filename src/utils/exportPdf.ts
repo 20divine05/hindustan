@@ -825,7 +825,7 @@ export function createProformaInvoiceDoc(
         { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
         {
           content: group.wood.toUpperCase(),
-          styles: { fontStyle: 'bold', textColor: [0, 0, 0], fontSize: 9.0, cellPadding: { left: 2.2, top: 0.5, bottom: 0.5 }, halign: 'left', lineWidth: headingBorder }
+          styles: { fontStyle: 'bold', textColor: [0, 0, 0], fontSize: 9.5, cellPadding: { left: 2.2, top: 0.5, bottom: 0.5 }, halign: 'left', lineWidth: headingBorder }
         },
         { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
         { content: '', styles: { lineWidth: headingBorder, cellPadding: { top: 0.5, bottom: 0.5 } } },
@@ -895,15 +895,15 @@ export function createProformaInvoiceDoc(
         slCounter++;
 
         tableBody.push([
-          { content: slStr, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.4, bottom: 0.4 } } },
-          { content: dimOnly, styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { left: 3.6, top: 0.4, bottom: 0.4 } } },
-          { content: itPieces > 0 ? `${itPieces}` : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.4, bottom: 0.4 } } },
-          { content: cftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.4, bottom: 0.4 } } },
-          ...(showSqftCol ? [{ content: sqftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.4, bottom: 0.4 } } }] : []),
-          ...(showRftCol ? [{ content: rftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.4, bottom: 0.4 } } }] : []),
-          { content: itRate !== 0 ? formatIndianCurrency(itRate) : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.4, bottom: 0.4 } } },
-          { content: perText, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.4, bottom: 0.4 } } },
-          { content: formatIndianCurrency(rowAmount), styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'normal', textColor: [75, 85, 99], fillColor: zebraBg, cellPadding: { left: 2.2, top: 0.4, bottom: 0.4 } } }
+          { content: slStr, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.35, bottom: 0.35 } } },
+          { content: dimOnly, styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'bold', fillColor: zebraBg, cellPadding: { left: 3.6, top: 0.35, bottom: 0.35 } } },
+          { content: itPieces > 0 ? `${itPieces}` : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.35, bottom: 0.35 } } },
+          { content: cftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.35, bottom: 0.35 } } },
+          ...(showSqftCol ? [{ content: sqftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.35, bottom: 0.35 } } }] : []),
+          ...(showRftCol ? [{ content: rftText, styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.35, bottom: 0.35 } } }] : []),
+          { content: itRate !== 0 ? formatIndianCurrency(itRate) : '', styles: { lineWidth: itemBorder, halign: 'right', fillColor: zebraBg, cellPadding: { right: 2.2, top: 0.35, bottom: 0.35 } } },
+          { content: perText, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.35, bottom: 0.35 } } },
+          { content: formatIndianCurrency(rowAmount), styles: { lineWidth: itemBorder, halign: 'left', fontStyle: 'normal', textColor: [75, 85, 99], fillColor: zebraBg, cellPadding: { left: 2.2, top: 0.35, bottom: 0.35 } } }
         ]);
 
         if (hasWidthGroupTransition(it as any, nextIt as any, group.wood)) {
@@ -915,9 +915,9 @@ export function createProformaInvoiceDoc(
               styles: {
                 lineWidth: { top: 0, bottom: 0, left: 0.2, right: 0.2 },
                 fillColor: [255, 255, 255],
-                fontSize: 0.5,
-                minCellHeight: 0.4,
-                cellPadding: { top: 0.1, bottom: 0.1, left: 0, right: 0 }
+                fontSize: 1,
+                minCellHeight: 1.5,
+                cellPadding: { top: 0.2, bottom: 0.2, left: 0, right: 0 }
               }
             }))
           );
@@ -1093,8 +1093,8 @@ export function createProformaInvoiceDoc(
   const cutHead = [[
     'Sl\nNo.',
     'Description of Goods',
-    { content: 'Quantity (PCS)', styles: { fontSize: 7.9 } },
-    { content: 'Alt. Quantity (CFT)', styles: { fontSize: showRftCol ? 7.7 : 8.5 } },
+    { content: 'Quantity (PCS)', styles: { fontSize: 8.4 } },
+    { content: 'Alt. Quantity (CFT)', styles: { fontSize: showRftCol ? 8.2 : 9.0 } },
     ...(showSqftCol ? ['SQFT'] : []),
     ...(showRftCol ? ['RFT'] : []),
     'Rate',
@@ -1134,7 +1134,7 @@ export function createProformaInvoiceDoc(
         {
           content: `Rs. ${formatIndianCurrency(remainingAmt)}`,
           colSpan: amountColSpan,
-          styles: { halign: 'right', fontStyle: 'bold', cellPadding: { right: amountPadRight }, fontSize: isRoundLog ? 9.5 : 9.0 }
+          styles: { halign: 'right', fontStyle: 'bold', cellPadding: { right: amountPadRight }, fontSize: isRoundLog ? 10.0 : 9.5 }
         }
       ]
     ];
@@ -1157,7 +1157,7 @@ export function createProformaInvoiceDoc(
       },
       {
         content: `Rs. ${formatIndianCurrency(effectiveTotal)}`,
-        styles: { halign: 'right', fontStyle: 'bold', cellPadding: { right: 1.8 }, fontSize: 9.5 }
+        styles: { halign: 'right', fontStyle: 'bold', cellPadding: { right: 1.8 }, fontSize: 10.0 }
       }
     ],
     ...buildAdvancePdfRows(4, 1, false, 1.8)
@@ -1233,8 +1233,8 @@ export function createProformaInvoiceDoc(
     theme: 'grid',
     styles: {
       font: 'helvetica',
-      fontSize: isRoundLog ? 7.7 : 8.5,
-      cellPadding: isRoundLog ? { top: 0.45, bottom: 0.45, left: 0.6, right: 0.6 } : { top: 0.45, bottom: 0.45, left: 1.0, right: 1.0 },
+      fontSize: isRoundLog ? 8.2 : 9.0,
+      cellPadding: isRoundLog ? { top: 0.45, bottom: 0.45, left: 0.6, right: 0.6 } : { top: 0.35, bottom: 0.35, left: 1.0, right: 1.0 },
       textColor: [0, 0, 0],
       lineColor: [0, 0, 0],
       lineWidth: 0.2,
@@ -1246,7 +1246,7 @@ export function createProformaInvoiceDoc(
       fontStyle: 'bold',
       halign: 'center',
       valign: 'middle',
-      fontSize: isRoundLog ? 7.7 : 8.5,
+      fontSize: isRoundLog ? 8.2 : 9.0,
       cellPadding: { top: 0.8, bottom: 0.8, left: 0.6, right: 0.6 },
       lineColor: [0, 0, 0],
       lineWidth: 0.2
@@ -1256,7 +1256,7 @@ export function createProformaInvoiceDoc(
       textColor: [0, 0, 0],
       fontStyle: 'bold',
       valign: 'middle',
-      fontSize: isRoundLog ? 8.3 : 9.0,
+      fontSize: isRoundLog ? 8.8 : 9.5,
       cellPadding: { top: 0.8, bottom: 0.8, left: 1.0, right: 1.0 },
       lineColor: [0, 0, 0],
       lineWidth: 0.2
@@ -1351,11 +1351,11 @@ export function createProformaInvoiceDoc(
               const trackW = trackWidths[i];
               if (part.toLowerCase() === 'x' || part === '×') {
                 doc.setFont('helvetica', 'normal');
-                doc.setFontSize(7.3);
+                doc.setFontSize(7.8);
                 doc.text('x', trackX + trackW / 2, baseline - 0.2, { align: 'center' });
               } else {
                 doc.setFont('helvetica', 'bold');
-                let fontSize = 9.9;
+                let fontSize = 10.4;
                 doc.setFontSize(fontSize);
                 const maxPartW = Math.max(2, trackW - 0.4);
                 const partW = doc.getTextWidth(part);
@@ -1372,12 +1372,12 @@ export function createProformaInvoiceDoc(
             for (const p of dimParts) {
               if (p.toLowerCase() === 'x' || p === '×') {
                 doc.setFont('helvetica', 'normal');
-                doc.setFontSize(7.3);
+                doc.setFontSize(7.8);
                 doc.text('x', curX, baseline - 0.2);
                 curX += doc.getTextWidth('x') + 0.8;
               } else {
                 doc.setFont('helvetica', 'bold');
-                doc.setFontSize(9.9);
+                doc.setFontSize(10.4);
                 doc.text(p, curX, baseline);
                 curX += doc.getTextWidth(p) + 0.8;
               }
@@ -1388,8 +1388,8 @@ export function createProformaInvoiceDoc(
           const padRight = 2.2;
           const padLeft = 2.2;
           const isBold = isFootTotal || data.cell.styles.fontStyle === 'bold';
-          const baseFontSize = isFootTotal ? 12.0 : 8.5;
-          const decFontSize = isFootTotal ? 9.0 : 6.5;
+          const baseFontSize = isFootTotal ? 12.5 : 9.0;
+          const decFontSize = isFootTotal ? 9.5 : 7.0;
 
           // Maximum allowed text width strictly inside the column boundary
           const maxAllowedWidth = Math.max(1, w - padRight - padLeft);

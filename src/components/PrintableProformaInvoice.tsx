@@ -167,7 +167,9 @@ export const renderAdvanceFooterRows = (
 export const renderWidthSpacerRow = (colCount: number, key: string) => (
   <tr key={key} className="p-width-spacer-row" aria-hidden="true">
     {Array.from({ length: colCount }, (_, idx) => (
-      <td key={idx}></td>
+      <td key={idx}>
+        <div style={{ height: '5px', lineHeight: 0, fontSize: 0 }} />
+      </td>
     ))}
   </tr>
 );
