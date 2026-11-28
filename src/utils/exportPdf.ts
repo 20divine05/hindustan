@@ -542,7 +542,9 @@ export function createProformaInvoiceDoc(
   doc.line(105, 51, 200, 51);
 
   // Vertical dividers
-  doc.line(129, 15, 129, 24); // Separator between Invoice No and e-Way Bill No in row 0
+  if (!isMeasurementOnly) {
+    doc.line(129, 15, 129, 24); // Separator between Invoice No and e-Way Bill No in row 0
+  }
   if (isMeasurementOnly) {
     doc.line(rightDividerX, 15, rightDividerX, 24);
     doc.line(rightDividerX, 33, rightDividerX, 51);
@@ -550,21 +552,25 @@ export function createProformaInvoiceDoc(
     doc.line(rightDividerX, 15, rightDividerX, 42); // Vertical divider between left/right metadata cells (rows 0 to 2)
   }
 
-  // Row 0 (15 to 24): Invoice No | e-Way Bill No | Dated
+  // Row 0 (15 to 24): Reference number only | Dated (Measurement Sheet) or Invoice No | e-Way Bill No | Dated (Proforma Invoice)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.8);
   doc.setTextColor(80, 80, 80);
-  doc.text('Invoice No.', 106.5, 18.2);
-  doc.text('e-Way Bill No.', 130.5, 18.2);
+  if (!isMeasurementOnly) {
+    doc.text('Invoice No.', 106.5, 18.2);
+    doc.text('e-Way Bill No.', 130.5, 18.2);
+  }
   doc.text('Dated', 154.0, 18.2);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
+  doc.setFontSize(isMeasurementOnly ? 9.5 : 8.5);
   doc.setTextColor(0, 0, 0);
-  doc.text(invoiceNo, 106.5, 22.2);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.text(eWayBillNo || '', 130.5, 22.2);
+  doc.text(invoiceNo, 106.5, isMeasurementOnly ? 20.8 : 22.2);
+  if (!isMeasurementOnly) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.text(eWayBillNo || '', 130.5, 22.2);
+  }
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.2);
   doc.text(formattedDate, 154.0, 22.2);
