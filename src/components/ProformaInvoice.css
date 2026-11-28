@@ -394,9 +394,9 @@
   border-right: 1px solid #222222 !important;
 }
 
-/* Zebra Striping on Item Rows: First entry starts with dark background */
+/* Zebra Striping on Item Rows: First entry starts with darker cool slate-blue background */
 .p-item-row.zebra-even {
-  background-color: #f3f4f6 !important;
+  background-color: #dbe8f8 !important;
 }
 
 .p-item-row.zebra-odd {
@@ -458,7 +458,7 @@
   border-right: 1px solid #222222 !important;
   border-left: 1px solid #222222 !important;
   padding: 3px 8px !important;
-  background-color: #e2e8f0 !important;
+  background-color: #cadcf3 !important;
   vertical-align: middle;
 }
 
@@ -478,7 +478,7 @@
   font-size: 12px;
   text-align: left !important;
   padding: 3px 8px !important;
-  background-color: #e2e8f0 !important;
+  background-color: #cadcf3 !important;
 }
 
 .p-item-desc {
@@ -507,7 +507,7 @@
 
 /* Wood Subtotal Row (Total of each individual wood) - Bold & prominent */
 .p-wood-subtotal-row td {
-  background-color: #f3f4f6 !important;
+  background-color: #cadcf3 !important;
   border-top: 1px solid #222222 !important;
   border-bottom: 1px solid #222222 !important;
   border-right: 1px solid #222222 !important;

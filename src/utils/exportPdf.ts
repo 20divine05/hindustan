@@ -537,7 +537,12 @@ export function createProformaInvoiceDoc(
 
   // Vertical dividers
   doc.line(129, 15, 129, 24); // Separator between Invoice No and e-Way Bill No in row 0
-  doc.line(rightDividerX, 15, rightDividerX, 42); // Vertical divider between left/right metadata cells (rows 0 to 2)
+  if (isMeasurementOnly) {
+    doc.line(rightDividerX, 15, rightDividerX, 24);
+    doc.line(rightDividerX, 33, rightDividerX, 42);
+  } else {
+    doc.line(rightDividerX, 15, rightDividerX, 42); // Vertical divider between left/right metadata cells (rows 0 to 2)
+  }
 
   // Row 0 (15 to 24): Invoice No | e-Way Bill No | Dated
   doc.setFont('helvetica', 'normal');
@@ -558,18 +563,30 @@ export function createProformaInvoiceDoc(
   doc.setFontSize(8.2);
   doc.text(formattedDate, 154.0, 22.2);
 
-  // Row 1 (24 to 33): Mode/Terms of Payment | Destination
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.8);
-  doc.setTextColor(80, 80, 80);
-  doc.text('Mode/Terms of Payment', 106.5, 27.2);
-  doc.text('Destination', 154.0, 27.2);
+  // Row 1 (24 to 33): Destination only on Measurement Sheet, Mode/Terms of Payment | Destination on Proforma Invoice
+  if (isMeasurementOnly) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.8);
+    doc.setTextColor(80, 80, 80);
+    doc.text('Destination', 106.5, 27.2);
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.0);
-  doc.setTextColor(0, 0, 0);
-  doc.text(paymentTerms, 106.5, 31.2);
-  doc.text(destination, 154.0, 31.2);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.0);
+    doc.setTextColor(0, 0, 0);
+    doc.text(destination, 106.5, 31.2);
+  } else {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.8);
+    doc.setTextColor(80, 80, 80);
+    doc.text('Mode/Terms of Payment', 106.5, 27.2);
+    doc.text('Destination', 154.0, 27.2);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.0);
+    doc.setTextColor(0, 0, 0);
+    doc.text(paymentTerms, 106.5, 31.2);
+    doc.text(destination, 154.0, 31.2);
+  }
 
   // Row 2 (33 to 42): Buyer's Order No. | Dated
   doc.setFont('helvetica', 'normal');
@@ -632,7 +649,7 @@ export function createProformaInvoiceDoc(
             fontSize: 8.8,
             cellPadding: { left: 2.2, top: 0.65, bottom: 0.65 },
             halign: 'left',
-            fillColor: [226, 232, 240],
+            fillColor: [191, 213, 240],
             lineWidth: speciesBorder
           }
         }
@@ -655,7 +672,7 @@ export function createProformaInvoiceDoc(
               fontSize: 7.8,
               cellPadding: { left: 5.0, top: 0.45, bottom: 0.45 },
               halign: 'left',
-              fillColor: [241, 245, 249],
+              fillColor: [219, 232, 248],
               lineWidth: slabBorder
             }
           }
@@ -668,7 +685,7 @@ export function createProformaInvoiceDoc(
           const lStr = `${it.length} ${rowCfg.lengthUnit}`;
           const gStr = it.girthFtInStr || (it.girthInches !== undefined ? `${formatValue(it.girthInches, 1)}"` : `${it.girth}`);
           const activeVol = roundLogOutputUnit === 'CFT' ? (it.cft || it.volume) : (it.cbm || it.volume);
-          const zebraBg = (itemIdx++ % 2 === 0) ? [255, 255, 255] : [248, 249, 250];
+          const zebraBg = (itemIdx++ % 2 === 0) ? [255, 255, 255] : [219, 232, 248];
 
           tableBody.push([
             { content: `${globalSlNo++}`, styles: { lineWidth: itemBorder, halign: 'center', fillColor: zebraBg, cellPadding: { top: 0.45, bottom: 0.45 } } },
@@ -721,7 +738,7 @@ export function createProformaInvoiceDoc(
       // 5. Species Total Row
       if (!isMeasurementOnly || speciesSections.length > 1) {
         const speciesTotalBorder = { top: 0.3, bottom: 0.3, left: 0.2, right: 0.2 };
-        const speciesTotalBg: [number, number, number] = [238, 242, 246];
+        const speciesTotalBg: [number, number, number] = [202, 220, 243];
         tableBody.push([
           {
             content: isMeasurementOnly
@@ -755,7 +772,7 @@ export function createProformaInvoiceDoc(
     // 6. TOTAL WOOD AMOUNT row (omitted in measurement mode so GRAND TOTAL footer prints once)
     if (!isMeasurementOnly && totalPieces > 0) {
       const totalWoodBorder = { top: 0.3, bottom: 0.3, left: 0.2, right: 0.2 };
-      const woodBg: [number, number, number] = [226, 232, 240];
+      const woodBg: [number, number, number] = [191, 213, 240];
       const roundVolText = `${formatValue(roundLogOutputUnit === 'CFT' ? totalCft : totalCbm, 4)} ${roundLogOutputUnit}`;
       tableBody.push([
         {
@@ -910,7 +927,7 @@ export function createProformaInvoiceDoc(
         const isRftBilled = !isSheet && isTimberRftBilled(it as any);
         const isSqftBilled = isSheet ? sheetUnit === 'SQFT' : isTimberSqftBilled(it as any);
         const perText = isSheet ? sheetUnit! : (isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : 'CFT'));
-        const zebraBg = (itemIdx++ % 2 === 0) ? [243, 244, 246] : [255, 255, 255];
+        const zebraBg = (itemIdx++ % 2 === 0) ? [219, 232, 248] : [255, 255, 255];
 
         const itPieces = typeof it.pieces === 'number' ? it.pieces : (parseFloat(String(it.pieces)) || 0);
         const itRate = typeof it.rate === 'number' ? it.rate : 0;
@@ -974,7 +991,7 @@ export function createProformaInvoiceDoc(
           const shouldEmitWidthSubtotal = isWidthTransition || (!nextIt && hadWidthTransitionInGroup && !isSheet);
           if (shouldEmitWidthSubtotal) {
             const widthBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
-            const widthBg: [number, number, number] = [238, 242, 246];
+            const widthBg: [number, number, number] = [202, 220, 243];
             const currWidthVal = getInvoiceItemWidth(it as any);
             const widthLabel = currWidthVal > 0 ? `Sub Total (${currWidthVal}")` : 'Sub Total';
             tableBody.push([
@@ -1011,7 +1028,7 @@ export function createProformaInvoiceDoc(
         const subtotalBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
         const subtotalTextColor: [number, number, number] = [0, 0, 0];
         const subtotalLineColor: [number, number, number] = [0, 0, 0];
-        const subtotalBg: [number, number, number] = [243, 244, 246];
+        const subtotalBg: [number, number, number] = [202, 220, 243];
 
         tableBody.push([
           { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
@@ -1033,16 +1050,17 @@ export function createProformaInvoiceDoc(
 
     if (!isMeasurementOnly && totalPieces > 0) {
       const totalWoodBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+      const totalMatBg: [number, number, number] = [191, 213, 240];
       tableBody.push([
-        { content: '', styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
-        { content: 'TOTAL MATERIALS', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: [238, 240, 243], lineWidth: totalWoodBorder } },
-        { content: `${totalPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } },
-        { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } },
-        ...(showSqftCol ? [{ content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }] : []),
-        ...(showRftCol ? [{ content: totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }] : []),
-        { content: '', styles: { halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
-        { content: '', styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
-        { content: `Rs. ${formatIndianCurrency(totalAmount)}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }
+        { content: '', styles: { halign: 'center', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: 'TOTAL MATERIALS', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: totalMatBg, lineWidth: totalWoodBorder } },
+        { content: `${totalPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } },
+        { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } },
+        ...(showSqftCol ? [{ content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }] : []),
+        ...(showRftCol ? [{ content: totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }] : []),
+        { content: '', styles: { halign: 'right', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: '', styles: { halign: 'center', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: `Rs. ${formatIndianCurrency(totalAmount)}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }
       ]);
     }
   }
@@ -1055,7 +1073,7 @@ export function createProformaInvoiceDoc(
   const chargeRow = (name: string, amountStr: string, isDiscount: boolean = false) => {
     const topWidth = isFirstChargeRow ? 0.2 : 0;
     isFirstChargeRow = false;
-    const bg = (chargeRowIdx++ % 2 === 0) ? [243, 244, 246] : [255, 255, 255];
+    const bg = (chargeRowIdx++ % 2 === 0) ? [219, 232, 248] : [255, 255, 255];
     return [
       { content: '', styles: { lineWidth: { top: topWidth, bottom: 0, left: 0.2, right: 0.2 }, fillColor: bg, cellPadding: { top: 0.55, bottom: 0.55 } } },
       {
@@ -1623,38 +1641,38 @@ export function createProformaInvoiceDoc(
 
   if (isMeasurementOnly) {
     let bottomY = finalY;
-    if (bottomY > 260) {
+    if (bottomY > 244) {
       doc.addPage();
       bottomY = 15;
     }
 
-    const boxHeight = 16;
+    const boxHeight = 32;
     doc.rect(10, bottomY, 190, boxHeight);
     doc.line(105, bottomY, 105, bottomY + boxHeight);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.6);
     doc.setTextColor(0, 0, 0);
-    doc.text('Measurement Verification', 12.0, bottomY + 4.8);
+    doc.text('Measurement Verification', 12.0, bottomY + 5.2);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.0);
     doc.setTextColor(80, 80, 80);
-    doc.text('Checked By', 12.0, bottomY + 13.0);
+    doc.text('Checked By', 12.0, bottomY + 28.5);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.4);
     doc.setTextColor(0, 0, 0);
-    doc.text('for HINDUSTAN SAW MILLS AND WOOD INDUSTRIES', 198.0, bottomY + 4.8, { align: 'right' });
+    doc.text('for HINDUSTAN SAW MILLS AND WOOD INDUSTRIES', 198.0, bottomY + 5.2, { align: 'right' });
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.text('Authorised Signatory', 198.0, bottomY + 13.0, { align: 'right' });
+    doc.setFontSize(7.6);
+    doc.text('Authorised Signatory', 198.0, bottomY + 28.5, { align: 'right' });
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.0);
     doc.setTextColor(60, 60, 60);
-    doc.text('Measurement Sheet • Hindustan Saw Mill', 105, bottomY + boxHeight + 4.0, { align: 'center' });
+    doc.text('Measurement Sheet • Hindustan Saw Mill', 105, bottomY + boxHeight + 4.2, { align: 'center' });
 
     return doc;
   }
