@@ -9,6 +9,7 @@ import type {
 } from '../types';
 import { LOGO_ICON_BASE64 } from './logoBase64';
 import { PAYMENT_QR_BASE64 } from './paymentQrBase64';
+import { FOREST_EXEMPTION_PAGES } from './forestExemptionPagesBase64';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from './indianNumberWords';
 import { sortTimberEntries, calculateRFT, calculateSheetAmount, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, resolveSheetRateUnit, resolveSheetWidth, formatValue, getCutLogItemDescription, getCutLogItemSectionHeading, getInvoiceItemWidth, hasWidthGroupTransition, normalizeTeakGrade } from './calculator';
 import {
@@ -1870,6 +1871,19 @@ export function createProformaInvoiceDoc(
     doc.setFontSize(7.0);
     doc.setTextColor(60, 60, 60);
     doc.text('Measurement Sheet • Hindustan Saw Mill', 105, bottomY + boxHeight + 4.2, { align: 'center' });
+
+    // Append Forest Department exemption circular pages in exact order at the end of every Measurement Sheet
+    for (const scanPage of FOREST_EXEMPTION_PAGES) {
+      doc.addPage();
+      const maxW = 202;
+      const maxH = 289;
+      const scale = Math.min(maxW / scanPage.width, maxH / scanPage.height);
+      const drawW = scanPage.width * scale;
+      const drawH = scanPage.height * scale;
+      const x = (210 - drawW) / 2;
+      const y = (297 - drawH) / 2;
+      doc.addImage(scanPage.dataUrl, 'JPEG', x, y, drawW, drawH);
+    }
 
     return doc;
   }
