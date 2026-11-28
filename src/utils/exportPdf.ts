@@ -1907,12 +1907,68 @@ function openOrPrintPdfDoc(doc: jsPDF, title?: string): void {
   const blobUrl = URL.createObjectURL(blob);
 
   const prevTitle = typeof document !== 'undefined' ? document.title : '';
+  const restoreTitle = () => {
+    if (typeof document !== 'undefined' && title) {
+      document.title = prevTitle;
+    }
+  };
   if (typeof document !== 'undefined' && title) {
     document.title = title;
   }
 
-  // Open the auto-printing PDF blob in a new window/tab
-  // Modern browsers (Chrome, Edge, Firefox, Safari) immediately launch the native print dialog for the exact PDF
+  const ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
+  const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+
+  // Desktop: print directly via off-screen PDF iframe so native print dialog opens immediately without leaving the page
+  if (!isMobile && typeof document !== 'undefined') {
+    const existing = document.getElementById('hsm-print-iframe') as HTMLIFrameElement | null;
+    if (existing) {
+      const oldUrl = existing.dataset.blobUrl;
+      existing.remove();
+      if (oldUrl) {
+        setTimeout(() => URL.revokeObjectURL(oldUrl), 1000);
+      }
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.id = 'hsm-print-iframe';
+    iframe.dataset.blobUrl = blobUrl;
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '2px';
+    iframe.style.height = '2px';
+    iframe.style.border = '0';
+    iframe.style.opacity = '0.01';
+    iframe.style.pointerEvents = 'none';
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('afterprint', restoreTitle, { once: true });
+    }
+
+    let printed = false;
+    iframe.onload = () => {
+      if (printed) return;
+      printed = true;
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch {
+          const win = window.open(blobUrl, '_blank');
+          if (!win) window.location.href = blobUrl;
+        } finally {
+          setTimeout(restoreTitle, 3000);
+        }
+      }, 250);
+    };
+
+    iframe.src = blobUrl;
+    document.body.appendChild(iframe);
+    return;
+  }
+
+  // Mobile fallback: open PDF tab/viewer for OS Share -> Print
   const printWin = window.open(blobUrl, '_blank');
   if (printWin) {
     try {
@@ -1922,41 +1978,9 @@ function openOrPrintPdfDoc(doc: jsPDF, title?: string): void {
     } catch {
       // Cross-viewer PDF documents may restrict direct document.title mutation
     }
-    if (typeof document !== 'undefined' && title) {
-      setTimeout(() => {
-        document.title = prevTitle;
-      }, 2000);
-    }
+    setTimeout(restoreTitle, 2000);
   } else {
-    // If popup blocker intervened, use invisible iframe as seamless fallback
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    iframe.style.visibility = 'hidden';
-    iframe.src = blobUrl;
-    document.body.appendChild(iframe);
-    const restoreTitle = () => {
-      if (typeof document !== 'undefined' && title) {
-        document.title = prevTitle;
-      }
-    };
-    if (typeof window !== 'undefined') {
-      window.addEventListener('afterprint', restoreTitle, { once: true });
-    }
-    iframe.onload = () => {
-      try {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-      } catch {
-        window.location.href = blobUrl;
-      } finally {
-        setTimeout(restoreTitle, 3000);
-      }
-    };
+    window.location.href = blobUrl;
   }
 }
 
