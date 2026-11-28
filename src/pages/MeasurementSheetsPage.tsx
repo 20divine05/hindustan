@@ -435,11 +435,15 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
   const filteredSheets = sheets.filter((sheet) => {
     if (!q) return true;
     const customer = (sheet.customerName || 'Direct Customer').toLowerCase();
+    const phone = (sheet.customerPhone || sheet.consigneePhone || '').toLowerCase();
+    const district = (sheet.consigneeDistrict || sheet.destination || sheet.customerState || '').toLowerCase();
     const invoiceNo = resolveSheetInvoiceNumber(sheet).toLowerCase();
     const ref = (sheet.referenceNumber || '').toLowerCase();
     const details = resolveSheetDispatchDetails(sheet);
     return (
       customer.includes(q) ||
+      phone.includes(q) ||
+      district.includes(q) ||
       invoiceNo.includes(q) ||
       ref.includes(q) ||
       details.gstNumber.toLowerCase().includes(q) ||
@@ -448,6 +452,21 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
       details.containerNo.toLowerCase().includes(q)
     );
   });
+
+  const formatCustomerMetaSummary = (sheet: MeasurementSheet): string => {
+    const exp = sheet.proformaExportData || {};
+    const phone = String(sheet.customerPhone || sheet.consigneePhone || exp.buyerPhone || exp.consigneePhone || '').trim();
+    const distRaw = String(sheet.consigneeDistrict || sheet.destination || exp.destination || sheet.customerState || '').trim();
+    const state = String(sheet.customerState || sheet.consigneeState || '').trim();
+    const parts: string[] = [];
+    if (phone) parts.push(`Ph: ${phone}`);
+    if (distRaw && (!state || distRaw.toLowerCase() !== state.toLowerCase())) {
+      parts.push(`Dist: ${distRaw}`);
+    } else if (distRaw || state) {
+      parts.push(distRaw || state);
+    }
+    return parts.join(' • ');
+  };
 
   const formatDetailsSummary = (d: MeasurementSheetDispatchDetails): string => {
     const parts: string[] = [];
@@ -580,10 +599,16 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                       const attachedCount = sheet.attachedFiles?.length || 0;
                       const details = resolveSheetDispatchDetails(sheet);
                       const detailsSummary = formatDetailsSummary(details);
+                      const customerMeta = formatCustomerMetaSummary(sheet);
                       return (
                         <tr key={sheet.id}>
                           <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>
                             <div>{sheet.customerName || 'Direct Customer'}</div>
+                            {customerMeta && (
+                              <div style={{ fontSize: '0.73rem', fontWeight: 600, color: '#475569', marginTop: '0.12rem' }}>
+                                {customerMeta}
+                              </div>
+                            )}
                             {detailsSummary && (
                               <div style={{ fontSize: '0.73rem', fontWeight: 500, color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                                 {detailsSummary}
@@ -676,6 +701,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                 const attachedCount = sheet.attachedFiles?.length || 0;
                 const details = resolveSheetDispatchDetails(sheet);
                 const detailsSummary = formatDetailsSummary(details);
+                const customerMeta = formatCustomerMetaSummary(sheet);
                 return (
                   <div
                     key={sheet.id}
@@ -698,6 +724,11 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                         <div style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--text-main)', wordBreak: 'break-word' }}>
                           {sheet.customerName || 'Direct Customer'}
                         </div>
+                        {customerMeta && (
+                          <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', marginTop: '0.14rem', wordBreak: 'break-word' }}>
+                            {customerMeta}
+                          </div>
+                        )}
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>

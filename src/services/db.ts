@@ -29,6 +29,12 @@ function enqueueSheetSave<T>(sheetId: string, task: () => Promise<T>): Promise<T
   return next;
 }
 
+export async function flushPendingSheetSaves(): Promise<void> {
+  while (sheetSaveQueues.size > 0) {
+    await Promise.allSettled(Array.from(sheetSaveQueues.values()));
+  }
+}
+
 function getPendingSyncSet(): Set<string> {
   try {
     const raw = localStorage.getItem(PENDING_SYNC_KEY);
@@ -497,6 +503,7 @@ export const dbService = {
    * Fetches all measurement sheets for current user
    */
   async getSheets(userId: string, role?: string): Promise<MeasurementSheet[]> {
+    await flushPendingSheetSaves();
     const { isConfigured } = getSupabaseCredentials();
     const supabase = getSupabase();
 
@@ -521,8 +528,12 @@ export const dbService = {
         return localDb.getSheets(userId, role);
       }
 
+      const pendingSet = getPendingSyncSet();
+      const localMap = new Map(localDb.getAllRawSheets().map((ls) => [ls.id, ls]));
+
       return (data || [])
         .map((row) => {
+          let meta: Record<string, any> | null = null;
           let isConfirmed = Boolean(row.is_confirmed);
           let proformaExportData: Record<string, any> | undefined;
           let attachedFiles: MeasurementSheetAttachment[] | undefined;
@@ -535,26 +546,50 @@ export const dbService = {
           let cleanNotes = row.notes || '';
           if (cleanNotes.startsWith('__TIMBER_META__')) {
             try {
-              const meta = JSON.parse(cleanNotes.replace('__TIMBER_META__', ''));
-              if (meta.isConfirmed !== undefined) isConfirmed = Boolean(meta.isConfirmed);
-              if (meta.proformaExportData && typeof meta.proformaExportData === 'object') {
+              meta = JSON.parse(cleanNotes.replace('__TIMBER_META__', ''));
+              if (meta?.isConfirmed !== undefined) isConfirmed = Boolean(meta.isConfirmed);
+              if (meta?.proformaExportData && typeof meta.proformaExportData === 'object') {
                 proformaExportData = meta.proformaExportData;
               }
-              attachedFiles = sanitizeAttachedFiles(meta.attachedFiles);
-              motorVehicleNo = meta.motorVehicleNo || proformaExportData?.motorVehicleNo || '';
-              gstNumber = meta.gstNumber || proformaExportData?.gstNumber || '';
-              billOfEntryNo = meta.billOfEntryNo || proformaExportData?.billOfEntryNo || '';
-              boeDate = meta.boeDate || proformaExportData?.boeDate || '';
-              containerNo = meta.containerNo || proformaExportData?.containerNo || '';
-              finalGrandTotal = computeSheetSummaryGrandTotal(meta);
-              cleanNotes = meta.rawNotes || '';
+              attachedFiles = sanitizeAttachedFiles(meta?.attachedFiles);
+              motorVehicleNo = meta?.motorVehicleNo || proformaExportData?.motorVehicleNo || '';
+              gstNumber = meta?.gstNumber || proformaExportData?.gstNumber || '';
+              billOfEntryNo = meta?.billOfEntryNo || proformaExportData?.billOfEntryNo || '';
+              boeDate = meta?.boeDate || proformaExportData?.boeDate || '';
+              containerNo = meta?.containerNo || proformaExportData?.containerNo || '';
+              finalGrandTotal = meta ? computeSheetSummaryGrandTotal(meta) : undefined;
+              cleanNotes = meta?.rawNotes || '';
             } catch {}
           }
+
+          const localCandidate = localMap.get(row.id);
+          const remoteMs = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+          const localMs = localCandidate?.updatedAt ? new Date(localCandidate.updatedAt).getTime() : 0;
+          if (pendingSet.has(row.id) && localCandidate && localMs >= remoteMs) {
+            return localCandidate;
+          }
+
           return {
             id: row.id,
             userId: row.user_id,
             sheetName: row.sheet_name,
+            voucherType: meta?.voucherType || 'sales',
+            customerType: meta?.customerType || 'b2c',
             customerName: row.customer_name || '',
+            customerPhone: meta?.customerPhone || '',
+            customerAddress: meta?.customerAddress || '',
+            customerGstin: meta?.customerGstin || '',
+            customerState: meta?.customerState || 'Karnataka',
+            customerStateCode: meta?.customerStateCode || '29',
+            destination: meta?.destination || '',
+            consigneeName: meta?.consigneeName || '',
+            consigneePhone: meta?.consigneePhone || '',
+            consigneeAddress: meta?.consigneeAddress || '',
+            consigneeGstin: meta?.consigneeGstin || '',
+            consigneeDistrict: meta?.consigneeDistrict || '',
+            consigneeState: meta?.consigneeState || '',
+            consigneeStateCode: meta?.consigneeStateCode || '',
+            logType: meta?.logType || 'cut',
             projectName: row.project_name || '',
             referenceNumber: row.reference_number || '',
             measurementDate: row.measurement_date,
@@ -592,6 +627,9 @@ export const dbService = {
     userId: string,
     role?: string
   ): Promise<MeasurementSheet | null> {
+    if (sheetSaveQueues.has(sheetId)) {
+      await Promise.allSettled([sheetSaveQueues.get(sheetId)!]);
+    }
     const { isConfigured } = getSupabaseCredentials();
     const supabase = getSupabase();
 

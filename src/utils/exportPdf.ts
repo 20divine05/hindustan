@@ -117,6 +117,15 @@ export interface MeasurementSheetDocResult {
   pages: MeasurementSheetPdfPageMeta[];
 }
 
+function pickText(...values: Array<string | undefined | null>): string {
+  for (const val of values) {
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      return String(val).trim();
+    }
+  }
+  return '';
+}
+
 function appendFullPageImage(
   doc: jsPDF,
   page: { dataUrl: string; width?: number; height?: number }
@@ -167,38 +176,86 @@ export function createProformaInvoiceDoc(
     format: 'a4'
   });
 
-  const formattedDate = invoiceData?.invoiceDate || formatDateToInvoice(sheet.measurementDate);
-  const invoiceNo = invoiceData?.invoiceNo || (sheet.referenceNumber ? sheet.referenceNumber.replace(/^REF-/i, '') : (isMeasurementOnly ? '-' : '8'));
+  const formattedDate = pickText(invoiceData?.invoiceDate, formatDateToInvoice(sheet.measurementDate));
+  const invoiceNo = pickText(invoiceData?.invoiceNo, sheet.referenceNumber ? sheet.referenceNumber.replace(/^REF-/i, '') : '', isMeasurementOnly ? '-' : '8');
   const docTitle = (isMeasurementOnly
     ? getMeasurementSheetFilename(sheet, invoiceData)
     : getInvoiceFilename(sheet, invoiceData)
   ).replace(/\.pdf$/i, '');
   doc.setProperties({ title: docTitle });
-  const eWayBillNo = invoiceData?.eWayBillNo || '';
-  const paymentTerms = invoiceData?.paymentTerms || 'IMMEDIATE PAYMENT';
-  const buyerOrderNo = invoiceData?.buyerOrderNo || '';
-  const buyerOrderDate = invoiceData?.buyerOrderDate || '';
-  const destination = invoiceData?.destination || sheet.destination || sheet.consigneeDistrict?.toUpperCase() || sheet.consigneeState?.toUpperCase() || sheet.customerState?.toUpperCase() || 'BANGLORE';
-  const motorVehicleNo = invoiceData?.motorVehicleNo ?? sheet.motorVehicleNo ?? '';
-  const gstNumber = invoiceData?.gstNumber ?? sheet.gstNumber ?? '';
-  const billOfEntryNo = invoiceData?.billOfEntryNo ?? sheet.billOfEntryNo ?? '';
-  const boeDate = invoiceData?.boeDate ?? sheet.boeDate ?? '';
-  const containerNo = invoiceData?.containerNo ?? sheet.containerNo ?? '';
-  const termsOfDelivery = invoiceData?.termsOfDelivery || 'TRANSPORTATION EXTRA\nAPPLICABLE GST EXTRA';
+  const eWayBillNo = pickText(invoiceData?.eWayBillNo);
+  const paymentTerms = pickText(invoiceData?.paymentTerms, sheet.paymentTerms, 'IMMEDIATE PAYMENT');
+  const buyerOrderNo = pickText(invoiceData?.buyerOrderNo, sheet.buyerOrderNo);
+  const buyerOrderDate = pickText(invoiceData?.buyerOrderDate, sheet.buyerOrderDate);
 
-  const consigneeName = invoiceData?.consigneeName ?? sheet.consigneeName ?? sheet.customerName ?? '';
-  const consigneeAddress = invoiceData?.consigneeAddress ?? sheet.consigneeAddress ?? sheet.customerAddress ?? '';
-  const consigneeGstin = invoiceData?.consigneeGstin ?? sheet.consigneeGstin ?? '';
-  const consigneeState = invoiceData?.consigneeState ?? sheet.consigneeState ?? sheet.destination ?? 'Karnataka';
-  const consigneeStateCode = invoiceData?.consigneeStateCode ?? sheet.consigneeStateCode ?? sheet.customerStateCode ?? '29';
-  const consigneePhone = invoiceData?.consigneePhone ?? sheet.consigneePhone ?? sheet.customerPhone ?? '';
+  const nonGenericDest = (val?: string | null) => {
+    const clean = val ? val.trim().toUpperCase() : '';
+    return clean && clean !== 'KARNATAKA' ? clean : '';
+  };
+  const destination = isMeasurementOnly
+    ? pickText(
+        sheet.consigneeDistrict?.toUpperCase(),
+        nonGenericDest(sheet.destination),
+        nonGenericDest(invoiceData?.destination),
+        invoiceData?.destination?.toUpperCase(),
+        sheet.destination?.toUpperCase(),
+        sheet.consigneeState?.toUpperCase(),
+        sheet.customerState?.toUpperCase(),
+        'BANGLORE'
+      )
+    : pickText(
+        invoiceData?.destination,
+        sheet.destination,
+        sheet.consigneeDistrict?.toUpperCase(),
+        sheet.consigneeState?.toUpperCase(),
+        sheet.customerState?.toUpperCase(),
+        'BANGLORE'
+      );
 
-  const buyerName = invoiceData?.buyerName ?? sheet.customerName ?? consigneeName ?? '';
-  const buyerPhone = invoiceData?.buyerPhone ?? sheet.customerPhone ?? consigneePhone ?? '';
-  const buyerAddress = invoiceData?.buyerAddress ?? sheet.customerAddress ?? consigneeAddress ?? '';
-  const buyerGstin = invoiceData?.buyerGstin ?? sheet.customerGstin ?? '';
-  const buyerState = invoiceData?.buyerState ?? sheet.customerState ?? consigneeState ?? 'Karnataka';
-  const buyerStateCode = invoiceData?.buyerStateCode ?? sheet.customerStateCode ?? consigneeStateCode ?? '29';
+  const motorVehicleNo = pickText(sheet.motorVehicleNo, invoiceData?.motorVehicleNo);
+  const gstNumber = pickText(sheet.gstNumber, invoiceData?.gstNumber);
+  const billOfEntryNo = pickText(sheet.billOfEntryNo, invoiceData?.billOfEntryNo);
+  const boeDate = pickText(sheet.boeDate, invoiceData?.boeDate);
+  const containerNo = pickText(sheet.containerNo, invoiceData?.containerNo);
+  const termsOfDelivery = pickText(invoiceData?.termsOfDelivery, sheet.termsOfDelivery, 'TRANSPORTATION EXTRA\nAPPLICABLE GST EXTRA');
+
+  const consigneeName = isMeasurementOnly
+    ? pickText(sheet.consigneeName, invoiceData?.consigneeName, sheet.customerName, invoiceData?.buyerName)
+    : pickText(invoiceData?.consigneeName, sheet.consigneeName, sheet.customerName);
+  const consigneeAddress = isMeasurementOnly
+    ? pickText(sheet.consigneeAddress, invoiceData?.consigneeAddress, sheet.customerAddress, invoiceData?.buyerAddress)
+    : pickText(invoiceData?.consigneeAddress, sheet.consigneeAddress, sheet.customerAddress);
+  const consigneeGstin = isMeasurementOnly
+    ? pickText(sheet.consigneeGstin, invoiceData?.consigneeGstin, sheet.customerGstin, invoiceData?.buyerGstin)
+    : pickText(invoiceData?.consigneeGstin, sheet.consigneeGstin);
+  const consigneeState = isMeasurementOnly
+    ? pickText(sheet.consigneeState, invoiceData?.consigneeState, sheet.customerState, invoiceData?.buyerState, sheet.destination, 'Karnataka')
+    : pickText(invoiceData?.consigneeState, sheet.consigneeState, sheet.destination, 'Karnataka');
+  const consigneeStateCode = isMeasurementOnly
+    ? pickText(sheet.consigneeStateCode, invoiceData?.consigneeStateCode, sheet.customerStateCode, invoiceData?.buyerStateCode, '29')
+    : pickText(invoiceData?.consigneeStateCode, sheet.consigneeStateCode, sheet.customerStateCode, '29');
+  const consigneePhone = isMeasurementOnly
+    ? pickText(sheet.consigneePhone, invoiceData?.consigneePhone, sheet.customerPhone, invoiceData?.buyerPhone)
+    : pickText(invoiceData?.consigneePhone, sheet.consigneePhone, sheet.customerPhone);
+
+  const buyerName = isMeasurementOnly
+    ? pickText(sheet.customerName, invoiceData?.buyerName, invoiceData?.customerName, consigneeName)
+    : pickText(invoiceData?.buyerName, sheet.customerName, consigneeName);
+  const buyerPhone = isMeasurementOnly
+    ? pickText(sheet.customerPhone, invoiceData?.buyerPhone, consigneePhone)
+    : pickText(invoiceData?.buyerPhone, sheet.customerPhone, consigneePhone);
+  const buyerAddress = isMeasurementOnly
+    ? pickText(sheet.customerAddress, invoiceData?.buyerAddress, consigneeAddress)
+    : pickText(invoiceData?.buyerAddress, sheet.customerAddress, consigneeAddress);
+  const buyerGstin = isMeasurementOnly
+    ? pickText(sheet.customerGstin, invoiceData?.buyerGstin, consigneeGstin)
+    : pickText(invoiceData?.buyerGstin, sheet.customerGstin);
+  const buyerState = isMeasurementOnly
+    ? pickText(sheet.customerState, invoiceData?.buyerState, consigneeState, 'Karnataka')
+    : pickText(invoiceData?.buyerState, sheet.customerState, consigneeState, 'Karnataka');
+  const buyerStateCode = isMeasurementOnly
+    ? pickText(sheet.customerStateCode, invoiceData?.buyerStateCode, consigneeStateCode, '29')
+    : pickText(invoiceData?.buyerStateCode, sheet.customerStateCode, consigneeStateCode, '29');
 
   const defaultRate = settings?.ratePerCft || 1200;
   const isRoundLog = invoiceData?.logType === 'round' || sheet.logType === 'round';
@@ -214,8 +271,8 @@ export function createProformaInvoiceDoc(
     roundLogSlabRates
   );
 
-  // Build items list
-  let items = invoiceData?.items;
+  // Build items list (Measurement Sheet always uses live sheet items when present)
+  let items = (isMeasurementOnly && sheet.items && sheet.items.length > 0) ? undefined : invoiceData?.items;
   if (!items || items.length === 0) {
     const rawItems = sheet.items && sheet.items.length > 0 ? sheet.items : [];
     const sourceItems = sortTimberEntries(rawItems);
@@ -2145,13 +2202,13 @@ export function getMeasurementSheetFilename(
   sheet: MeasurementSheet,
   invoiceData?: ProformaInvoiceExportData
 ): string {
-  const rawClient = (
-    invoiceData?.customerName ||
-    invoiceData?.buyerName ||
-    invoiceData?.consigneeName ||
-    sheet.customerName ||
-    ''
-  ).trim();
+  const rawClient = pickText(
+    sheet.customerName,
+    sheet.consigneeName,
+    invoiceData?.customerName,
+    invoiceData?.buyerName,
+    invoiceData?.consigneeName
+  );
 
   if (rawClient && !/^valued customer$/i.test(rawClient)) {
     const cleanClient = rawClient

@@ -331,6 +331,34 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
   const isInitialMount = useRef(true);
   // Track the ID of the sheet currently loaded in state so auto-save/onSaved never overwrites active user selections
   const loadedSheetIdRef = useRef<string | null>(sheetId);
+  const sheetMetaRef = useRef<Partial<MeasurementSheet> | null>(sheetToEdit || null);
+  const pendingSavePayloadRef = useRef<{ sheet: Partial<MeasurementSheet>; userId: string } | null>(null);
+  const onSavedRef = useRef(onSaved);
+  onSavedRef.current = onSaved;
+
+  useEffect(() => {
+    if (sheetToEdit && sheetToEdit.id === sheetId) {
+      sheetMetaRef.current = {
+        ...sheetMetaRef.current,
+        ...sheetToEdit
+      };
+    }
+  }, [sheetToEdit, sheetId]);
+
+  useEffect(() => {
+    return () => {
+      const pending = pendingSavePayloadRef.current;
+      if (!pending) return;
+      pendingSavePayloadRef.current = null;
+      try {
+        const sanitized = sanitizeAndComputeSheet(pending.sheet, pending.userId);
+        void dbService.saveSheet(sanitized, pending.userId);
+        onSavedRef.current?.(sanitized);
+      } catch (err) {
+        console.warn('Unmount flush save notice:', err);
+      }
+    };
+  }, []);
 
   // Persistence gating:
   // Existing sheets being edited are already persisted.
@@ -1054,9 +1082,65 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     setItems([...items, newRow]);
   };
 
-  // Construct current full sheet object
-  const getCurrentSheetObject = (): MeasurementSheet => {
-    const raw: Partial<MeasurementSheet> = {
+  // Build unified live sheet payload so Calculator, Saved Sheets, and Measurement Sheet PDF always stay in sync
+  const buildLiveSheetDraft = (draftItems: MeasurementItem[]): Partial<MeasurementSheet> => {
+    const pickNonGenericDest = (val?: string) => {
+      const clean = val ? val.trim() : '';
+      return clean && !/^karnataka$/i.test(clean) ? clean.toUpperCase() : '';
+    };
+    const resolvedDestination =
+      consigneeDistrict?.trim().toUpperCase() ||
+      pickNonGenericDest(consigneeState) ||
+      pickNonGenericDest(destination) ||
+      pickNonGenericDest(customerState) ||
+      destination?.trim().toUpperCase() ||
+      consigneeState?.trim().toUpperCase() ||
+      customerState?.trim().toUpperCase() ||
+      'Karnataka';
+
+    const resolvedCustomerState = customerState || destination || 'Karnataka';
+    const resolvedConsigneeState = consigneeState || customerState || destination || 'Karnataka';
+    const liveInvoiceNo = referenceNumber ? referenceNumber.replace(/^REF-/i, '') : invoiceNo;
+    const liveInvoiceDate = formatToInvoiceDate(measurementDate) || invoiceDate;
+
+    const existingMeta =
+      sheetMetaRef.current && sheetMetaRef.current.id === sheetId
+        ? sheetMetaRef.current
+        : (sheetToEdit && sheetToEdit.id === sheetId ? sheetToEdit : null);
+
+    const syncedExportData = existingMeta?.proformaExportData
+      ? {
+          ...existingMeta.proformaExportData,
+          voucherType,
+          customerName: customerName || undefined,
+          buyerName: customerName || consigneeName || '',
+          buyerPhone: customerPhone || consigneePhone || '',
+          buyerAddress: customerAddress || consigneeAddress || '',
+          buyerGstin: customerGstin || consigneeGstin || '',
+          buyerState: resolvedCustomerState,
+          buyerStateCode: customerStateCode || consigneeStateCode || '29',
+          consigneeName: consigneeName || customerName || '',
+          consigneePhone: consigneePhone || customerPhone || '',
+          consigneeAddress: consigneeAddress || customerAddress || '',
+          consigneeGstin: consigneeGstin || customerGstin || '',
+          consigneeState: resolvedConsigneeState,
+          consigneeStateCode: consigneeStateCode || customerStateCode || '29',
+          destination: resolvedDestination,
+          invoiceNo: liveInvoiceNo,
+          invoiceDate: liveInvoiceDate,
+          motorVehicleNo: motorVehicleNo || existingMeta.proformaExportData.motorVehicleNo || existingMeta.motorVehicleNo || '',
+          termsOfDelivery: termsOfDelivery || existingMeta.proformaExportData.termsOfDelivery,
+          paymentTerms: paymentTerms || existingMeta.proformaExportData.paymentTerms,
+          logType,
+          roundLogOutputUnit,
+          roundLogInputUnit,
+          roundLogItems,
+          roundLogSlabRates,
+          items: undefined
+        }
+      : undefined;
+
+    return {
       id: sheetId,
       sheetName,
       voucherType,
@@ -1065,21 +1149,21 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       customerPhone,
       customerAddress,
       customerGstin,
-      customerState: customerState || destination || 'Karnataka',
+      customerState: resolvedCustomerState,
       customerStateCode,
-      destination: destination || consigneeDistrict?.toUpperCase() || consigneeState?.toUpperCase() || 'Karnataka',
+      destination: resolvedDestination,
       consigneeName,
       consigneePhone,
       consigneeAddress,
       consigneeGstin,
       consigneeDistrict,
-      consigneeState: consigneeState || customerState || destination || 'Karnataka',
+      consigneeState: resolvedConsigneeState,
       consigneeStateCode,
       projectName,
       referenceNumber,
       measurementDate,
       notes,
-      items: sortTimberEntries(items),
+      items: draftItems,
       logType,
       roundLogOutputUnit,
       roundLogInputUnit,
@@ -1103,19 +1187,23 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       gstPercent,
       finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : totalBeforeDiscount,
       advanceAmount: advanceAmount > 0 ? advanceAmount : undefined,
-      ...(sheetToEdit && sheetToEdit.id === sheetId
+      ...(existingMeta
         ? {
-            motorVehicleNo: sheetToEdit.motorVehicleNo,
-            gstNumber: sheetToEdit.gstNumber,
-            billOfEntryNo: sheetToEdit.billOfEntryNo,
-            boeDate: sheetToEdit.boeDate,
-            containerNo: sheetToEdit.containerNo,
-            proformaExportData: sheetToEdit.proformaExportData,
-            attachedFiles: sheetToEdit.attachedFiles
+            motorVehicleNo: motorVehicleNo || existingMeta.motorVehicleNo,
+            gstNumber: existingMeta.gstNumber,
+            billOfEntryNo: existingMeta.billOfEntryNo,
+            boeDate: existingMeta.boeDate,
+            containerNo: existingMeta.containerNo,
+            proformaExportData: syncedExportData,
+            attachedFiles: existingMeta.attachedFiles
           }
         : {})
     };
-    return sanitizeAndComputeSheet(raw, user?.id || 'guest');
+  };
+
+  // Construct current full sheet object
+  const getCurrentSheetObject = (): MeasurementSheet => {
+    return sanitizeAndComputeSheet(buildLiveSheetDraft(sortTimberEntries(items)), user?.id || 'guest');
   };
 
   // Activate persistence once user navigates past step 1 or adds timber items
@@ -1132,7 +1220,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
     }
   }, [items.length, roundLogItems.length]);
 
-  // Auto-save sheet to database on every change
+  // Auto-save sheet to database on every change (and queue flush on unmount so switching tabs never loses edits)
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -1151,85 +1239,32 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       items.length > 0 ||
       roundLogItems.length > 0;
 
-    const draftSheet: Partial<MeasurementSheet> = {
-      id: sheetId,
-      sheetName,
-      voucherType,
-      customerType,
-      customerName,
-      customerPhone,
-      customerAddress,
-      customerGstin,
-      customerState: customerState || destination || 'Karnataka',
-      customerStateCode,
-      destination: destination || consigneeDistrict?.toUpperCase() || consigneeState?.toUpperCase() || 'Karnataka',
-      consigneeName,
-      consigneePhone,
-      consigneeAddress,
-      consigneeGstin,
-      consigneeDistrict,
-      consigneeState: consigneeState || customerState || destination || 'Karnataka',
-      consigneeStateCode,
-      projectName,
-      referenceNumber,
-      measurementDate,
-      notes,
-      items,
-      logType,
-      roundLogOutputUnit,
-      roundLogInputUnit,
-      roundLogItems,
-      roundLogSlabRates,
-      additionalCharges: {
-        carpentry: carpentryCharges,
-        transportation: transportationCharges,
-        planing: planingCharges,
-        planingRatePerCft,
-        sawing: sawingCharges,
-        other: otherCharges,
-        otherLabel: otherChargesLabel
-      },
-      discount: {
-        type: discountMode === 'percentage' ? 'percentage' : 'rupees',
-        value: discountMode === 'percentage' ? discountValue : discountAmount,
-        amount: discountAmount
-      },
-      customGstTaxableAmount: customGstTaxableAmount > 0 ? customGstTaxableAmount : undefined,
-      gstPercent,
-      finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : totalBeforeDiscount,
-      advanceAmount: advanceAmount > 0 ? advanceAmount : undefined,
-      ...(sheetToEdit && sheetToEdit.id === sheetId
-        ? {
-            motorVehicleNo: sheetToEdit.motorVehicleNo,
-            gstNumber: sheetToEdit.gstNumber,
-            billOfEntryNo: sheetToEdit.billOfEntryNo,
-            boeDate: sheetToEdit.boeDate,
-            containerNo: sheetToEdit.containerNo,
-            proformaExportData: sheetToEdit.proformaExportData,
-            attachedFiles: sheetToEdit.attachedFiles
-          }
-        : {})
-    };
+    const draftSheet = buildLiveSheetDraft(items);
+    const uid = user?.id || 'guest';
 
     // Always preserve working session draft
     dbService.saveDraft(draftSheet);
 
     if (!shouldSaveToDatabase) {
       // Don't auto-save an empty "Direct Customer" sheet while still filling initial details on Step 1!
+      pendingSavePayloadRef.current = null;
       setSaveStatus('saved');
       return;
     }
 
+    pendingSavePayloadRef.current = { sheet: draftSheet, userId: uid };
     setSaveStatus('saving');
 
     const timer = setTimeout(async () => {
       try {
-        const sheetObj = sanitizeAndComputeSheet(draftSheet, user?.id || 'guest');
-        const res = await dbService.saveSheet(sheetObj, user?.id || 'guest');
+        pendingSavePayloadRef.current = null;
+        const sheetObj = sanitizeAndComputeSheet(draftSheet, uid);
+        const res = await dbService.saveSheet(sheetObj, uid);
+        sheetMetaRef.current = res.sheet;
         isSheetPersistedRef.current = true;
         loadedSheetIdRef.current = res.sheet.id;
-        if (onSaved) {
-          onSaved(res.sheet);
+        if (onSavedRef.current) {
+          onSavedRef.current(res.sheet);
         }
         setSaveStatus(res.error ? 'error' : 'saved');
         setErrorMessage(res.error || null);
@@ -1237,7 +1272,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
         console.warn('Auto-save notice:', err);
         setSaveStatus('error');
       }
-    }, 600);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [
@@ -1301,6 +1336,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
   // Save to database
   const handleSave = async () => {
+    pendingSavePayloadRef.current = null;
     isSheetPersistedRef.current = true;
     hasProceededPastStep1Ref.current = true;
     setSaveStatus('saving');
@@ -1309,6 +1345,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
     const sheetObj = getCurrentSheetObject();
     const result = await dbService.saveSheet(sheetObj, user?.id || 'guest');
+    sheetMetaRef.current = result.sheet;
 
     setSaveStatus(result.error ? 'error' : 'saved');
     setErrorMessage(result.error || null);
@@ -1329,6 +1366,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
 
   // Create new clean sheet
   const handleNewCleanSheet = () => {
+    pendingSavePayloadRef.current = null;
+    sheetMetaRef.current = null;
     isSheetPersistedRef.current = false;
     hasProceededPastStep1Ref.current = false;
     const newId = generateId();
@@ -1610,6 +1649,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       );
       dbService.saveDraft(merged);
       const res = await dbService.saveSheet(merged, user?.id || 'guest');
+      sheetMetaRef.current = res.sheet;
       loadedSheetIdRef.current = res.sheet.id;
       if (onSaved) {
         onSaved(res.sheet);
@@ -1653,10 +1693,14 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       // so the direct Invoice PDF link in the WhatsApp message works on the customer's phone immediately
       const sheetWithSnapshot: MeasurementSheet = {
         ...current,
-        proformaExportData: exportData
+        proformaExportData: {
+          ...(current.proformaExportData || {}),
+          ...exportData
+        }
       };
       try {
-        await dbService.saveSheet(sheetWithSnapshot, user?.id || 'guest');
+        const res = await dbService.saveSheet(sheetWithSnapshot, user?.id || 'guest');
+        sheetMetaRef.current = res.sheet;
       } catch (saveErr) {
         console.warn('Cloud sync warning before WhatsApp redirect:', saveErr);
       }
@@ -2723,6 +2767,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       onChange={(e) => {
                         setIsShipToTouched(true);
                         setConsigneeDistrict(e.target.value);
+                        if (e.target.value.trim()) setDestination(e.target.value.trim().toUpperCase());
                       }}
                       placeholder="🏙️"
                       style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
@@ -2841,6 +2886,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
                       onChange={(e) => {
                         setIsShipToTouched(true);
                         setConsigneeDistrict(e.target.value);
+                        if (e.target.value.trim()) setDestination(e.target.value.trim().toUpperCase());
                       }}
                       placeholder="🏙️"
                       style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
