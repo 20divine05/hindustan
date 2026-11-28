@@ -1022,10 +1022,10 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 800, textTransform: 'uppercase', color: '#000000' }}>
                           Total
                         </td>
-                        <td className="text-left p-mono p-qty-indent" style={{ fontWeight: 800, color: '#000000' }}>
+                        <td className="text-right p-mono" style={{ fontWeight: 800, color: '#000000' }}>
                           {groupPieces} PCS
                         </td>
-                        <td className="text-left p-mono p-qty-indent" style={{ fontWeight: 800, color: '#000000' }}>
+                        <td className="text-right p-mono" style={{ fontWeight: 800, color: '#000000' }}>
                           {renderWithSmallDecimalHtml(groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '')}
                         </td>
                         {showSqftCol && (
@@ -1055,10 +1055,10 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                     <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                       TOTAL MATERIALS
                     </td>
-                    <td className="text-left p-mono p-qty-indent" style={{ fontWeight: 800 }}>
+                    <td className="text-right p-mono" style={{ fontWeight: 800 }}>
                       {totalPieces} PCS
                     </td>
-                    <td className="text-left p-mono p-qty-indent" style={{ fontWeight: 800 }}>
+                    <td className="text-right p-mono" style={{ fontWeight: 800 }}>
                       {renderWithSmallDecimalHtml(totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '')}
                     </td>
                     {showSqftCol && (
@@ -1191,10 +1191,10 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                   <td colSpan={2} style={{ textAlign: 'right', fontWeight: 800, paddingRight: '12px' }}>
                     Total
                   </td>
-                  <td className="text-left p-mono font-bold p-qty-indent">
+                  <td className="text-right p-mono font-bold">
                     {totalPieces} PCS
                   </td>
-                  <td className="text-left p-mono font-bold p-qty-indent">
+                  <td className="text-right p-mono font-bold">
                     {renderWithSmallDecimalHtml(totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '')}
                   </td>
                   {showSqftCol && (

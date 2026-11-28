@@ -997,8 +997,8 @@ export function createProformaInvoiceDoc(
             tableBody.push([
               { content: '', styles: { halign: 'center', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { top: 0.45, bottom: 0.45 } } },
               { content: widthLabel, styles: { fontStyle: 'bold', halign: 'left', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { left: 2.2, top: 0.45, bottom: 0.45 } } },
-              { content: `${widthPieces} PCS`, styles: { fontStyle: 'bold', halign: 'left', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { left: 2.8, top: 0.45, bottom: 0.45 } } },
-              { content: widthCft > 0 ? `${widthCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'left', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { left: 2.8, top: 0.45, bottom: 0.45 } } },
+              { content: `${widthPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { left: 1.0, right: 2.2, top: 0.45, bottom: 0.45 } } },
+              { content: widthCft > 0 ? `${widthCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { left: 1.0, right: 2.2, top: 0.45, bottom: 0.45 } } },
               ...(showSqftCol ? [{ content: widthSqftBilled > 0 ? `${widthSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { right: 2.2, top: 0.45, bottom: 0.45 } } }] : []),
               ...(showRftCol ? [{ content: widthRftBilled > 0 ? `${widthRftBilled.toFixed(2)} RFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { right: 2.2, top: 0.45, bottom: 0.45 } } }] : [])
             ]);
@@ -1033,8 +1033,8 @@ export function createProformaInvoiceDoc(
         tableBody.push([
           { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
           { content: (isMeasurementOnly && woodGroups.length > 1) ? `Total (${group.wood.toUpperCase()})` : 'Total', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, textColor: subtotalTextColor } },
-          { content: `${groupPieces} PCS`, styles: { fontStyle: 'bold', halign: 'left', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { left: 2.8, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
-          { content: groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'left', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { left: 2.8, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
+          { content: `${groupPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { left: 1.0, right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
+          { content: groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { left: 1.0, right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
           ...(showSqftCol ? [{ content: groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } }] : []),
           ...(showRftCol ? [{ content: groupRftBilled > 0 ? `${groupRftBilled.toFixed(2)} RFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } }] : []),
           ...(!isMeasurementOnly
@@ -1054,8 +1054,8 @@ export function createProformaInvoiceDoc(
       tableBody.push([
         { content: '', styles: { halign: 'center', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
         { content: 'TOTAL MATERIALS', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: totalMatBg, lineWidth: totalWoodBorder } },
-        { content: `${totalPieces} PCS`, styles: { fontStyle: 'bold', halign: 'left', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { left: 2.8, top: 0.55, bottom: 0.55 } } },
-        { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'left', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { left: 2.8, top: 0.55, bottom: 0.55 } } },
+        { content: `${totalPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { left: 1.0, right: 2.2, top: 0.55, bottom: 0.55 } } },
+        { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { left: 1.0, right: 2.2, top: 0.55, bottom: 0.55 } } },
         ...(showSqftCol ? [{ content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }] : []),
         ...(showRftCol ? [{ content: totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }] : []),
         { content: '', styles: { halign: 'right', fillColor: totalMatBg, lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
@@ -1314,8 +1314,8 @@ export function createProformaInvoiceDoc(
     [
       '',
       { content: 'Total', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2 } } },
-      { content: `${totalPieces} PCS`, styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.8 } } },
-      { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.8 } } },
+      { content: `${totalPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', cellPadding: { left: 1.0, right: 2.2 } } },
+      { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', cellPadding: { left: 1.0, right: 2.2 } } },
       ...(showSqftCol ? [{ content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', cellPadding: { right: 2.2 } } }] : []),
       ...(showRftCol ? [{ content: totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '', styles: { fontStyle: 'bold', halign: 'right', cellPadding: { right: 2.2 } } }] : []),
       ...(!isMeasurementOnly
@@ -1333,7 +1333,7 @@ export function createProformaInvoiceDoc(
           '',
           { content: 'Total CBM', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2 } } },
           { content: '', styles: { fontStyle: 'bold' } },
-          { content: `${effectiveTotalCbm.toFixed(4)} CBM`, styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.8 } } },
+          { content: `${effectiveTotalCbm.toFixed(4)} CBM`, styles: { fontStyle: 'bold', halign: 'right', cellPadding: { left: 1.0, right: 2.2 } } },
           ...(showSqftCol ? [''] : []),
           ...(showRftCol ? [''] : [])
         ]]
