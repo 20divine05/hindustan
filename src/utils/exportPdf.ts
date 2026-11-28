@@ -1691,13 +1691,64 @@ export function createProformaInvoiceDoc(
   const finalY = (doc as any).lastAutoTable.finalY;
 
   if (isMeasurementOnly) {
+    const uniqueWoods = isRoundLog
+      ? Array.from(new Set(speciesSections.map((s) => s.woodType.trim().toUpperCase()).filter(Boolean)))
+      : Array.from(new Set(items.map((it) => getCutLogItemSectionHeading(it as any).trim().toUpperCase()).filter(Boolean)));
+    const woodNameText = uniqueWoods.length > 0 ? uniqueWoods.join(', ') : 'TIMBER';
+    const qtyCountText = isRoundLog ? `${totalPieces} logs` : `${totalPieces} pcs`;
+    const cbmText = effectiveTotalCbm.toFixed(4);
+    const vehText = motorVehicleNo || '__________';
+    const billText = invoiceNo || '__________';
+    const datedText = formattedDate || '__________';
+    const boeText = billOfEntryNo || '__________';
+    const boeDateText = boeDate || '__________';
+
+    const concernHeading = 'TO WHOM SO EVER IT MAY CONCERN';
+    const para1 = `This is to inform that, we are herewith sending imported timber of ${woodNameText}, ${qtyCountText} measuring ${cbmText} CBM by vehicle No. ${vehText} under our Bill No. ${billText} dated ${datedText}, the said timber is imported timber vide Customs Bill of Entry No. ${boeText} dated ${boeDateText} copy of which is enclosed.`;
+    const para2 = 'As per the recent Karnataka Government Notification No. FEE.44.FDP.2005 Dtd 4th May 2006 and Karnataka Gazette Notification copy no. KA/BG-GPO/2515/WPP-47/2006 Dtd 4th May 2006, all the imported timber is exempted from issue of Forest transit permits vide above notification copies enclosed herewith.';
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.0);
+    const lines1: string[] = doc.splitTextToSize(para1, 182);
+    const lines2: string[] = doc.splitTextToSize(para2, 182);
+    const lineGap = 3.7;
+    const declHeight = 14.5 + (lines1.length + lines2.length) * lineGap;
+    const boxHeight = 32;
+
     let bottomY = finalY;
-    if (bottomY > 244) {
+    if (bottomY + declHeight + boxHeight > 282) {
       doc.addPage();
       bottomY = 15;
     }
 
-    const boxHeight = 32;
+    // Declaration box immediately after Total CBM
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.2);
+    doc.rect(10, bottomY, 190, declHeight);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.6);
+    doc.setTextColor(0, 0, 0);
+    doc.text(concernHeading, 105, bottomY + 5.6, { align: 'center' });
+    const headingW = doc.getTextWidth(concernHeading);
+    doc.line(105 - headingW / 2, bottomY + 6.4, 105 + headingW / 2, bottomY + 6.4);
+
+    let textY = bottomY + 10.8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.0);
+    doc.setTextColor(20, 20, 20);
+    for (const line of lines1) {
+      doc.text(line, 14.0, textY);
+      textY += lineGap;
+    }
+    textY += 2.2;
+    for (const line of lines2) {
+      doc.text(line, 14.0, textY);
+      textY += lineGap;
+    }
+
+    bottomY += declHeight;
+
     doc.rect(10, bottomY, 190, boxHeight);
     doc.line(105, bottomY, 105, bottomY + boxHeight);
 
