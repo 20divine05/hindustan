@@ -393,7 +393,7 @@ export function createProformaInvoiceDoc(
   // --- LEFT COLUMN: Seller, Consignee, Buyer ---
   // A. Seller Sub-box (y: 15 to 39.5, height = 24.5mm)
   try {
-    doc.addImage(LOGO_ICON_BASE64, 'PNG', 11.5, 17.5, 17, 11);
+    doc.addImage(LOGO_ICON_BASE64, 'PNG', 12.0, 19.2, 17.0, 16.0);
   } catch (e) {
     console.warn('Could not draw logo on PDF:', e);
   }
