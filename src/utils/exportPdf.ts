@@ -993,10 +993,10 @@ export function createProformaInvoiceDoc(
             const widthBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
             const widthBg: [number, number, number] = [202, 220, 243];
             const currWidthVal = getInvoiceItemWidth(it as any);
-            const widthLabel = currWidthVal > 0 ? `Sub Total (${currWidthVal}")` : 'Sub Total';
+            const widthLabel = currWidthVal > 0 ? `${currWidthVal}" Sub Total` : 'Sub Total';
             tableBody.push([
               { content: '', styles: { halign: 'center', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { top: 0.45, bottom: 0.45 } } },
-              { content: widthLabel, styles: { fontStyle: 'bold', halign: 'left', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { left: 2.2, top: 0.45, bottom: 0.45 } } },
+              { content: widthLabel, styles: { fontStyle: 'bold', halign: 'right', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { left: 1.0, right: 2.2, top: 0.45, bottom: 0.45 } } },
               { content: `${widthPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { left: 1.0, right: 2.2, top: 0.45, bottom: 0.45 } } },
               { content: widthCft > 0 ? `${widthCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { left: 1.0, right: 2.2, top: 0.45, bottom: 0.45 } } },
               ...(showSqftCol ? [{ content: widthSqftBilled > 0 ? `${widthSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: widthBg, lineWidth: widthBorder, cellPadding: { right: 2.2, top: 0.45, bottom: 0.45 } } }] : []),
@@ -1167,6 +1167,7 @@ export function createProformaInvoiceDoc(
   function splitDecimalNumber(s: string) {
     if (!s || typeof s !== 'string') return null;
     const trimmed = s.trim();
+    if (trimmed.includes('Sub Total')) return null;
     // Only numbers like 10.6337, 2,020.01, - 500.00, Rs. 1,234.56, - Rs. 1,000.00, 10.6337 CFT
     const match = trimmed.match(/^((?:-\s*)?(?:Rs\.?\s*|\+)?[\d,]+)\.(\d+)(.*)$/);
     if (!match) return null;
@@ -1493,7 +1494,7 @@ export function createProformaInvoiceDoc(
 
         const isSectionBanner = (rawRow[0] as any)?.colSpan >= (isRoundLog ? 5 : (totalCutCols - 1)) || (rawRow[1] as any)?.colSpan >= (isRoundLog ? 5 : (totalCutCols - 1));
         const isWidthSpacer = Boolean((rawRow[0] as any)?.isWidthSpacer);
-        const isSubtotalRow = (typeof c0 === 'string' && (c0.startsWith('Sub Total') || c0.startsWith('Total ') || c0.startsWith('Total -') || c0 === 'TOTAL MATERIALS' || (c0.includes('logs') && (c0.includes('@') || c0.includes(':'))))) || c1 === 'Total' || c1 === 'TOTAL MATERIALS' || (typeof c1 === 'string' && c1.startsWith('Sub Total'));
+        const isSubtotalRow = (typeof c0 === 'string' && (c0.startsWith('Sub Total') || c0.startsWith('Total ') || c0.startsWith('Total -') || c0 === 'TOTAL MATERIALS' || (c0.includes('logs') && (c0.includes('@') || c0.includes(':'))))) || c1 === 'Total' || c1 === 'TOTAL MATERIALS' || (typeof c1 === 'string' && (c1.startsWith('Sub Total') || c1.endsWith('Sub Total')));
         const isFootRow = data.section === 'foot';
         const isChargeRow = !isMeasurementOnly && (rawRow[1] as any)?.colSpan === chargeColSpan;
         const isEmptyPaddingRow = c0 === '' && c1 === '' && !isSectionBanner && !isSubtotalRow && !isWidthSpacer;
