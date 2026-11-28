@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Printer, Search, FileText, Loader2 } from 'lucide-react';
+import { Printer, Search, FileText, Loader2, FileDown } from 'lucide-react';
 import type { BusinessSettings, MeasurementSheet } from '../types';
 import { dbService } from '../services/db';
 import { useAuth } from '../contexts/AuthContext';
 import { formatValue } from '../utils/calculator';
-import { printMeasurementSheetPdf } from '../utils/exportPdf';
+import { printMeasurementSheetPdf, exportMeasurementSheetToPdf } from '../utils/exportPdf';
 
 interface MeasurementSheetsPageProps {
   businessSettings?: BusinessSettings;
@@ -48,7 +48,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
     };
   }, [user]);
 
-  const handlePrintMeasurementSheet = async (summary: MeasurementSheet) => {
+  const handleMeasurementSheetAction = async (summary: MeasurementSheet, action: 'print' | 'download') => {
     setPrintingId(summary.id);
     try {
       const uid = user?.id || summary.userId || 'guest';
@@ -58,7 +58,11 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
         alert('Could not load measurement rows from the database. Please check your connection and try again.');
         return;
       }
-      printMeasurementSheetPdf(target, businessSettings, target.proformaExportData);
+      if (action === 'download') {
+        exportMeasurementSheetToPdf(target, businessSettings, target.proformaExportData);
+      } else {
+        printMeasurementSheetPdf(target, businessSettings, target.proformaExportData);
+      }
     } finally {
       setPrintingId(null);
     }
@@ -155,16 +159,28 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                             {formatValue(sheet.totalCft, 3)} CFT
                           </td>
                           <td style={{ textAlign: 'center' }}>
-                            <button
-                              type="button"
-                              className="btn btn-primary btn-sm"
-                              disabled={isPrinting}
-                              onClick={() => handlePrintMeasurementSheet(sheet)}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                            >
-                              {isPrinting ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
-                              {isPrinting ? 'Preparing...' : 'Print Measurement Sheet'}
-                            </button>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-sm"
+                                disabled={isPrinting}
+                                onClick={() => handleMeasurementSheetAction(sheet, 'print')}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                              >
+                                {isPrinting ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+                                {isPrinting ? 'Preparing...' : 'Print Measurement Sheet'}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                title="Download PDF named after customer"
+                                disabled={isPrinting}
+                                onClick={() => handleMeasurementSheetAction(sheet, 'download')}
+                                style={{ padding: '0.35rem 0.5rem' }}
+                              >
+                                <FileDown size={14} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -230,16 +246,28 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                         </span>
                       </div>
 
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        disabled={isPrinting}
-                        onClick={() => handlePrintMeasurementSheet(sheet)}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, whiteSpace: 'nowrap' }}
-                      >
-                        {isPrinting ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
-                        {isPrinting ? 'Preparing...' : 'Print Sheet'}
-                      </button>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          disabled={isPrinting}
+                          onClick={() => handleMeasurementSheetAction(sheet, 'print')}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, whiteSpace: 'nowrap' }}
+                        >
+                          {isPrinting ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+                          {isPrinting ? 'Preparing...' : 'Print Sheet'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          title="Download PDF"
+                          disabled={isPrinting}
+                          onClick={() => handleMeasurementSheetAction(sheet, 'download')}
+                          style={{ padding: '0.35rem 0.5rem' }}
+                        >
+                          <FileDown size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );

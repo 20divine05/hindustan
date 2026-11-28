@@ -125,6 +125,11 @@ export function createProformaInvoiceDoc(
 
   const formattedDate = invoiceData?.invoiceDate || formatDateToInvoice(sheet.measurementDate);
   const invoiceNo = invoiceData?.invoiceNo || (sheet.referenceNumber ? sheet.referenceNumber.replace(/^REF-/i, '') : (isMeasurementOnly ? '-' : '8'));
+  const docTitle = (isMeasurementOnly
+    ? getMeasurementSheetFilename(sheet, invoiceData)
+    : getInvoiceFilename(sheet, invoiceData)
+  ).replace(/\.pdf$/i, '');
+  doc.setProperties({ title: docTitle });
   const eWayBillNo = invoiceData?.eWayBillNo || '';
   const paymentTerms = invoiceData?.paymentTerms || 'IMMEDIATE PAYMENT';
   const buyerOrderNo = invoiceData?.buyerOrderNo || '';
@@ -714,39 +719,41 @@ export function createProformaInvoiceDoc(
       }
 
       // 5. Species Total Row
-      const speciesTotalBorder = { top: 0.3, bottom: 0.3, left: 0.2, right: 0.2 };
-      const speciesTotalBg: [number, number, number] = [238, 242, 246];
-      tableBody.push([
-        {
-          content: isMeasurementOnly
-            ? `Total ${spSec.woodType.toUpperCase()}  :  ${spSec.totalPieces} logs`
-            : `Total ${spSec.woodType.toUpperCase()}  :  ${spSec.totalPieces} logs  |  ${formatValue(roundLogOutputUnit === 'CFT' ? spSec.totalCft : spSec.totalCbm, 4)} ${roundLogOutputUnit}  =`,
-          colSpan: 4,
-          styles: {
-            fontStyle: 'bold',
-            halign: 'left',
-            cellPadding: { left: 3.5, top: 0.6, bottom: 0.6 },
-            fillColor: speciesTotalBg,
-            lineWidth: speciesTotalBorder
+      if (!isMeasurementOnly || speciesSections.length > 1) {
+        const speciesTotalBorder = { top: 0.3, bottom: 0.3, left: 0.2, right: 0.2 };
+        const speciesTotalBg: [number, number, number] = [238, 242, 246];
+        tableBody.push([
+          {
+            content: isMeasurementOnly
+              ? `Total ${spSec.woodType.toUpperCase()}  :  ${spSec.totalPieces} logs`
+              : `Total ${spSec.woodType.toUpperCase()}  :  ${spSec.totalPieces} logs  |  ${formatValue(roundLogOutputUnit === 'CFT' ? spSec.totalCft : spSec.totalCbm, 4)} ${roundLogOutputUnit}  =`,
+            colSpan: 4,
+            styles: {
+              fontStyle: 'bold',
+              halign: 'left',
+              cellPadding: { left: 3.5, top: 0.6, bottom: 0.6 },
+              fillColor: speciesTotalBg,
+              lineWidth: speciesTotalBorder
+            }
+          },
+          {
+            content: isMeasurementOnly
+              ? `${formatValue(roundLogOutputUnit === 'CFT' ? spSec.totalCft : spSec.totalCbm, 4)} ${roundLogOutputUnit}`
+              : `Rs. ${formatIndianCurrency(spSec.totalAmount)}`,
+            styles: {
+              fontStyle: 'bold',
+              halign: 'right',
+              cellPadding: { right: 2.5, top: 0.6, bottom: 0.6 },
+              fillColor: speciesTotalBg,
+              lineWidth: speciesTotalBorder
+            }
           }
-        },
-        {
-          content: isMeasurementOnly
-            ? `${formatValue(roundLogOutputUnit === 'CFT' ? spSec.totalCft : spSec.totalCbm, 4)} ${roundLogOutputUnit}`
-            : `Rs. ${formatIndianCurrency(spSec.totalAmount)}`,
-          styles: {
-            fontStyle: 'bold',
-            halign: 'right',
-            cellPadding: { right: 2.5, top: 0.6, bottom: 0.6 },
-            fillColor: speciesTotalBg,
-            lineWidth: speciesTotalBorder
-          }
-        }
-      ]);
+        ]);
+      }
     }
 
-    // 6. TOTAL WOOD AMOUNT row
-    if (totalPieces > 0) {
+    // 6. TOTAL WOOD AMOUNT row (omitted in measurement mode so GRAND TOTAL footer prints once)
+    if (!isMeasurementOnly && totalPieces > 0) {
       const totalWoodBorder = { top: 0.3, bottom: 0.3, left: 0.2, right: 0.2 };
       const woodBg: [number, number, number] = [226, 232, 240];
       const roundVolText = `${formatValue(roundLogOutputUnit === 'CFT' ? totalCft : totalCbm, 4)} ${roundLogOutputUnit}`;
@@ -773,7 +780,7 @@ export function createProformaInvoiceDoc(
           }
         },
         {
-          content: isMeasurementOnly ? '' : roundVolText,
+          content: roundVolText,
           styles: {
             fontStyle: 'bold',
             halign: 'right',
@@ -783,7 +790,7 @@ export function createProformaInvoiceDoc(
           }
         },
         {
-          content: isMeasurementOnly ? roundVolText : `Rs. ${formatIndianCurrency(totalAmount)}`,
+          content: `Rs. ${formatIndianCurrency(totalAmount)}`,
           styles: {
             fontStyle: 'bold',
             halign: 'right',
@@ -1000,29 +1007,31 @@ export function createProformaInvoiceDoc(
         }
       }
 
-      const subtotalBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
-      const subtotalTextColor: [number, number, number] = [0, 0, 0];
-      const subtotalLineColor: [number, number, number] = [0, 0, 0];
-      const subtotalBg: [number, number, number] = [243, 244, 246];
+      if (!isMeasurementOnly || woodGroups.length > 1) {
+        const subtotalBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
+        const subtotalTextColor: [number, number, number] = [0, 0, 0];
+        const subtotalLineColor: [number, number, number] = [0, 0, 0];
+        const subtotalBg: [number, number, number] = [243, 244, 246];
 
-      tableBody.push([
-        { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
-        { content: 'Total', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, textColor: subtotalTextColor } },
-        { content: `${groupPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
-        { content: groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
-        ...(showSqftCol ? [{ content: groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } }] : []),
-        ...(showRftCol ? [{ content: groupRftBilled > 0 ? `${groupRftBilled.toFixed(2)} RFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } }] : []),
-        ...(!isMeasurementOnly
-          ? [
-              { content: '', styles: { halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
-              { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
-              { content: `Rs. ${formatIndianCurrency(groupAmount)}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } }
-            ]
-          : [])
-      ]);
+        tableBody.push([
+          { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
+          { content: (isMeasurementOnly && woodGroups.length > 1) ? `Total (${group.wood.toUpperCase()})` : 'Total', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2, top: 0.55, bottom: 0.55 }, fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, textColor: subtotalTextColor } },
+          { content: `${groupPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
+          { content: groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } },
+          ...(showSqftCol ? [{ content: groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } }] : []),
+          ...(showRftCol ? [{ content: groupRftBilled > 0 ? `${groupRftBilled.toFixed(2)} RFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } }] : []),
+          ...(!isMeasurementOnly
+            ? [
+                { content: '', styles: { halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
+                { content: '', styles: { halign: 'center', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { top: 0.55, bottom: 0.55 } } },
+                { content: `Rs. ${formatIndianCurrency(groupAmount)}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: subtotalBg, lineWidth: subtotalBorder, lineColor: subtotalLineColor, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 }, textColor: subtotalTextColor } }
+              ]
+            : [])
+        ]);
+      }
     }
 
-    if (totalPieces > 0) {
+    if (!isMeasurementOnly && totalPieces > 0) {
       const totalWoodBorder = { top: 0.2, bottom: 0.2, left: 0.2, right: 0.2 };
       tableBody.push([
         { content: '', styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
@@ -1031,13 +1040,9 @@ export function createProformaInvoiceDoc(
         { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } },
         ...(showSqftCol ? [{ content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }] : []),
         ...(showRftCol ? [{ content: totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '', styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }] : []),
-        ...(!isMeasurementOnly
-          ? [
-              { content: '', styles: { halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
-              { content: '', styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
-              { content: `Rs. ${formatIndianCurrency(totalAmount)}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }
-            ]
-          : [])
+        { content: '', styles: { halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: '', styles: { halign: 'center', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { top: 0.55, bottom: 0.55 } } },
+        { content: `Rs. ${formatIndianCurrency(totalAmount)}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 240, 243], lineWidth: totalWoodBorder, cellPadding: { right: 2.2, top: 0.55, bottom: 0.55 } } }
       ]);
     }
   }
@@ -1290,11 +1295,11 @@ export function createProformaInvoiceDoc(
   const cutFoot = [
     [
       '',
-      'Total',
-      { content: `${totalPieces} PCS`, styles: { fontStyle: 'bold', cellPadding: { right: 2.2 } } },
-      { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', cellPadding: { right: 2.2 } } },
-      ...(showSqftCol ? [{ content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '', styles: { cellPadding: { right: 2.2 } } }] : []),
-      ...(showRftCol ? [{ content: totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '', styles: { cellPadding: { right: 2.2 } } }] : []),
+      { content: 'Total', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2 } } },
+      { content: `${totalPieces} PCS`, styles: { fontStyle: 'bold', halign: 'right', cellPadding: { right: 2.2 } } },
+      { content: totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '', styles: { fontStyle: 'bold', halign: 'right', cellPadding: { right: 2.2 } } },
+      ...(showSqftCol ? [{ content: totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '', styles: { fontStyle: 'bold', halign: 'right', cellPadding: { right: 2.2 } } }] : []),
+      ...(showRftCol ? [{ content: totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '', styles: { fontStyle: 'bold', halign: 'right', cellPadding: { right: 2.2 } } }] : []),
       ...(!isMeasurementOnly
         ? [
             {
@@ -1308,7 +1313,7 @@ export function createProformaInvoiceDoc(
     ...(isMeasurementOnly
       ? [[
           '',
-          { content: 'Total CBM', styles: { fontStyle: 'bold', halign: 'left' } },
+          { content: 'Total CBM', styles: { fontStyle: 'bold', halign: 'left', cellPadding: { left: 2.2 } } },
           { content: '', styles: { fontStyle: 'bold' } },
           { content: `${effectiveTotalCbm.toFixed(4)} CBM`, styles: { fontStyle: 'bold', halign: 'right', cellPadding: { right: 2.2 } } },
           ...(showSqftCol ? [''] : []),
@@ -1618,39 +1623,33 @@ export function createProformaInvoiceDoc(
 
   if (isMeasurementOnly) {
     let bottomY = finalY;
-    if (bottomY > 255) {
+    if (bottomY > 260) {
       doc.addPage();
       bottomY = 15;
     }
 
-    const boxHeight = 22;
+    const boxHeight = 16;
     doc.rect(10, bottomY, 190, boxHeight);
     doc.line(105, bottomY, 105, bottomY + boxHeight);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.2);
+    doc.setFontSize(7.6);
     doc.setTextColor(0, 0, 0);
-    doc.text('Measurement Summary', 12.0, bottomY + 4.8);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.0);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Total Pieces : ${totalPieces} ${isRoundLog ? 'LOGS' : 'PCS'}`, 12.0, bottomY + 9.8);
-    doc.text(`Total CFT : ${totalCft.toFixed(4)} CFT`, 12.0, bottomY + 14.4);
-    doc.setFontSize(8.5);
-    doc.text(`Total CBM : ${effectiveTotalCbm.toFixed(4)} CBM`, 12.0, bottomY + 19.2);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.4);
-    doc.text('for HINDUSTAN SAW MILLS AND WOOD INDUSTRIES', 198.0, bottomY + 5.0, { align: 'right' });
+    doc.text('Measurement Verification', 12.0, bottomY + 4.8);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.0);
     doc.setTextColor(80, 80, 80);
-    doc.text('Checked By', 108.0, bottomY + 18.5);
+    doc.text('Checked By', 12.0, bottomY + 13.0);
+
     doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.4);
     doc.setTextColor(0, 0, 0);
-    doc.text('Authorised Signatory', 198.0, bottomY + 18.5, { align: 'right' });
+    doc.text('for HINDUSTAN SAW MILLS AND WOOD INDUSTRIES', 198.0, bottomY + 4.8, { align: 'right' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.text('Authorised Signatory', 198.0, bottomY + 13.0, { align: 'right' });
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.0);
@@ -1844,12 +1843,52 @@ export function getInvoiceFilename(
   return `${safeFilename}_${dateStr}.pdf`;
 }
 
+export function getMeasurementSheetFilename(
+  sheet: MeasurementSheet,
+  invoiceData?: ProformaInvoiceExportData
+): string {
+  const rawClient = (
+    invoiceData?.customerName ||
+    invoiceData?.buyerName ||
+    invoiceData?.consigneeName ||
+    sheet.customerName ||
+    ''
+  ).trim();
+
+  if (rawClient && !/^valued customer$/i.test(rawClient)) {
+    const cleanClient = rawClient
+      .replace(/[\\/:*?"<>|]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (cleanClient) {
+      return `${cleanClient}.pdf`;
+    }
+  }
+
+  const safeFilename = (sheet.sheetName || 'measurement_sheet')
+    .replace(/[\\/:*?"<>|]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const dateStr = sheet.measurementDate || invoiceData?.invoiceDate || new Date().toISOString().split('T')[0];
+  return `${safeFilename || 'Measurement Sheet'}_${dateStr}.pdf`;
+}
+
 export function createMeasurementSheetDoc(
   sheet: MeasurementSheet,
   settings?: BusinessSettings,
   invoiceData?: ProformaInvoiceExportData
 ): jsPDF {
   return createProformaInvoiceDoc(sheet, settings, invoiceData, 'measurement');
+}
+
+export function exportMeasurementSheetToPdf(
+  sheet: MeasurementSheet,
+  settings?: BusinessSettings,
+  invoiceData?: ProformaInvoiceExportData
+): void {
+  const doc = createMeasurementSheetDoc(sheet, settings, invoiceData);
+  const filename = getMeasurementSheetFilename(sheet, invoiceData);
+  doc.save(filename);
 }
 
 export function exportSheetToPdf(
@@ -1862,15 +1901,33 @@ export function exportSheetToPdf(
   doc.save(filename);
 }
 
-function openOrPrintPdfDoc(doc: jsPDF): void {
+function openOrPrintPdfDoc(doc: jsPDF, title?: string): void {
   doc.autoPrint();
   const blob = doc.output('blob');
   const blobUrl = URL.createObjectURL(blob);
 
+  const prevTitle = typeof document !== 'undefined' ? document.title : '';
+  if (typeof document !== 'undefined' && title) {
+    document.title = title;
+  }
+
   // Open the auto-printing PDF blob in a new window/tab
   // Modern browsers (Chrome, Edge, Firefox, Safari) immediately launch the native print dialog for the exact PDF
   const printWin = window.open(blobUrl, '_blank');
-  if (!printWin) {
+  if (printWin) {
+    try {
+      if (title) {
+        printWin.document.title = title;
+      }
+    } catch {
+      // Cross-viewer PDF documents may restrict direct document.title mutation
+    }
+    if (typeof document !== 'undefined' && title) {
+      setTimeout(() => {
+        document.title = prevTitle;
+      }, 2000);
+    }
+  } else {
     // If popup blocker intervened, use invisible iframe as seamless fallback
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
@@ -1882,12 +1939,22 @@ function openOrPrintPdfDoc(doc: jsPDF): void {
     iframe.style.visibility = 'hidden';
     iframe.src = blobUrl;
     document.body.appendChild(iframe);
+    const restoreTitle = () => {
+      if (typeof document !== 'undefined' && title) {
+        document.title = prevTitle;
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('afterprint', restoreTitle, { once: true });
+    }
     iframe.onload = () => {
       try {
         iframe.contentWindow?.focus();
         iframe.contentWindow?.print();
       } catch {
         window.location.href = blobUrl;
+      } finally {
+        setTimeout(restoreTitle, 3000);
       }
     };
   }
@@ -1899,7 +1966,8 @@ export function printProformaInvoicePdf(
   invoiceData?: ProformaInvoiceExportData
 ): void {
   const doc = createProformaInvoiceDoc(sheet, settings, invoiceData);
-  openOrPrintPdfDoc(doc);
+  const title = getInvoiceFilename(sheet, invoiceData).replace(/\.pdf$/i, '');
+  openOrPrintPdfDoc(doc, title);
 }
 
 export function printMeasurementSheetPdf(
@@ -1908,7 +1976,8 @@ export function printMeasurementSheetPdf(
   invoiceData?: ProformaInvoiceExportData
 ): void {
   const doc = createMeasurementSheetDoc(sheet, settings, invoiceData);
-  openOrPrintPdfDoc(doc);
+  const title = getMeasurementSheetFilename(sheet, invoiceData).replace(/\.pdf$/i, '');
+  openOrPrintPdfDoc(doc, title);
 }
 
 export function getProformaInvoicePdfBlob(
