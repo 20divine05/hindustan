@@ -280,6 +280,50 @@ export function sanitizeAndComputeSheet(
   };
 }
 
+function computeSheetSummaryGrandTotal(source: {
+  finalGrandTotal?: number;
+  proformaExportData?: Record<string, any>;
+  backupItems?: MeasurementItem[];
+  items?: MeasurementItem[];
+  roundLogItems?: any[];
+  logType?: string;
+  additionalCharges?: any;
+  gstPercent?: number;
+  customGstTaxableAmount?: number;
+  discount?: any;
+}): number | undefined {
+  if (typeof source.finalGrandTotal === 'number' && source.finalGrandTotal > 0) {
+    return source.finalGrandTotal;
+  }
+  if (typeof source.proformaExportData?.finalGrandTotal === 'number' && source.proformaExportData.finalGrandTotal > 0) {
+    return source.proformaExportData.finalGrandTotal;
+  }
+  const ac = source.additionalCharges;
+  const acSum = ((ac?.carpentry || 0) + (ac?.sawing || 0)) + (ac?.transportation || 0) + (ac?.planing || 0) + (ac?.other || 0);
+  let woodAmt = 0;
+  if (source.logType === 'round' && Array.isArray(source.roundLogItems) && source.roundLogItems.length > 0) {
+    woodAmt = source.roundLogItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+  } else {
+    const rawItems = source.backupItems || source.items || [];
+    if (rawItems.length > 0) {
+      woodAmt = rawItems.reduce((acc, it) => {
+        if (typeof it.amount === 'number' && it.amount > 0) return acc + it.amount;
+        const rate = typeof it.rate === 'number' ? it.rate : 0;
+        const mult = isTimberRftBilled(it)
+          ? (typeof it.rft === 'number' && it.rft > 0 ? it.rft : calculateRFT(it.lengthFeet, it.pieces))
+          : (isTimberSqftBilled(it) ? (it.sqft || 0) : (it.cft || 0));
+        return acc + Math.round(mult * rate * 100) / 100;
+      }, 0);
+    }
+  }
+  const sub = woodAmt + acSum;
+  if (sub <= 0) return undefined;
+  const gstBase = (source.customGstTaxableAmount && source.customGstTaxableAmount > 0) ? source.customGstTaxableAmount : sub;
+  const gstAmt = source.gstPercent ? Math.round((gstBase * (source.gstPercent / 100)) * 100) / 100 : 0;
+  const discAmt = source.discount?.amount || 0;
+  return Math.max(0, Math.round((sub + gstAmt - discAmt) * 100) / 100);
+}
+
 /**
  * Local Storage database fallback implementation
  */
@@ -307,11 +351,18 @@ const localDb = {
         sheets = validSheets;
       }
 
+      const enriched = sheets.map((s) => {
+        const computedTotal = computeSheetSummaryGrandTotal(s);
+        return computedTotal !== undefined && computedTotal !== s.finalGrandTotal
+          ? { ...s, finalGrandTotal: computedTotal }
+          : s;
+      });
+
       // Admin/manager can view all; normal user views only their own
       if (role === 'admin' || role === 'manager') {
-        return sheets.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        return enriched.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       }
-      return sheets
+      return enriched
         .filter((s) => s.userId === userId)
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     } catch (e) {
@@ -439,6 +490,7 @@ export const dbService = {
         .map((row) => {
           let isConfirmed = Boolean(row.is_confirmed);
           let proformaExportData: Record<string, any> | undefined;
+          let finalGrandTotal: number | undefined;
           let cleanNotes = row.notes || '';
           if (cleanNotes.startsWith('__TIMBER_META__')) {
             try {
@@ -447,6 +499,7 @@ export const dbService = {
               if (meta.proformaExportData && typeof meta.proformaExportData === 'object') {
                 proformaExportData = meta.proformaExportData;
               }
+              finalGrandTotal = computeSheetSummaryGrandTotal(meta);
               cleanNotes = meta.rawNotes || '';
             } catch {}
           }
@@ -461,6 +514,7 @@ export const dbService = {
             notes: cleanNotes,
             items: [],
             isConfirmed,
+            finalGrandTotal,
             proformaExportData,
             totalEntries: row.total_entries || 0,
             totalPieces: Number(row.total_pieces) || 0,

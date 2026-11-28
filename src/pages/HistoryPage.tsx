@@ -5,7 +5,6 @@ import {
   User,
   Plus,
   FileDown,
-  Share2,
   Trash2,
   ExternalLink,
   Edit2,
@@ -18,11 +17,11 @@ import {
 import type { MeasurementSheet, BusinessSettings } from '../types';
 import { dbService } from '../services/db';
 import { formatCompact, formatValue } from '../utils/calculator';
+import { formatIndianCurrency } from '../utils/indianNumberWords';
 import { useAuth } from '../contexts/AuthContext';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ProformaInvoiceModal } from '../components/ProformaInvoiceModal';
 import { exportSheetToPdf } from '../utils/exportPdf';
-import { exportSheetToCsv } from '../utils/exportCsv';
 
 interface HistoryPageProps {
   onOpenSheet: (sheet: MeasurementSheet) => void;
@@ -345,7 +344,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                   <th style={{ textAlign: 'right' }}>Pieces</th>
                   <th style={{ textAlign: 'right' }}>Total CFT</th>
                   <th style={{ textAlign: 'right' }}>Total SQFT</th>
-                  <th style={{ textAlign: 'center', width: '180px' }}>Actions</th>
+                  <th style={{ textAlign: 'right' }}>Total Price</th>
+                  <th style={{ textAlign: 'center', width: '235px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -474,8 +474,12 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                       {formatValue(sheet.totalSqft, 3)}
                     </td>
 
+                    <td className="col-numeric" style={{ fontWeight: 800, color: '#0f766e', whiteSpace: 'nowrap' }}>
+                      ₹{formatIndianCurrency(sheet.finalGrandTotal ?? sheet.proformaExportData?.finalGrandTotal ?? 0)}
+                    </td>
+
                     <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
@@ -517,30 +521,25 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
 
                         <button
                           type="button"
-                          className="btn btn-ghost btn-sm"
-                          title="Export CSV"
-                          style={{ padding: '5px' }}
-                          onClick={async () => {
-                            const full = await loadFullSheet(sheet);
-                            if (full) exportSheetToCsv(full, businessSettings);
-                          }}
-                        >
-                          <Share2 size={14} />
-                        </button>
-
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
+                          className="btn btn-sm"
                           title={sheet.isConfirmed ? "Confirmed (Buyer ready to buy) - Click to unmark" : "Mark as Confirmed (Buyer ready to buy)"}
                           style={{
-                            padding: '5px',
-                            color: sheet.isConfirmed ? '#16a34a' : 'var(--text-muted)',
-                            backgroundColor: sheet.isConfirmed ? '#f0fdf4' : 'transparent',
-                            borderRadius: '4px'
+                            padding: '5px 10px',
+                            fontSize: '0.78rem',
+                            fontWeight: 800,
+                            borderRadius: '6px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            color: sheet.isConfirmed ? '#ffffff' : '#334155',
+                            backgroundColor: sheet.isConfirmed ? '#16a34a' : '#f1f5f9',
+                            border: sheet.isConfirmed ? '1px solid #15803d' : '1px solid #cbd5e1',
+                            whiteSpace: 'nowrap'
                           }}
                           onClick={() => handleToggleConfirmed(sheet.id, sheet.isConfirmed)}
                         >
-                          {sheet.isConfirmed ? <CheckSquare size={15} /> : <Square size={15} />}
+                          {sheet.isConfirmed ? <CheckSquare size={14} /> : <Square size={14} />}
+                          {sheet.isConfirmed ? 'Confirmed' : 'Confirm'}
                         </button>
 
                         <button
@@ -677,109 +676,124 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                 </div>
               </div>
 
-              {/* Totals Summary Row */}
+              {/* Totals & Price Summary */}
               <div style={{
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                flexDirection: 'column',
+                gap: '0.35rem',
                 backgroundColor: 'var(--bg-subtle, #f8fafc)',
-                borderRadius: '6px',
-                padding: '0.35rem 0.55rem',
+                borderRadius: '8px',
+                padding: '0.45rem 0.65rem',
                 fontSize: '0.78rem',
                 fontWeight: 700
               }}>
-                <span style={{ color: 'var(--text-main)' }}>
-                  {sheet.totalEntries || 0} rows • {formatCompact(sheet.totalPieces)} pcs
-                </span>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <span style={{ color: 'var(--primary-800)', fontWeight: 800 }}>
-                    {formatValue(sheet.totalCft, 3)} CFT
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <span style={{ color: 'var(--text-main)' }}>
+                    {sheet.totalEntries || 0} rows • {formatCompact(sheet.totalPieces)} pcs
                   </span>
-                  <span style={{ color: '#b45309' }}>
-                    {formatValue(sheet.totalSqft, 2)} SQFT
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <span style={{ color: 'var(--primary-800)', fontWeight: 800 }}>
+                      {formatValue(sheet.totalCft, 3)} CFT
+                    </span>
+                    <span style={{ color: '#b45309' }}>
+                      {formatValue(sheet.totalSqft, 2)} SQFT
+                    </span>
+                  </div>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingTop: '0.3rem',
+                  borderTop: '1px dashed var(--border-light, #e2e8f0)'
+                }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                    Total Price
+                  </span>
+                  <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f766e' }}>
+                    ₹{formatIndianCurrency(sheet.finalGrandTotal ?? sheet.proformaExportData?.finalGrandTotal ?? 0)}
                   </span>
                 </div>
               </div>
 
-              {/* Actions Row */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.35rem', paddingTop: '0.2rem' }}>
+              {/* Actions Rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', paddingTop: '0.2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.35rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.82rem', fontWeight: 800, flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
+                    onClick={async () => {
+                      const full = await loadFullSheet(sheet);
+                      if (full) onOpenSheet(full);
+                    }}
+                  >
+                    <ExternalLink size={14} /> Open
+                  </button>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      title="Export PDF"
+                      style={{ padding: '0.4rem 0.55rem' }}
+                      onClick={async () => {
+                        const full = await loadFullSheet(sheet);
+                        if (full) exportSheetToPdf(full, businessSettings);
+                      }}
+                    >
+                      <FileDown size={14} />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      title="Proforma Invoice"
+                      style={{ padding: '0.4rem 0.55rem', color: '#059669' }}
+                      onClick={async () => {
+                        const full = await loadFullSheet(sheet);
+                        if (full) setProformaSheet(full);
+                      }}
+                    >
+                      <FileText size={14} />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      title="Delete"
+                      style={{ padding: '0.4rem 0.55rem', color: 'var(--danger-500, #dc2626)' }}
+                      onClick={() => setSheetToDelete(sheet)}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+
                 <button
                   type="button"
-                  className="btn btn-primary btn-sm"
-                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 800, flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
-                  onClick={async () => {
-                    const full = await loadFullSheet(sheet);
-                    if (full) onOpenSheet(full);
+                  className="btn btn-sm"
+                  title={sheet.isConfirmed ? "Confirmed (Buyer ready to buy) - Click to unmark" : "Mark as Confirmed (Buyer ready to buy)"}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem 0.85rem',
+                    fontSize: '0.86rem',
+                    fontWeight: 800,
+                    borderRadius: '8px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.45rem',
+                    color: sheet.isConfirmed ? '#ffffff' : '#1e293b',
+                    backgroundColor: sheet.isConfirmed ? '#16a34a' : '#f1f5f9',
+                    border: sheet.isConfirmed ? '1.5px solid #15803d' : '1.5px solid #cbd5e1',
+                    boxShadow: sheet.isConfirmed ? '0 2px 6px rgba(22, 163, 74, 0.25)' : 'none'
                   }}
+                  onClick={() => handleToggleConfirmed(sheet.id, sheet.isConfirmed)}
                 >
-                  <ExternalLink size={13} /> Open
+                  {sheet.isConfirmed ? <CheckSquare size={16} /> : <Square size={16} />}
+                  {sheet.isConfirmed ? 'Confirmed' : 'Mark as Confirmed'}
                 </button>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    title="Export PDF"
-                    style={{ padding: '0.35rem 0.5rem' }}
-                    onClick={async () => {
-                      const full = await loadFullSheet(sheet);
-                      if (full) exportSheetToPdf(full, businessSettings);
-                    }}
-                  >
-                    <FileDown size={13} />
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    title="Proforma Invoice"
-                    style={{ padding: '0.35rem 0.5rem', color: '#059669' }}
-                    onClick={async () => {
-                      const full = await loadFullSheet(sheet);
-                      if (full) setProformaSheet(full);
-                    }}
-                  >
-                    <FileText size={13} />
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    title="Export CSV"
-                    style={{ padding: '0.35rem 0.5rem' }}
-                    onClick={async () => {
-                      const full = await loadFullSheet(sheet);
-                      if (full) exportSheetToCsv(full, businessSettings);
-                    }}
-                  >
-                    <Share2 size={13} />
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    title={sheet.isConfirmed ? "Confirmed (Buyer ready to buy) - Click to unmark" : "Mark as Confirmed (Buyer ready to buy)"}
-                    style={{
-                      padding: '0.35rem 0.5rem',
-                      color: sheet.isConfirmed ? '#16a34a' : 'var(--text-muted)',
-                      backgroundColor: sheet.isConfirmed ? '#f0fdf4' : undefined,
-                      borderColor: sheet.isConfirmed ? '#86efac' : undefined
-                    }}
-                    onClick={() => handleToggleConfirmed(sheet.id, sheet.isConfirmed)}
-                  >
-                    {sheet.isConfirmed ? <CheckSquare size={13} /> : <Square size={13} />}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    title="Delete"
-                    style={{ padding: '0.35rem 0.5rem', color: 'var(--danger-500, #dc2626)' }}
-                    onClick={() => setSheetToDelete(sheet)}
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
               </div>
             </div>
           ))}
