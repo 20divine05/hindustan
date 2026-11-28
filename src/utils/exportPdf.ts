@@ -1771,8 +1771,8 @@ export function createProformaInvoiceDoc(
 
     const para1Lines = layoutRichParagraph(
       [
-        { text: 'This is to inform that, we are herewith sending imported timber of ' },
-        { text: `${woodNameText}, ${qtyCountText}`, bold: true },
+        { text: 'This is to inform that, we are herewith sending ' },
+        { text: `imported timber of ${woodNameText}, ${qtyCountText}`, bold: true },
         { text: ' measuring ' },
         { text: `${cbmText} CBM`, bold: true },
         { text: ' by vehicle No. ' },

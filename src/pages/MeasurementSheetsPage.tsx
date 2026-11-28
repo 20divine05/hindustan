@@ -526,7 +526,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.28rem', color: 'var(--text-main)' }}>
-                  GST Number
+                  GST Invoice Number
                 </label>
                 <input
                   type="text"
