@@ -387,78 +387,66 @@ CREATE POLICY "Allow all on measurement_items" ON public.measurement_items FOR A
               />
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                Accounts / Contact Phone:
-              </label>
-              <input
-                type="text"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                Accounts / Contact Email:
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                GSTIN / Tax ID:
-              </label>
-              <input
-                type="text"
-                value={formData.taxId}
-                onChange={(e) => setFormData({ ...formData, taxId: e.target.value.toUpperCase() })}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                State Name &amp; State Code:
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 84px', gap: '0.5rem' }}>
+            <div
+              style={{
+                gridColumn: '1 / -1',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: '1.15rem'
+              }}
+            >
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  Accounts / Contact Phone:
+                </label>
                 <input
                   type="text"
-                  value={formData.state ?? ''}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  placeholder="Karnataka"
-                />
-                <input
-                  type="text"
-                  value={formData.stateCode ?? ''}
-                  onChange={(e) => setFormData({ ...formData, stateCode: e.target.value })}
-                  placeholder="29"
-                  style={{ textAlign: 'center' }}
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
               </div>
-            </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                Default Rate per CFT &amp; Currency:
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: '0.5rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  Accounts / Contact Email:
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  GSTIN / Tax ID:
+                </label>
                 <input
                   type="text"
-                  value={formData.currencySymbol}
-                  onChange={(e) => setFormData({ ...formData, currencySymbol: e.target.value })}
-                  style={{ textAlign: 'center' }}
+                  value={formData.taxId}
+                  onChange={(e) => setFormData({ ...formData, taxId: e.target.value.toUpperCase() })}
                 />
-                <input
-                  type="number"
-                  min={0}
-                  step="any"
-                  value={formData.ratePerCft ?? 1200}
-                  onChange={(e) => setFormData({ ...formData, ratePerCft: parseFloat(e.target.value) || 0 })}
-                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  State Name &amp; State Code:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 84px', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    value={formData.state ?? ''}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    placeholder="Karnataka"
+                  />
+                  <input
+                    type="text"
+                    value={formData.stateCode ?? ''}
+                    onChange={(e) => setFormData({ ...formData, stateCode: e.target.value })}
+                    placeholder="29"
+                    style={{ textAlign: 'center' }}
+                  />
+                </div>
               </div>
             </div>
           </div>
