@@ -1,8 +1,7 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { FileDown, Printer, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { FileDown, Printer, FileText, AlertCircle } from 'lucide-react';
 import { dbService } from '../services/db';
-import { exportSheetToPdf, printProformaInvoicePdf, type ProformaInvoiceExportData } from '../utils/exportPdf';
-import { PrintableProformaInvoice } from './PrintableProformaInvoice';
+import { getProformaInvoicePdfBlob, printProformaInvoicePdf, type ProformaInvoiceExportData } from '../utils/exportPdf';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
 import { calculateRFT, calculateTotals, calculateSheetAmount, calculateSheetSqft, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, resolveSheetRateUnit, resolveSheetWidth, getCutLogItemSectionHeading, getCutLogItemDescription, sortTimberEntries } from '../utils/calculator';
 import type { BusinessSettings, MeasurementSheet } from '../types';
@@ -19,7 +18,10 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
   const [sheet, setSheet] = useState<MeasurementSheet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [downloadedNotice, setDownloadedNotice] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfFilename, setPdfFilename] = useState<string>('invoice.pdf');
+  const [showFallback, setShowFallback] = useState(false);
+  const didRedirectRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -148,11 +150,66 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
     };
   }, [sheet, businessSettings]);
 
-  const handleDownloadPdf = () => {
+  useEffect(() => {
     if (!sheet || !resolvedExportData) return;
-    exportSheetToPdf(sheet, businessSettings, resolvedExportData);
-    setDownloadedNotice(true);
-    setTimeout(() => setDownloadedNotice(false), 3500);
+
+    const { blob, filename } = getProformaInvoicePdfBlob(sheet, businessSettings, resolvedExportData);
+    const url = URL.createObjectURL(blob);
+
+    const pdfTitle = filename.replace(/\.pdf$/i, '');
+    if (typeof document !== 'undefined' && pdfTitle) {
+      document.title = pdfTitle;
+    }
+
+    // Open the raw PDF directly in the browser PDF viewer on Desktop & iOS so native browser Print prints the exact original PDF
+    const ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
+    const isAndroid = /Android/i.test(ua);
+    let redirectAttempted = false;
+
+    if (!isAndroid && typeof window !== 'undefined') {
+      didRedirectRef.current = true;
+      redirectAttempted = true;
+      try {
+        window.location.replace(url);
+      } catch {
+        didRedirectRef.current = false;
+        redirectAttempted = false;
+      }
+    }
+
+    const uiTimer = setTimeout(() => {
+      setPdfUrl(url);
+      setPdfFilename(filename);
+      setShowFallback(true);
+    }, redirectAttempted ? 2000 : 0);
+
+    return () => {
+      clearTimeout(uiTimer);
+      if (!didRedirectRef.current) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [sheet, resolvedExportData, businessSettings]);
+
+  const triggerPdfBlobDownload = (url: string, filename: string) => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleDownloadPdf = () => {
+    if (pdfUrl) {
+      triggerPdfBlobDownload(pdfUrl, pdfFilename);
+      return;
+    }
+    if (!sheet || !resolvedExportData) return;
+    const { blob, filename } = getProformaInvoicePdfBlob(sheet, businessSettings, resolvedExportData);
+    const url = URL.createObjectURL(blob);
+    triggerPdfBlobDownload(url, filename);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   };
 
   const handlePrint = () => {
@@ -160,7 +217,7 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
     printProformaInvoicePdf(sheet, businessSettings, resolvedExportData);
   };
 
-  if (loading) {
+  if (loading || (!error && sheet && resolvedExportData && !showFallback)) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -182,7 +239,7 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
           animation: 'spin 0.8s linear infinite',
           marginBottom: '1rem'
         }} />
-        <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700 }}>Loading Your Invoice PDF...</h2>
+        <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700 }}>Opening Invoice PDF...</h2>
         <p style={{ margin: '0.35rem 0 0', fontSize: '0.84rem', color: '#94a3b8' }}>
           Hindustan Saw Mill &amp; Wood Industries
         </p>
@@ -226,165 +283,93 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
 
   const grandTotal = resolvedExportData.finalGrandTotal || sheet.finalGrandTotal || 0;
 
+  // Mobile / Android / Fallback screen when browser cannot navigate directly to an inline blob PDF viewer
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f1f5f9', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      {/* Top Action Header Bar (Hidden when printing) */}
-      <div className="no-print" style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        backgroundColor: '#0f172a',
-        color: '#ffffff',
-        padding: '0.85rem 1.25rem',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#0f172a',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '1.5rem',
+      fontFamily: 'Inter, system-ui, sans-serif'
+    }}>
+      <div style={{
+        maxWidth: '420px',
+        width: '100%',
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        padding: '1.75rem 1.5rem',
+        textAlign: 'center',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.35)'
       }}>
         <div style={{
-          maxWidth: '960px',
-          margin: '0 auto',
+          width: '52px',
+          height: '52px',
+          borderRadius: '12px',
+          backgroundColor: '#fef2f2',
+          color: '#dc2626',
           display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
           alignItems: 'center',
-          gap: '0.75rem'
+          justifyContent: 'center',
+          margin: '0 auto 1rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(56, 189, 248, 0.15)',
-              display: 'flex',
+          <FileText size={26} />
+        </div>
+        <h2 style={{ margin: '0 0 0.35rem', fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+          {sheet.customerName || 'Proforma Invoice PDF'}
+        </h2>
+        <p style={{ margin: '0 0 1.25rem', fontSize: '0.86rem', color: '#64748b' }}>
+          Invoice #{resolvedExportData.invoiceNo} &bull; <strong>₹{formatIndianCurrency(grandTotal)}</strong>
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            style={{
+              width: '100%',
+              backgroundColor: '#dc2626',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '10px',
+              padding: '0.8rem 1rem',
+              fontSize: '0.92rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#38bdf8'
-            }}>
-              <FileText size={20} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.96rem', fontWeight: 800 }}>
-                {businessSettings.companyName}
-              </div>
-              <div style={{ fontSize: '0.76rem', color: '#cbd5e1' }}>
-                Invoice #{resolvedExportData.invoiceNo} &bull; {sheet.customerName || 'Valued Customer'} &bull; <strong>₹{formatIndianCurrency(grandTotal)}</strong>
-              </div>
-            </div>
-          </div>
+              gap: '0.45rem'
+            }}
+          >
+            <FileDown size={18} />
+            <span>Open / Download PDF ({pdfFilename})</span>
+          </button>
 
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              style={{
-                backgroundColor: '#dc2626',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '0.6rem 1.15rem',
-                fontSize: '0.88rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                boxShadow: '0 2px 8px rgba(220, 38, 38, 0.4)'
-              }}
-            >
-              <FileDown size={17} />
-              <span>Download PDF Invoice</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handlePrint}
-              style={{
-                backgroundColor: '#334155',
-                color: '#ffffff',
-                border: '1px solid #475569',
-                borderRadius: '8px',
-                padding: '0.6rem 1rem',
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem'
-              }}
-            >
-              <Printer size={16} />
-              <span>Print</span>
-            </button>
-          </div>
-        </div>
-
-        {downloadedNotice && (
-          <div style={{
-            maxWidth: '960px',
-            margin: '0.5rem auto 0',
-            padding: '0.45rem 0.75rem',
-            backgroundColor: '#166534',
-            color: '#ffffff',
-            borderRadius: '6px',
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.35rem'
-          }}>
-            <CheckCircle2 size={14} /> Proforma Invoice PDF downloaded successfully!
-          </div>
-        )}
-      </div>
-
-      {/* Rendered Invoice Document */}
-      <div style={{ padding: '1rem 0.5rem 2.5rem', overflowX: 'auto' }}>
-        <div style={{ maxWidth: '840px', margin: '0 auto', backgroundColor: '#ffffff', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
-          <PrintableProformaInvoice
-            businessSettings={businessSettings}
-            voucherType={resolvedExportData.voucherType}
-            invoiceNo={resolvedExportData.invoiceNo}
-            eWayBillNo={resolvedExportData.eWayBillNo}
-            invoiceDate={resolvedExportData.invoiceDate}
-            deliveryNote={resolvedExportData.deliveryNote}
-            paymentTerms={resolvedExportData.paymentTerms}
-            refNoAndDate={resolvedExportData.refNoAndDate}
-            otherReferences={resolvedExportData.otherReferences}
-            buyerOrderNo={resolvedExportData.buyerOrderNo}
-            buyerOrderDate={resolvedExportData.buyerOrderDate}
-            dispatchDocNo={resolvedExportData.dispatchDocNo}
-            deliveryNoteDate={resolvedExportData.deliveryNoteDate}
-            dispatchedThrough={resolvedExportData.dispatchedThrough}
-            destination={resolvedExportData.destination}
-            billOfLadingNo={resolvedExportData.billOfLadingNo}
-            motorVehicleNo={resolvedExportData.motorVehicleNo}
-            termsOfDelivery={resolvedExportData.termsOfDelivery}
-            consigneeName={resolvedExportData.consigneeName}
-            consigneePhone={resolvedExportData.consigneePhone}
-            consigneeAddress={resolvedExportData.consigneeAddress}
-            consigneeGstin={resolvedExportData.consigneeGstin}
-            consigneeState={resolvedExportData.consigneeState}
-            consigneeStateCode={resolvedExportData.consigneeStateCode}
-            buyerName={resolvedExportData.buyerName}
-            buyerPhone={resolvedExportData.buyerPhone}
-            buyerAddress={resolvedExportData.buyerAddress}
-            buyerGstin={resolvedExportData.buyerGstin}
-            buyerState={resolvedExportData.buyerState}
-            buyerStateCode={resolvedExportData.buyerStateCode}
-            logType={sheet.logType}
-            roundLogOutputUnit={sheet.roundLogOutputUnit}
-            roundLogInputUnit={sheet.roundLogInputUnit}
-            roundLogItems={sheet.roundLogItems}
-            roundLogSlabRates={sheet.roundLogSlabRates}
-            items={sheet.items}
-            ratePerCft={businessSettings.ratePerCft}
-            additionalCharges={sheet.additionalCharges}
-            discountAmount={resolvedExportData.discountAmount}
-            discountDesc={resolvedExportData.discountDesc}
-            gstPercent={sheet.gstPercent}
-            gstTaxableBase={resolvedExportData.gstTaxableBase}
-            gstAmount={resolvedExportData.gstAmount}
-            finalGrandTotal={grandTotal}
-            advanceAmount={resolvedExportData.advanceAmount}
-          />
+          <button
+            type="button"
+            onClick={handlePrint}
+            style={{
+              width: '100%',
+              backgroundColor: '#f1f5f9',
+              color: '#0f172a',
+              border: '1px solid #cbd5e1',
+              borderRadius: '10px',
+              padding: '0.75rem 1rem',
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.45rem'
+            }}
+          >
+            <Printer size={17} />
+            <span>Print Original PDF</span>
+          </button>
         </div>
       </div>
     </div>
