@@ -4,6 +4,7 @@ import { Navbar } from './components/Navbar';
 import { CalculatorPage } from './pages/CalculatorPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { HistoryPage } from './pages/HistoryPage';
+import { MeasurementSheetsPage } from './pages/MeasurementSheetsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AccessRestrictedScreen } from './components/AccessRestrictedScreen';
@@ -26,7 +27,7 @@ const defaultSettings: BusinessSettings = {
 };
 
 const MainApp: React.FC<{ onNavigateToAdmin?: () => void }> = ({ onNavigateToAdmin }) => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'calculator' | 'history' | 'settings'>('calculator');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'calculator' | 'history' | 'measurement_sheets' | 'settings'>('calculator');
   const [activeSheet, setActiveSheet] = useState<MeasurementSheet | null>(null);
 
   // Business settings state
@@ -112,6 +113,10 @@ const MainApp: React.FC<{ onNavigateToAdmin?: () => void }> = ({ onNavigateToAdm
             }}
             businessSettings={settings}
           />
+        )}
+
+        {currentView === 'measurement_sheets' && (
+          <MeasurementSheetsPage businessSettings={settings} />
         )}
 
         {currentView === 'settings' && (

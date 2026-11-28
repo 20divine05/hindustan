@@ -8,14 +8,17 @@ import {
   UserCheck,
   ChevronDown,
   SlidersHorizontal,
-  ShieldCheck
+  ShieldCheck,
+  Printer
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { SupabaseConfigModal } from './SupabaseConfigModal';
 
+export type NavView = 'dashboard' | 'calculator' | 'history' | 'measurement_sheets' | 'settings';
+
 interface NavbarProps {
-  currentView: 'dashboard' | 'calculator' | 'history' | 'settings';
-  onNavigate: (view: 'dashboard' | 'calculator' | 'history' | 'settings') => void;
+  currentView: NavView;
+  onNavigate: (view: NavView) => void;
   onNavigateToAdmin?: () => void;
   activeSheetName?: string;
 }
@@ -132,11 +135,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onNavig
                   {currentView === 'dashboard' && <LayoutDashboard size={14} color="var(--primary-700)" />}
                   {currentView === 'calculator' && <Calculator size={14} color="var(--primary-700)" />}
                   {currentView === 'history' && <FileSpreadsheet size={14} color="var(--primary-700)" />}
+                  {currentView === 'measurement_sheets' && <Printer size={14} color="var(--primary-700)" />}
                   {currentView === 'settings' && <Settings size={14} color="var(--primary-700)" />}
                   <span>
                     {currentView === 'dashboard' && 'Dashboard'}
                     {currentView === 'calculator' && 'Calculator'}
                     {currentView === 'history' && 'Saved'}
+                    {currentView === 'measurement_sheets' && 'Measurement'}
                     {currentView === 'settings' && 'Settings'}
                   </span>
                   <ChevronDown size={13} color="var(--text-muted)" />
@@ -207,6 +212,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onNavig
                       }}
                     >
                       <FileSpreadsheet size={16} /> Saved Sheets
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${currentView === 'measurement_sheets' ? 'btn-primary' : 'btn-ghost'}`}
+                      style={{ justifyContent: 'flex-start', gap: '0.5rem', fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      onClick={() => {
+                        onNavigate('measurement_sheets');
+                        setIsMobileNavMenuOpen(false);
+                      }}
+                    >
+                      <Printer size={16} /> Measurement Sheet
                     </button>
 
                     <button
@@ -292,6 +309,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onNavig
               onClick={() => onNavigate('history')}
             >
               <FileSpreadsheet size={16} /> Saved Sheets
+            </button>
+
+            <button
+              type="button"
+              className={`btn btn-sm ${currentView === 'measurement_sheets' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => onNavigate('measurement_sheets')}
+            >
+              <Printer size={16} /> Measurement Sheet
             </button>
 
             <button

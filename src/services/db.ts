@@ -438,11 +438,15 @@ export const dbService = {
       return (data || [])
         .map((row) => {
           let isConfirmed = Boolean(row.is_confirmed);
+          let proformaExportData: Record<string, any> | undefined;
           let cleanNotes = row.notes || '';
           if (cleanNotes.startsWith('__TIMBER_META__')) {
             try {
               const meta = JSON.parse(cleanNotes.replace('__TIMBER_META__', ''));
               if (meta.isConfirmed !== undefined) isConfirmed = Boolean(meta.isConfirmed);
+              if (meta.proformaExportData && typeof meta.proformaExportData === 'object') {
+                proformaExportData = meta.proformaExportData;
+              }
               cleanNotes = meta.rawNotes || '';
             } catch {}
           }
@@ -457,6 +461,7 @@ export const dbService = {
             notes: cleanNotes,
             items: [],
             isConfirmed,
+            proformaExportData,
             totalEntries: row.total_entries || 0,
             totalPieces: Number(row.total_pieces) || 0,
             totalCft: Number(row.total_cft) || 0,
