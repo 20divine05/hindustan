@@ -11,6 +11,7 @@ interface MeasurementSheetsPageProps {
 }
 
 export interface MeasurementSheetDispatchDetails {
+  gstNumber: string;
   billOfEntryNo: string;
   boeDate: string;
   motorVehicleNo: string;
@@ -31,6 +32,7 @@ export function resolveSheetInvoiceNumber(sheet: MeasurementSheet): string {
 export function resolveSheetDispatchDetails(sheet: MeasurementSheet): MeasurementSheetDispatchDetails {
   const exp = sheet.proformaExportData || {};
   return {
+    gstNumber: String(sheet.gstNumber ?? exp.gstNumber ?? '').trim(),
     billOfEntryNo: String(sheet.billOfEntryNo ?? exp.billOfEntryNo ?? '').trim(),
     boeDate: String(sheet.boeDate ?? exp.boeDate ?? '').trim(),
     motorVehicleNo: String(sheet.motorVehicleNo ?? exp.motorVehicleNo ?? '').trim(),
@@ -55,6 +57,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
 
   const [editingSheet, setEditingSheet] = useState<MeasurementSheet | null>(null);
   const [detailForm, setDetailForm] = useState<MeasurementSheetDispatchDetails>({
+    gstNumber: '',
     billOfEntryNo: '',
     boeDate: '',
     motorVehicleNo: '',
@@ -121,6 +124,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
       }
 
       const nextDetails: MeasurementSheetDispatchDetails = {
+        gstNumber: detailForm.gstNumber.trim(),
         billOfEntryNo: detailForm.billOfEntryNo.trim(),
         boeDate: detailForm.boeDate.trim(),
         motorVehicleNo: detailForm.motorVehicleNo.trim(),
@@ -175,6 +179,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
       customer.includes(q) ||
       invoiceNo.includes(q) ||
       ref.includes(q) ||
+      details.gstNumber.toLowerCase().includes(q) ||
       details.billOfEntryNo.toLowerCase().includes(q) ||
       details.motorVehicleNo.toLowerCase().includes(q) ||
       details.containerNo.toLowerCase().includes(q)
@@ -183,6 +188,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
 
   const formatDetailsSummary = (d: MeasurementSheetDispatchDetails): string => {
     const parts: string[] = [];
+    if (d.gstNumber) parts.push(`Inv: ${d.gstNumber}`);
     if (d.billOfEntryNo) parts.push(`BOE: ${d.billOfEntryNo}`);
     if (d.boeDate) parts.push(`Date: ${d.boeDate}`);
     if (d.motorVehicleNo) parts.push(`Veh: ${d.motorVehicleNo}`);
@@ -518,6 +524,19 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.28rem', color: 'var(--text-main)' }}>
+                  GST Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. HSM/26-27/042"
+                  value={detailForm.gstNumber}
+                  onChange={(e) => setDetailForm((prev) => ({ ...prev, gstNumber: e.target.value }))}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.28rem', color: 'var(--text-main)' }}>
                   Bill of Entry No.

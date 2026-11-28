@@ -244,6 +244,7 @@ export function sanitizeAndComputeSheet(
     consigneeState: sheet.consigneeState?.trim() || '',
     consigneeStateCode: sheet.consigneeStateCode?.trim() || '',
     motorVehicleNo: sheet.motorVehicleNo?.trim() || '',
+    gstNumber: sheet.gstNumber?.trim() || '',
     billOfEntryNo: sheet.billOfEntryNo?.trim() || '',
     boeDate: sheet.boeDate?.trim() || '',
     containerNo: sheet.containerNo?.trim() || '',
@@ -494,6 +495,7 @@ export const dbService = {
           let isConfirmed = Boolean(row.is_confirmed);
           let proformaExportData: Record<string, any> | undefined;
           let motorVehicleNo = '';
+          let gstNumber = '';
           let billOfEntryNo = '';
           let boeDate = '';
           let containerNo = '';
@@ -507,6 +509,7 @@ export const dbService = {
                 proformaExportData = meta.proformaExportData;
               }
               motorVehicleNo = meta.motorVehicleNo || proformaExportData?.motorVehicleNo || '';
+              gstNumber = meta.gstNumber || proformaExportData?.gstNumber || '';
               billOfEntryNo = meta.billOfEntryNo || proformaExportData?.billOfEntryNo || '';
               boeDate = meta.boeDate || proformaExportData?.boeDate || '';
               containerNo = meta.containerNo || proformaExportData?.containerNo || '';
@@ -526,6 +529,7 @@ export const dbService = {
             items: [],
             isConfirmed,
             motorVehicleNo,
+            gstNumber,
             billOfEntryNo,
             boeDate,
             containerNo,
@@ -678,6 +682,7 @@ export const dbService = {
         consigneeState: parsedMeta ? (parsedMeta.consigneeState || '') : (localSheet?.consigneeState || ''),
         consigneeStateCode: parsedMeta ? (parsedMeta.consigneeStateCode || '') : (localSheet?.consigneeStateCode || ''),
         motorVehicleNo: parsedMeta ? (parsedMeta.motorVehicleNo || '') : (localSheet?.motorVehicleNo || ''),
+        gstNumber: parsedMeta ? (parsedMeta.gstNumber || '') : (localSheet?.gstNumber || ''),
         billOfEntryNo: parsedMeta ? (parsedMeta.billOfEntryNo || '') : (localSheet?.billOfEntryNo || ''),
         boeDate: parsedMeta ? (parsedMeta.boeDate || '') : (localSheet?.boeDate || ''),
         containerNo: parsedMeta ? (parsedMeta.containerNo || '') : (localSheet?.containerNo || ''),
@@ -776,6 +781,7 @@ export const dbService = {
           consigneeState: sanitized.consigneeState,
           consigneeStateCode: sanitized.consigneeStateCode,
           motorVehicleNo: sanitized.motorVehicleNo,
+          gstNumber: sanitized.gstNumber,
           billOfEntryNo: sanitized.billOfEntryNo,
           boeDate: sanitized.boeDate,
           containerNo: sanitized.containerNo,

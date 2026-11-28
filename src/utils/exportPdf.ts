@@ -34,6 +34,7 @@ export interface ProformaInvoiceExportData {
   destination?: string;
   billOfLadingNo?: string;
   motorVehicleNo?: string;
+  gstNumber?: string;
   billOfEntryNo?: string;
   boeDate?: string;
   containerNo?: string;
@@ -139,6 +140,7 @@ export function createProformaInvoiceDoc(
   const buyerOrderDate = invoiceData?.buyerOrderDate || '';
   const destination = invoiceData?.destination || sheet.destination || sheet.consigneeDistrict?.toUpperCase() || sheet.consigneeState?.toUpperCase() || sheet.customerState?.toUpperCase() || 'BANGLORE';
   const motorVehicleNo = invoiceData?.motorVehicleNo ?? sheet.motorVehicleNo ?? '';
+  const gstNumber = invoiceData?.gstNumber ?? sheet.gstNumber ?? '';
   const billOfEntryNo = invoiceData?.billOfEntryNo ?? sheet.billOfEntryNo ?? '';
   const boeDate = invoiceData?.boeDate ?? sheet.boeDate ?? '';
   const containerNo = invoiceData?.containerNo ?? sheet.containerNo ?? '';
@@ -552,20 +554,22 @@ export function createProformaInvoiceDoc(
     doc.line(rightDividerX, 15, rightDividerX, 42); // Vertical divider between left/right metadata cells (rows 0 to 2)
   }
 
-  // Row 0 (15 to 24): Reference number only | Dated (Measurement Sheet) or Invoice No | e-Way Bill No | Dated (Proforma Invoice)
+  // Row 0 (15 to 24): Invoice Number (GST Number) | Dated (Measurement Sheet) or Invoice No | e-Way Bill No | Dated (Proforma Invoice)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.8);
   doc.setTextColor(80, 80, 80);
-  if (!isMeasurementOnly) {
+  if (isMeasurementOnly) {
+    doc.text('Invoice Number', 106.5, 18.2);
+  } else {
     doc.text('Invoice No.', 106.5, 18.2);
     doc.text('e-Way Bill No.', 130.5, 18.2);
   }
   doc.text('Dated', 154.0, 18.2);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(isMeasurementOnly ? 9.5 : 8.5);
+  doc.setFontSize(8.5);
   doc.setTextColor(0, 0, 0);
-  doc.text(invoiceNo, 106.5, isMeasurementOnly ? 20.8 : 22.2);
+  doc.text(isMeasurementOnly ? (gstNumber || '') : invoiceNo, 106.5, 22.2);
   if (!isMeasurementOnly) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
@@ -1698,21 +1702,107 @@ export function createProformaInvoiceDoc(
     const qtyCountText = isRoundLog ? `${totalPieces} logs` : `${totalPieces} pcs`;
     const cbmText = effectiveTotalCbm.toFixed(4);
     const vehText = motorVehicleNo || '__________';
-    const billText = invoiceNo || '__________';
+    const gstInvText = gstNumber || '__________';
     const datedText = formattedDate || '__________';
     const boeText = billOfEntryNo || '__________';
     const boeDateText = boeDate || '__________';
 
     const concernHeading = 'TO WHOM SO EVER IT MAY CONCERN';
-    const para1 = `This is to inform that, we are herewith sending imported timber of ${woodNameText}, ${qtyCountText} measuring ${cbmText} CBM by vehicle No. ${vehText} under our Bill No. ${billText} dated ${datedText}, the said timber is imported timber vide Customs Bill of Entry No. ${boeText} dated ${boeDateText} copy of which is enclosed.`;
-    const para2 = 'As per the recent Karnataka Government Notification No. FEE.44.FDP.2005 Dtd 4th May 2006 and Karnataka Gazette Notification copy no. KA/BG-GPO/2515/WPP-47/2006 Dtd 4th May 2006, all the imported timber is exempted from issue of Forest transit permits vide above notification copies enclosed herewith.';
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.0);
-    const lines1: string[] = doc.splitTextToSize(para1, 182);
-    const lines2: string[] = doc.splitTextToSize(para2, 182);
+    interface RichRun {
+      text: string;
+      bold: boolean;
+    }
+
+    const layoutRichParagraph = (segments: Array<{ text: string; bold?: boolean }>, maxWidthMm: number): RichRun[][] => {
+      const tokens: RichRun[] = [];
+      for (const seg of segments) {
+        const isBold = Boolean(seg.bold);
+        for (const part of seg.text.split(/(\s+)/)) {
+          if (part.length > 0) {
+            tokens.push({ text: part, bold: isBold });
+          }
+        }
+      }
+
+      const lines: RichRun[][] = [];
+      let currentLine: RichRun[] = [];
+      let currentW = 0;
+
+      const pushLine = () => {
+        // Trim trailing whitespace on wrapped line and coalesce adjacent same-weight runs
+        while (currentLine.length > 0 && /^\s+$/.test(currentLine[currentLine.length - 1].text)) {
+          currentLine.pop();
+        }
+        const merged: RichRun[] = [];
+        for (const tok of currentLine) {
+          if (merged.length > 0 && merged[merged.length - 1].bold === tok.bold) {
+            merged[merged.length - 1].text += tok.text;
+          } else {
+            merged.push({ ...tok });
+          }
+        }
+        if (merged.length > 0) {
+          lines.push(merged);
+        }
+        currentLine = [];
+        currentW = 0;
+      };
+
+      doc.setFontSize(8.0);
+      for (const tok of tokens) {
+        const isSpace = /^\s+$/.test(tok.text);
+        if (currentLine.length === 0 && isSpace) continue;
+
+        doc.setFont('helvetica', tok.bold ? 'bold' : 'normal');
+        const tokW = doc.getTextWidth(tok.text);
+
+        if (!isSpace && currentW + tokW > maxWidthMm && currentLine.length > 0) {
+          pushLine();
+        }
+        if (currentLine.length === 0 && isSpace) continue;
+
+        currentLine.push(tok);
+        currentW += tokW;
+      }
+      pushLine();
+      return lines;
+    };
+
+    const para1Lines = layoutRichParagraph(
+      [
+        { text: 'This is to inform that, we are herewith sending imported timber of ' },
+        { text: `${woodNameText}, ${qtyCountText}`, bold: true },
+        { text: ' measuring ' },
+        { text: `${cbmText} CBM`, bold: true },
+        { text: ' by vehicle No. ' },
+        { text: vehText, bold: true },
+        { text: ' under our Invoice Number ' },
+        { text: gstInvText, bold: true },
+        { text: ' dated ' },
+        { text: datedText, bold: true },
+        { text: ', the said timber is imported timber vide Customs Bill of Entry No. ' },
+        { text: boeText, bold: true },
+        { text: ' dated ' },
+        { text: boeDateText, bold: true },
+        { text: ' copy of which is enclosed.' }
+      ],
+      182
+    );
+
+    const para2Lines = layoutRichParagraph(
+      [
+        { text: 'As per the recent Karnataka Government Notification No. ' },
+        { text: 'FEE.44.FDP.2005 Dtd 4th May 2006', bold: true },
+        { text: ' and Karnataka Gazette Notification copy no. ' },
+        { text: 'KA/BG-GPO/2515/WPP-47/2006 Dtd 4th May 2006', bold: true },
+        { text: ', all the imported timber is exempted from issue of Forest transit permits vide above notification copies enclosed herewith.' }
+      ],
+      182
+    );
+
     const lineGap = 3.7;
-    const declHeight = 14.5 + (lines1.length + lines2.length) * lineGap;
+    const declHeight = 14.5 + (para1Lines.length + para2Lines.length) * lineGap;
     const boxHeight = 32;
 
     let bottomY = finalY;
@@ -1734,18 +1824,23 @@ export function createProformaInvoiceDoc(
     doc.line(105 - headingW / 2, bottomY + 6.4, 105 + headingW / 2, bottomY + 6.4);
 
     let textY = bottomY + 10.8;
-    doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.0);
-    doc.setTextColor(20, 20, 20);
-    for (const line of lines1) {
-      doc.text(line, 14.0, textY);
-      textY += lineGap;
-    }
+    const drawLines = (richLines: RichRun[][]) => {
+      for (const runs of richLines) {
+        let curX = 14.0;
+        for (const run of runs) {
+          doc.setFont('helvetica', run.bold ? 'bold' : 'normal');
+          doc.setTextColor(run.bold ? 0 : 25, run.bold ? 0 : 25, run.bold ? 0 : 25);
+          doc.text(run.text, curX, textY);
+          curX += doc.getTextWidth(run.text);
+        }
+        textY += lineGap;
+      }
+    };
+
+    drawLines(para1Lines);
     textY += 2.2;
-    for (const line of lines2) {
-      doc.text(line, 14.0, textY);
-      textY += lineGap;
-    }
+    drawLines(para2Lines);
 
     bottomY += declHeight;
 
