@@ -1,8 +1,10 @@
 import type { BusinessSettings, MeasurementSheet } from '../types';
 import { formatValue } from './calculator';
+import { resolveBusinessSettings } from './businessSettings';
 
 export function exportSheetToCsv(sheet: MeasurementSheet, settings?: BusinessSettings): void {
-  const companyName = settings?.companyName || 'Hindustan Saw Mill & Wood Industries (Since 1971)';
+  const biz = resolveBusinessSettings(settings);
+  const companyName = biz.companyName;
   const csvRows: string[] = [];
 
   // UTF-8 BOM for Microsoft Excel compatibility

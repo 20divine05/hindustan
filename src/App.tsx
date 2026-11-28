@@ -12,45 +12,22 @@ import { PublicInvoicePage } from './components/PublicInvoicePage';
 import { visitorService } from './services/visitorService';
 import type { BusinessSettings, MeasurementSheet, AppVisitor } from './types';
 import { dbService } from './services/db';
-
-const SETTINGS_STORAGE_KEY = 'timberpro_business_settings';
-
-const defaultSettings: BusinessSettings = {
-  companyName: 'Hindustan Saw Mill & Wood Industries',
-  tagline: 'Saw Mill & Wood Industries — Established Since 1971',
-  address: 'Hindustan Saw Mill Industrial Complex',
-  phone: '+91 (0) 98765 43210',
-  email: 'info@hindustansawmill.com',
-  taxId: 'HSM-WOOD-1971',
-  sqftFormulaType: 'standard_1face',
-  currencySymbol: '₹'
-};
+import {
+  DEFAULT_BUSINESS_SETTINGS,
+  loadBusinessSettings,
+  saveBusinessSettings
+} from './utils/businessSettings';
 
 const MainApp: React.FC<{ onNavigateToAdmin?: () => void }> = ({ onNavigateToAdmin }) => {
   const [currentView, setCurrentView] = useState<'dashboard' | 'calculator' | 'history' | 'measurement_sheets' | 'settings'>('calculator');
   const [activeSheet, setActiveSheet] = useState<MeasurementSheet | null>(null);
 
   // Business settings state
-  const [settings, setSettings] = useState<BusinessSettings>(() => {
-    try {
-      const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.companyName === 'TimberCraft Wood Industries' || !parsed.companyName) {
-          localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(defaultSettings));
-          return defaultSettings;
-        }
-        return parsed;
-      }
-      return defaultSettings;
-    } catch {
-      return defaultSettings;
-    }
-  });
+  const [settings, setSettings] = useState<BusinessSettings>(() => loadBusinessSettings());
 
   const handleUpdateSettings = (newSettings: BusinessSettings) => {
-    setSettings(newSettings);
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
+    const saved = saveBusinessSettings(newSettings);
+    setSettings(saved);
   };
 
   // Purge any legacy demo draft from previous sessions on startup
@@ -83,6 +60,7 @@ const MainApp: React.FC<{ onNavigateToAdmin?: () => void }> = ({ onNavigateToAdm
         }}
         onNavigateToAdmin={onNavigateToAdmin}
         activeSheetName={activeSheet?.sheetName}
+        businessSettings={settings}
       />
 
       <main className="main-content">
@@ -136,8 +114,15 @@ const MainApp: React.FC<{ onNavigateToAdmin?: () => void }> = ({ onNavigateToAdm
       <footer className="app-footer no-print">
         <div className="app-footer-inner">
           <div className="app-footer-brand">
-            <img src="/logo-icon-transparent.png" alt="Logo" className="app-footer-logo" />
-            <span>Hindustan Saw Mill &bull; Since 1971</span>
+            <img
+              src={settings.logoDataUrl || '/logo-icon-transparent.png'}
+              alt="Logo"
+              className="app-footer-logo"
+            />
+            <span>
+              {settings.companyName || DEFAULT_BUSINESS_SETTINGS.companyName}
+              {settings.sinceBadge ? ` • ${settings.sinceBadge}` : ''}
+            </span>
             {onNavigateToAdmin && (
               <a
                 href="/admin"
@@ -222,7 +207,7 @@ export function App() {
 
   // 0. Public Read-Only Shared Invoice PDF Route (from WhatsApp invoice link)
   if (publicInvoiceId) {
-    return <PublicInvoicePage sheetId={publicInvoiceId} businessSettings={defaultSettings} />;
+    return <PublicInvoicePage sheetId={publicInvoiceId} businessSettings={loadBusinessSettings()} />;
   }
 
   const handleNavigateToAdmin = () => {

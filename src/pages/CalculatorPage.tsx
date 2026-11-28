@@ -1583,6 +1583,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       finalGrandTotal,
       advanceAmount: advanceAmount > 0 ? advanceAmount : undefined,
       gstAmount,
+      bankHolder: businessSettings?.bankAccountHolder,
+      bankName: businessSettings?.bankName,
+      bankAccountNo: businessSettings?.bankAccountNo,
+      bankIfsc: businessSettings?.bankBranchIfsc,
+      upiId: businessSettings?.upiId,
       items: invoiceItems
     };
 

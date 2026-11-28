@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Building2,
   Calculator,
@@ -9,11 +9,22 @@ import {
   CheckCircle2,
   ShieldCheck,
   User,
-  Info
+  Info,
+  Upload,
+  RotateCcw,
+  Landmark,
+  QrCode
 } from 'lucide-react';
 import type { BusinessSettings } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getSupabaseCredentials, saveCustomSupabaseCredentials, clearCustomSupabaseCredentials } from '../lib/supabase';
+import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
+import {
+  DEFAULT_BUSINESS_SETTINGS,
+  resolveBusinessSettings,
+  processBrandImageUpload,
+  generateUpiQrDataUrl
+} from '../utils/businessSettings';
 
 interface SettingsPageProps {
   settings: BusinessSettings;
@@ -24,9 +35,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onUpdateSe
   const { user, isSupabaseConnected } = useAuth();
   const credentials = getSupabaseCredentials();
 
-  // Local state for Business Profile Form
-  const [formData, setFormData] = useState<BusinessSettings>(settings);
+  // Unified editable Business, Logo, Bank & UPI Profile Form
+  const [formData, setFormData] = useState<BusinessSettings>(() => resolveBusinessSettings(settings));
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [generatingQr, setGeneratingQr] = useState(false);
+
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
+  const qrInputRef = useRef<HTMLInputElement | null>(null);
 
   // Supabase state
   const [dbUrl, setDbUrl] = useState(credentials.url);
@@ -36,9 +52,82 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onUpdateSe
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateSettings(formData);
+    setUploadError(null);
+    const resolved = resolveBusinessSettings(formData);
+    setFormData(resolved);
+    onUpdateSettings(resolved);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
+  };
+
+  const handleResetAllBusinessDefaults = () => {
+    const defaults = { ...DEFAULT_BUSINESS_SETTINGS };
+    setFormData(defaults);
+    onUpdateSettings(defaults);
+    setUploadError(null);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2500);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError(null);
+    try {
+      const dataUrl = await processBrandImageUpload(file, {
+        maxDim: 360,
+        squareFit: true,
+        preserveTransparency: true
+      });
+      const updated = { ...formData, logoDataUrl: dataUrl };
+      setFormData(updated);
+      onUpdateSettings(updated);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err: any) {
+      setUploadError(err?.message || 'Failed to load logo image.');
+    } finally {
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
+
+  const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError(null);
+    try {
+      const dataUrl = await processBrandImageUpload(file, {
+        maxDim: 360,
+        squareFit: true,
+        preserveTransparency: false
+      });
+      const updated = { ...formData, upiQrDataUrl: dataUrl };
+      setFormData(updated);
+      onUpdateSettings(updated);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err: any) {
+      setUploadError(err?.message || 'Failed to load QR code image.');
+    } finally {
+      if (qrInputRef.current) qrInputRef.current.value = '';
+    }
+  };
+
+  const handleGenerateQrFromUpi = async () => {
+    setUploadError(null);
+    setGeneratingQr(true);
+    try {
+      const qrDataUrl = await generateUpiQrDataUrl(formData.upiId || '', formData.companyName);
+      const updated = { ...formData, upiQrDataUrl: qrDataUrl };
+      setFormData(updated);
+      onUpdateSettings(updated);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err: any) {
+      setUploadError(err?.message || 'Enter a valid UPI ID first.');
+    } finally {
+      setGeneratingQr(false);
+    }
   };
 
   const handleSaveDb = (e: React.FormEvent) => {
@@ -125,27 +214,60 @@ CREATE POLICY "Allow all on measurement_items" ON public.measurement_items FOR A
       <div>
         <h1 style={{ fontSize: '1.75rem', margin: '0 0 0.35rem' }}>Business &amp; System Settings</h1>
         <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-          Configure timber company branding, measurement formulas, and Supabase cloud database credentials
+          Edit company branding, logo, invoice header details, bank details, UPI QR code, and database credentials
         </p>
       </div>
 
-      {/* 1. Timber Business Branding */}
+      {/* 1. Timber Business Branding + Bank + Logo + UPI QR */}
       <div className="card">
         <div className="card-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <Building2 size={20} color="var(--primary-400)" />
-            <h3 style={{ fontSize: '1.2rem', margin: 0 }}>Hindustan Saw Mill &amp; Wood Industries Profile</h3>
+            <h3 style={{ fontSize: '1.2rem', margin: 0 }}>Business Profile, Logo &amp; Bank Details</h3>
           </div>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Appears on all exported PDF tallies &amp; CSV reports
+            Synced across Invoices, Measurement Sheets &amp; Exports
           </span>
         </div>
 
-        {/* Logo Preview Banner */}
+        <input
+          ref={logoInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleLogoUpload}
+        />
+        <input
+          ref={qrInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleQrUpload}
+        />
+
+        {uploadError && (
+          <div
+            style={{
+              marginBottom: '1rem',
+              padding: '0.6rem 0.85rem',
+              borderRadius: '8px',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#b91c1c',
+              fontSize: '0.85rem',
+              fontWeight: 600
+            }}
+          >
+            {uploadError}
+          </div>
+        )}
+
+        {/* Logo Preview & Upload Banner */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'space-between',
             gap: '1.25rem',
             padding: '1rem',
             backgroundColor: 'var(--bg-surface)',
@@ -155,44 +277,72 @@ CREATE POLICY "Allow all on measurement_items" ON public.measurement_items FOR A
             flexWrap: 'wrap'
           }}
         >
-          <img
-            src="/logo.png"
-            alt="Hindustan Saw Mill & Wood Industries Logo"
-            style={{
-              height: '56px',
-              maxWidth: '260px',
-              objectFit: 'contain',
-              backgroundColor: '#f7f4ea',
-              borderRadius: '6px',
-              padding: '4px 8px'
-            }}
-          />
-          <div>
-            <span
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <img
+              src={formData.logoDataUrl || '/logo-icon-transparent.png'}
+              alt="Company Logo"
               style={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                backgroundColor: 'rgba(217, 155, 38, 0.2)',
-                color: 'var(--amber-300)',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                border: '1px solid rgba(217, 155, 38, 0.35)'
+                height: '62px',
+                width: '62px',
+                objectFit: 'contain',
+                backgroundColor: '#ffffff',
+                border: '1px solid var(--border-light)',
+                borderRadius: '8px',
+                padding: '6px'
               }}
+            />
+            <div>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  backgroundColor: formData.logoDataUrl ? 'rgba(22, 163, 74, 0.14)' : 'rgba(217, 155, 38, 0.2)',
+                  color: formData.logoDataUrl ? '#15803d' : 'var(--amber-300)',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  border: `1px solid ${formData.logoDataUrl ? 'rgba(22, 163, 74, 0.35)' : 'rgba(217, 155, 38, 0.35)'}`
+                }}
+              >
+                {formData.logoDataUrl ? 'Custom Logo Active' : 'Default Logo Active'}
+              </span>
+              <p style={{ margin: '0.35rem 0 0', fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                Printed in top-left header of Measurement Sheets, Proforma Invoices &amp; navbar.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => logoInputRef.current?.click()}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
             >
-              Official Brand Identity Active
-            </span>
-            <p style={{ margin: '0.35rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Logo and company credentials will be printed on customer measurement tally sheets and exports.
-            </p>
+              <Upload size={14} /> Upload Logo
+            </button>
+            {formData.logoDataUrl && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  const updated = { ...formData, logoDataUrl: '' };
+                  setFormData(updated);
+                  onUpdateSettings(updated);
+                }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
+              >
+                <RotateCcw size={13} /> Reset Logo
+              </button>
+            )}
           </div>
         </div>
 
         <form onSubmit={handleSaveSettings}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.15rem', marginBottom: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                Business Name:
+                Business Name (Invoice Header):
               </label>
               <input
                 type="text"
@@ -215,18 +365,31 @@ CREATE POLICY "Allow all on measurement_items" ON public.measurement_items FOR A
 
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                Yard / Sawmill Address:
+                Header Badge (e.g. SINCE 1971):
               </label>
               <input
                 type="text"
+                value={formData.sinceBadge ?? ''}
+                onChange={(e) => setFormData({ ...formData, sinceBadge: e.target.value })}
+                placeholder="SINCE 1971"
+              />
+            </div>
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                Company / Yard Address (supports multiple lines):
+              </label>
+              <textarea
+                rows={2}
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                style={{ width: '100%', resize: 'vertical' }}
               />
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                Contact Phone:
+                Accounts / Contact Phone:
               </label>
               <input
                 type="text"
@@ -237,7 +400,7 @@ CREATE POLICY "Allow all on measurement_items" ON public.measurement_items FOR A
 
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                Contact Email:
+                Accounts / Contact Email:
               </label>
               <input
                 type="email"
@@ -248,25 +411,218 @@ CREATE POLICY "Allow all on measurement_items" ON public.measurement_items FOR A
 
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                Tax / GST / Business ID:
+                GSTIN / Tax ID:
               </label>
               <input
                 type="text"
                 value={formData.taxId}
-                onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, taxId: e.target.value.toUpperCase() })}
               />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                State Name &amp; State Code:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 84px', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.state ?? ''}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  placeholder="Karnataka"
+                />
+                <input
+                  type="text"
+                  value={formData.stateCode ?? ''}
+                  onChange={(e) => setFormData({ ...formData, stateCode: e.target.value })}
+                  placeholder="29"
+                  style={{ textAlign: 'center' }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                Default Rate per CFT &amp; Currency:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.currencySymbol}
+                  onChange={(e) => setFormData({ ...formData, currencySymbol: e.target.value })}
+                  style={{ textAlign: 'center' }}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={formData.ratePerCft ?? 1200}
+                  onChange={(e) => setFormData({ ...formData, ratePerCft: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem' }}>
-            {saveSuccess && (
-              <span style={{ fontSize: '0.85rem', color: 'var(--primary-400)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Check size={16} /> Business details updated!
-              </span>
-            )}
-            <button type="submit" className="btn btn-primary btn-sm">
-              <Save size={15} /> Save Business Profile
+          {/* Company Bank Details & UPI QR Section */}
+          <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '1.35rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '1rem' }}>
+              <Landmark size={18} color="var(--primary-500)" />
+              <h4 style={{ fontSize: '1.05rem', margin: 0 }}>Company&apos;s Bank Details &amp; UPI Scanner</h4>
+            </div>
+
+            {/* UPI QR Upload / Generate Row */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                padding: '0.9rem 1rem',
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-medium)',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '1.25rem',
+                flexWrap: 'wrap'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <img
+                  src={formData.upiQrDataUrl || PAYMENT_QR_BASE64}
+                  alt="Payment UPI QR Code"
+                  style={{
+                    height: '68px',
+                    width: '68px',
+                    objectFit: 'contain',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid var(--border-light)',
+                    borderRadius: '6px',
+                    padding: '4px'
+                  }}
+                />
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    Scan &amp; Pay via UPI QR Code
+                  </div>
+                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Printed at the bottom of Proforma Invoices alongside your bank details.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => qrInputRef.current?.click()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                >
+                  <Upload size={14} /> Upload QR Image
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={generatingQr}
+                  onClick={handleGenerateQrFromUpi}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                >
+                  <QrCode size={14} /> {generatingQr ? 'Generating...' : 'Generate from UPI ID'}
+                </button>
+                {formData.upiQrDataUrl && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      const updated = { ...formData, upiQrDataUrl: '' };
+                      setFormData(updated);
+                      onUpdateSettings(updated);
+                    }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
+                  >
+                    <RotateCcw size={13} /> Reset QR
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.15rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  A/c Holder&apos;s Name:
+                </label>
+                <input
+                  type="text"
+                  value={formData.bankAccountHolder ?? ''}
+                  onChange={(e) => setFormData({ ...formData, bankAccountHolder: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  Bank Name:
+                </label>
+                <input
+                  type="text"
+                  value={formData.bankName ?? ''}
+                  onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  A/c No.:
+                </label>
+                <input
+                  type="text"
+                  value={formData.bankAccountNo ?? ''}
+                  onChange={(e) => setFormData({ ...formData, bankAccountNo: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  Branch &amp; IFS Code:
+                </label>
+                <input
+                  type="text"
+                  value={formData.bankBranchIfsc ?? ''}
+                  onChange={(e) => setFormData({ ...formData, bankBranchIfsc: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  UPI ID:
+                </label>
+                <input
+                  type="text"
+                  value={formData.upiId ?? ''}
+                  onChange={(e) => setFormData({ ...formData, upiId: e.target.value })}
+                  placeholder="example@icici"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleResetAllBusinessDefaults}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <RotateCcw size={14} /> Reset Defaults
             </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              {saveSuccess && (
+                <span style={{ fontSize: '0.85rem', color: 'var(--primary-400)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Check size={16} /> All business &amp; bank details updated!
+                </span>
+              )}
+              <button type="submit" className="btn btn-primary btn-sm">
+                <Save size={15} /> Save Business &amp; Bank Details
+              </button>
+            </div>
           </div>
         </form>
       </div>

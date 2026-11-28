@@ -8,6 +8,7 @@ import type {
 } from '../types';
 import { formatIndianCurrency, numberToIndianCurrencyWords } from '../utils/indianNumberWords';
 import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
+import { resolveBusinessSettings } from '../utils/businessSettings';
 import { groupRoundLogsBySpeciesFirst, getRoundLogUnitConfig } from '../utils/roundLogCalculator';
 import { calculateRFT, formatValue, calculateSheetAmount, calculateSheetSqft, getCutLogItemDescription, getCutLogItemSectionHeading, hasWidthGroupTransition, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, resolveSheetRateUnit } from '../utils/calculator';
 import './ProformaInvoice.css';
@@ -485,35 +486,47 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
         <div className="p-top-grid">
           {/* Left Column (50%) */}
           <div className="p-left-col">
-            {/* Seller Sub-box */}
-            <div className="p-seller-box">
-              <div className="p-seller-logo">
-                <img
-                  src="/logo-icon-transparent.png"
-                  alt="Logo"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = '/logo-icon.png';
-                  }}
-                />
-              </div>
-              <div className="p-seller-details">
-                <div className="p-seller-name">
-                  {businessSettings?.companyName || 'HINDUSTAN SAW MILLS AND WOOD INDUSTRIES'}
+              {/* Seller Sub-box */}
+            {(() => {
+              const biz = resolveBusinessSettings(businessSettings);
+              const addrLines = (biz.address || '')
+                .split(/\r?\n/)
+                .map((l) => l.trim())
+                .filter(Boolean);
+              return (
+                <div className="p-seller-box">
+                  <div className="p-seller-logo">
+                    <img
+                      src={biz.logoDataUrl || '/logo-icon-transparent.png'}
+                      alt="Logo"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = '/logo-icon.png';
+                      }}
+                    />
+                  </div>
+                  <div className="p-seller-details">
+                    <div className="p-seller-name">{biz.companyName}</div>
+                    {addrLines.map((line, i) => (
+                      <div key={i} className="p-seller-line">{line}</div>
+                    ))}
+                    {biz.phone && (
+                      <div className="p-seller-line">ACCOUNTS DEPARTMENT - {biz.phone}</div>
+                    )}
+                    <div className="p-seller-line">
+                      <strong>GSTIN/UIN:</strong> {biz.taxId}
+                    </div>
+                    <div className="p-seller-line">
+                      State Name : {biz.state || 'Karnataka'}, Code : {biz.stateCode || '29'}
+                    </div>
+                    {biz.email && (
+                      <div className="p-seller-line">
+                        E-Mail : {biz.email}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="p-seller-line">#99/C INDUSTRIAL SUBURB 2ND STAGE</div>
-                <div className="p-seller-line">VISHVESHWARA NAGAR MYSORE - 570008</div>
-                <div className="p-seller-line">ACCOUNTS DEPARTMENT - 7996222901</div>
-                <div className="p-seller-line">
-                  <strong>GSTIN/UIN:</strong> 29APYPK6256P1ZL
-                </div>
-                <div className="p-seller-line">
-                  State Name : Karnataka, Code : 29
-                </div>
-                <div className="p-seller-line">
-                  E-Mail : hindustansawmill@gmail.com
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Consignee (Ship to) */}
             <div className="p-party-box">
@@ -1230,58 +1243,65 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
         </div>
 
         {/* 5. Bottom Grid: Company's Bank Details (Left) | Payment Scanner (Middle) | Big Seals (Right) */}
-        <div className="p-bottom-grid">
-          {/* Left Box: Company's Bank Details */}
-          <div className="p-bottom-bank-box">
-            <div className="p-bank-heading">Company&apos;s Bank Details</div>
-            <div className="p-bank-row">
-              <span className="p-bank-label">A/c Holder&apos;s Name</span>
-              <span className="p-bank-colon">:</span>
-              <span className="p-bank-val font-bold">HINDUSTAN SAW MILLS AND WOOD INDUSTRIES 2024-25</span>
-            </div>
-            <div className="p-bank-row">
-              <span className="p-bank-label">Bank Name</span>
-              <span className="p-bank-colon">:</span>
-              <span className="p-bank-val font-bold">ICICI BANK</span>
-            </div>
-            <div className="p-bank-row">
-              <span className="p-bank-label">A/c No.</span>
-              <span className="p-bank-colon">:</span>
-              <span className="p-bank-val font-bold p-mono">464205000153</span>
-            </div>
-            <div className="p-bank-row">
-              <span className="p-bank-label">Branch &amp; IFS Code</span>
-              <span className="p-bank-colon">:</span>
-              <span className="p-bank-val font-bold p-mono">JP NAGAR &amp; ICIC0004642</span>
-            </div>
-          </div>
-
-          {/* Middle Box: Payment Scanner (UPI QR Code) */}
-          <div className="p-bottom-qr-box">
-            <div className="p-qr-header">Scan &amp; Pay via UPI</div>
-            <div className="p-qr-image-wrapper">
-              <img src={PAYMENT_QR_BASE64} alt="UPI Payment QR Code" className="p-qr-img" />
-            </div>
-            <div className="p-qr-apps">GPay &bull; PhonePe &bull; Paytm &bull; BHIM</div>
-            <div className="p-qr-upi-id">UPI ID: <strong>hindustansawmill@icici</strong></div>
-          </div>
-
-          {/* Right Box: Big Customer Seal & Big Authorised Signatory */}
-          <div className="p-bottom-seals-box">
-            <div className="p-customer-seal-big">
-              <div className="p-seal-title">Customer&apos;s Seal and Signature</div>
-              <div className="p-seal-space"></div>
-            </div>
-
-            <div className="p-auth-seal-big">
-              <div className="p-for-company">
-                for {businessSettings?.companyName || 'HINDUSTAN SAW MILLS AND WOOD INDUSTRIES'}
+        {(() => {
+          const biz = resolveBusinessSettings(businessSettings);
+          return (
+            <div className="p-bottom-grid">
+              {/* Left Box: Company's Bank Details */}
+              <div className="p-bottom-bank-box">
+                <div className="p-bank-heading">Company&apos;s Bank Details</div>
+                <div className="p-bank-row">
+                  <span className="p-bank-label">A/c Holder&apos;s Name</span>
+                  <span className="p-bank-colon">:</span>
+                  <span className="p-bank-val font-bold">{biz.bankAccountHolder}</span>
+                </div>
+                <div className="p-bank-row">
+                  <span className="p-bank-label">Bank Name</span>
+                  <span className="p-bank-colon">:</span>
+                  <span className="p-bank-val font-bold">{biz.bankName}</span>
+                </div>
+                <div className="p-bank-row">
+                  <span className="p-bank-label">A/c No.</span>
+                  <span className="p-bank-colon">:</span>
+                  <span className="p-bank-val font-bold p-mono">{biz.bankAccountNo}</span>
+                </div>
+                <div className="p-bank-row">
+                  <span className="p-bank-label">Branch &amp; IFS Code</span>
+                  <span className="p-bank-colon">:</span>
+                  <span className="p-bank-val font-bold p-mono">{biz.bankBranchIfsc}</span>
+                </div>
               </div>
-              <div className="p-sign-space"></div>
-              <div className="p-auth-title">Authorised Signatory</div>
+
+              {/* Middle Box: Payment Scanner (UPI QR Code) */}
+              <div className="p-bottom-qr-box">
+                <div className="p-qr-header">Scan &amp; Pay via UPI</div>
+                <div className="p-qr-image-wrapper">
+                  <img src={biz.upiQrDataUrl || PAYMENT_QR_BASE64} alt="UPI Payment QR Code" className="p-qr-img" />
+                </div>
+                <div className="p-qr-apps">GPay &bull; PhonePe &bull; Paytm &bull; BHIM</div>
+                {biz.upiId && (
+                  <div className="p-qr-upi-id">UPI ID: <strong>{biz.upiId}</strong></div>
+                )}
+              </div>
+
+              {/* Right Box: Big Customer Seal & Big Authorised Signatory */}
+              <div className="p-bottom-seals-box">
+                <div className="p-customer-seal-big">
+                  <div className="p-seal-title">Customer&apos;s Seal and Signature</div>
+                  <div className="p-seal-space"></div>
+                </div>
+
+                <div className="p-auth-seal-big">
+                  <div className="p-for-company">
+                    for {biz.companyName}
+                  </div>
+                  <div className="p-sign-space"></div>
+                  <div className="p-auth-title">Authorised Signatory</div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* 7. Bottom Footnote */}
         <div className="p-computer-note">

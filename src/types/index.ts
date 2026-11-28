@@ -194,10 +194,20 @@ export interface UserProfile {
 export interface BusinessSettings {
   companyName: string;
   tagline: string;
+  sinceBadge?: string;
   address: string;
   phone: string;
   email: string;
   taxId: string;
+  state?: string;
+  stateCode?: string;
+  logoDataUrl?: string;
+  bankAccountHolder?: string;
+  bankName?: string;
+  bankAccountNo?: string;
+  bankBranchIfsc?: string;
+  upiId?: string;
+  upiQrDataUrl?: string;
   sqftFormulaType: 'standard_1face' | 'surface_area_2face';
   currencySymbol: string;
   ratePerCft?: number;

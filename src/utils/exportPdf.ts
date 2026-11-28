@@ -10,6 +10,7 @@ import type {
 } from '../types';
 import { LOGO_ICON_BASE64 } from './logoBase64';
 import { PAYMENT_QR_BASE64 } from './paymentQrBase64';
+import { resolveBusinessSettings, detectImageDataUrlFormat } from './businessSettings';
 import { FOREST_EXEMPTION_PAGES } from './forestExemptionPagesBase64';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from './indianNumberWords';
 import { sortTimberEntries, calculateRFT, calculateSheetAmount, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, resolveSheetRateUnit, resolveSheetWidth, formatValue, getCutLogItemDescription, getCutLogItemSectionHeading, getInvoiceItemWidth, hasWidthGroupTransition, normalizeTeakGrade } from './calculator';
@@ -100,6 +101,7 @@ export interface ProformaInvoiceExportData {
   bankName?: string;
   bankAccountNo?: string;
   bankIfsc?: string;
+  upiId?: string;
   attachedFiles?: MeasurementSheetAttachment[];
   pageOrder?: string[];
 }
@@ -210,6 +212,7 @@ export function createProformaInvoiceDoc(
   outPages?: MeasurementSheetPdfPageMeta[]
 ): jsPDF {
   const isMeasurementOnly = documentMode === 'measurement';
+  const biz = resolveBusinessSettings(settings);
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -537,29 +540,56 @@ export function createProformaInvoiceDoc(
 
   // --- LEFT COLUMN: Seller, Consignee, Buyer ---
   // A. Seller Sub-box (y: 15 to 39.5, height = 24.5mm)
+  const sellerLogo = biz.logoDataUrl || LOGO_ICON_BASE64;
   try {
-    doc.addImage(LOGO_ICON_BASE64, 'PNG', 12.0, 19.2, 17.0, 16.0);
+    doc.addImage(sellerLogo, detectImageDataUrlFormat(sellerLogo), 12.0, 19.2, 17.0, 16.0);
   } catch (e) {
     console.warn('Could not draw logo on PDF:', e);
   }
 
-  // Company Name on 2 lines so it never overflows past the center line at x=105
+  // Company Name on 1-2 lines so it never overflows past the center line at x=105
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.4);
   doc.setTextColor(0, 0, 0);
-  doc.text('HINDUSTAN SAW MILLS AND', 31.0, 18.8);
-  doc.text('WOOD INDUSTRIES', 31.0, 22.2);
+  const companyTitleLines: string[] = doc.splitTextToSize((biz.companyName || '').toUpperCase(), 72).slice(0, 2);
+  let sellerY = 18.8;
+  for (const nameLine of companyTitleLines) {
+    doc.text(nameLine, 31.0, sellerY);
+    sellerY += 3.4;
+  }
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.8);
   doc.setTextColor(40, 40, 40);
-  doc.text('#99/C INDUSTRIAL SUBURB 2ND STAGE', 31.0, 25.5);
-  doc.text('VISHVESHWARA NAGAR, MYSORE - 570008', 31.0, 28.5);
-  doc.text('ACCOUNTS: 7996222901  |  hindustansawmill@gmail.com', 31.0, 31.5);
+  const rawAddrLines = (biz.address || '')
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const wrappedAddrLines: string[] = [];
+  for (const rawLine of rawAddrLines) {
+    wrappedAddrLines.push(...doc.splitTextToSize(rawLine, 72));
+  }
+  const visibleAddrLines = wrappedAddrLines.slice(0, 2);
+  let addrY = Math.max(25.5, sellerY);
+  for (const aLine of visibleAddrLines) {
+    doc.text(aLine, 31.0, addrY);
+    addrY += 3.0;
+  }
+
+  const contactLine = [
+    biz.phone ? `ACCOUNTS: ${biz.phone}` : '',
+    biz.email || ''
+  ]
+    .filter(Boolean)
+    .join('  |  ');
+  if (contactLine) {
+    doc.text(doc.splitTextToSize(contactLine, 72)[0] || '', 31.0, Math.min(32.5, Math.max(31.5, addrY)));
+  }
+
   doc.setFont('helvetica', 'bold');
-  doc.text('GSTIN: 29APYPK6256P1ZL', 31.0, 34.8);
+  doc.text(`GSTIN: ${biz.taxId || ''}`, 31.0, 34.8);
   doc.setFont('helvetica', 'normal');
-  doc.text('State: Karnataka, Code : 29', 31.0, 37.8);
+  doc.text(`State: ${biz.state || 'Karnataka'}, Code : ${biz.stateCode || '29'}`, 31.0, 37.8);
 
   doc.line(10, 39.5, 105, 39.5); // Divider below seller
 
@@ -1997,7 +2027,7 @@ export function createProformaInvoiceDoc(
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.4);
     doc.setTextColor(0, 0, 0);
-    doc.text('for HINDUSTAN SAW MILLS AND WOOD INDUSTRIES', 198.0, bottomY + 5.2, { align: 'right' });
+    doc.text(`for ${(biz.companyName || '').toUpperCase()}`, 198.0, bottomY + 5.2, { align: 'right', maxWidth: 90 });
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.6);
@@ -2006,7 +2036,7 @@ export function createProformaInvoiceDoc(
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.0);
     doc.setTextColor(60, 60, 60);
-    doc.text('Measurement Sheet • Hindustan Saw Mill', 105, bottomY + boxHeight + 4.2, { align: 'center' });
+    doc.text(`Measurement Sheet • ${biz.companyName}`, 105, bottomY + boxHeight + 4.2, { align: 'center' });
 
     const coreCount = doc.getNumberOfPages();
     const userAttachments = invoiceData?.attachedFiles ?? sheet.attachedFiles ?? [];
@@ -2146,6 +2176,13 @@ export function createProformaInvoiceDoc(
   doc.setDrawColor(0, 0, 0);
 
   // Row 1: A/c Holder's Name
+  const resolvedBankHolder = pickText(invoiceData?.bankHolder, biz.bankAccountHolder);
+  const resolvedBankName = pickText(invoiceData?.bankName, biz.bankName);
+  const resolvedBankAcc = pickText(invoiceData?.bankAccountNo, biz.bankAccountNo);
+  const resolvedBankIfsc = pickText(invoiceData?.bankIfsc, biz.bankBranchIfsc);
+  const resolvedUpiId = pickText(invoiceData?.upiId, biz.upiId);
+  const bankHolderLines: string[] = doc.splitTextToSize(resolvedBankHolder.toUpperCase(), 62).slice(0, 2);
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
   doc.setTextColor(60, 60, 60);
@@ -2153,8 +2190,8 @@ export function createProformaInvoiceDoc(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.2);
   doc.setTextColor(0, 0, 0);
-  doc.text("HINDUSTAN SAW MILLS AND", 12.0, blockY + 12.2);
-  doc.text("WOOD INDUSTRIES 2024-25", 12.0, blockY + 15.6);
+  if (bankHolderLines[0]) doc.text(bankHolderLines[0], 12.0, blockY + 12.2);
+  if (bankHolderLines[1]) doc.text(bankHolderLines[1], 12.0, blockY + 15.6);
 
   // Row 2: Bank Name
   doc.setFont('helvetica', 'normal');
@@ -2165,7 +2202,7 @@ export function createProformaInvoiceDoc(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.2);
   doc.setTextColor(0, 0, 0);
-  doc.text("ICICI BANK", 36.5, blockY + 20.2);
+  doc.text(resolvedBankName, 36.5, blockY + 20.2, { maxWidth: 38 });
 
   // Row 3: A/c No.
   doc.setFont('helvetica', 'normal');
@@ -2176,7 +2213,7 @@ export function createProformaInvoiceDoc(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.2);
   doc.setTextColor(0, 0, 0);
-  doc.text("464205000153", 36.5, blockY + 24.2);
+  doc.text(resolvedBankAcc, 36.5, blockY + 24.2, { maxWidth: 38 });
 
   // Row 4: Branch & IFS Code
   doc.setFont('helvetica', 'normal');
@@ -2187,7 +2224,7 @@ export function createProformaInvoiceDoc(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.2);
   doc.setTextColor(0, 0, 0);
-  doc.text("JP NAGAR & ICIC0004642", 36.5, blockY + 28.2);
+  doc.text(resolvedBankIfsc, 36.5, blockY + 28.2, { maxWidth: 38 });
 
   // --- 2. MIDDLE: Payment Scanner (UPI QR Code) (x: 76 to 114, width: 38mm) ---
   doc.setFont('helvetica', 'bold');
@@ -2195,8 +2232,9 @@ export function createProformaInvoiceDoc(
   doc.setTextColor(22, 101, 52);
   doc.text('Scan & Pay via UPI', 95, blockY + 3.8, { align: 'center' });
 
+  const qrDataUrl = biz.upiQrDataUrl || PAYMENT_QR_BASE64;
   try {
-    doc.addImage(PAYMENT_QR_BASE64, 'PNG', 86.5, blockY + 5.2, 17, 17);
+    doc.addImage(qrDataUrl, detectImageDataUrlFormat(qrDataUrl), 86.5, blockY + 5.2, 17, 17);
   } catch (err) {
     console.warn('Could not draw QR code on PDF:', err);
   }
@@ -2209,7 +2247,9 @@ export function createProformaInvoiceDoc(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.4);
   doc.setTextColor(0, 0, 0);
-  doc.text('UPI: hindustansawmill@icici', 95, blockY + 27.2, { align: 'center' });
+  if (resolvedUpiId) {
+    doc.text(`UPI: ${resolvedUpiId}`, 95, blockY + 27.2, { align: 'center', maxWidth: 36 });
+  }
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(5.2);
@@ -2232,11 +2272,12 @@ export function createProformaInvoiceDoc(
   doc.text('[ Affix Seal & Sign Here ]', 131, blockY + 28.5, { align: 'center' });
 
   // Authorised Signatory Box (x: 148 to 200, w: 52 mm)
+  const forCompanyLines: string[] = doc.splitTextToSize(`for ${(biz.companyName || '').toUpperCase()}`, 48).slice(0, 2);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.2);
   doc.setTextColor(0, 0, 0);
-  doc.text('for HINDUSTAN SAW MILLS AND', 150.5, blockY + 4.2);
-  doc.text('WOOD INDUSTRIES', 150.5, blockY + 7.5);
+  if (forCompanyLines[0]) doc.text(forCompanyLines[0], 150.5, blockY + 4.2);
+  if (forCompanyLines[1]) doc.text(forCompanyLines[1], 150.5, blockY + 7.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(5.8);

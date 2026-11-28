@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { SupabaseConfigModal } from './SupabaseConfigModal';
+import type { BusinessSettings } from '../types';
+import { resolveBusinessSettings } from '../utils/businessSettings';
 
 export type NavView = 'dashboard' | 'calculator' | 'history' | 'measurement_sheets' | 'settings';
 
@@ -21,13 +23,21 @@ interface NavbarProps {
   onNavigate: (view: NavView) => void;
   onNavigateToAdmin?: () => void;
   activeSheetName?: string;
+  businessSettings?: BusinessSettings;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onNavigateToAdmin, activeSheetName }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  currentView,
+  onNavigate,
+  onNavigateToAdmin,
+  activeSheetName,
+  businessSettings
+}) => {
   const { user, isSupabaseConnected, switchDemoUser } = useAuth();
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileNavMenuOpen, setIsMobileNavMenuOpen] = useState(false);
+  const biz = resolveBusinessSettings(businessSettings);
 
   return (
     <>
@@ -59,8 +69,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onNavig
           {/* Logo & Brand (Desktop) / Logo & Mobile Navigation Buttons (Mobile) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
             <img
-              src="/logo-icon-transparent.png"
-              alt="Hindustan Saw Mill Logo"
+              src={biz.logoDataUrl || '/logo-icon-transparent.png'}
+              alt={`${biz.companyName} Logo`}
               onClick={() => onNavigate('dashboard')}
               style={{
                 width: 'auto',
@@ -80,31 +90,35 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onNavig
               onClick={() => onNavigate('dashboard')}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'nowrap' }}>
-                <span className="brand-title" style={{ fontSize: '1.05rem', fontWeight: 900, letterSpacing: '0.02em', color: 'var(--text-main)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                  HINDUSTAN <span style={{ color: 'var(--primary-600)', fontSize: '0.85rem', fontWeight: 700 }}>SAW MILL</span>
+                <span className="brand-title" style={{ fontSize: '1.05rem', fontWeight: 900, letterSpacing: '0.02em', color: 'var(--text-main)', textTransform: 'uppercase', whiteSpace: 'nowrap', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {biz.companyName}
                 </span>
-                <span
-                  className="brand-badge-since"
-                  style={{
-                    fontSize: '0.64rem',
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 50%, #e2e8f0 100%)',
-                    border: '1px solid #cbd5e1',
-                    padding: '1.5px 7px',
-                    borderRadius: '20px',
-                    color: '#334155',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), inset 0 1px 1px #ffffff',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  SINCE 1971
-                </span>
+                {biz.sinceBadge && (
+                  <span
+                    className="brand-badge-since"
+                    style={{
+                      fontSize: '0.64rem',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 50%, #e2e8f0 100%)',
+                      border: '1px solid #cbd5e1',
+                      padding: '1.5px 7px',
+                      borderRadius: '20px',
+                      color: '#334155',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), inset 0 1px 1px #ffffff',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {biz.sinceBadge}
+                  </span>
+                )}
               </div>
-              <p className="brand-subtitle" style={{ margin: 0, fontSize: '0.73rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
-                Wood Industries &bull; Precision CFT &amp; SQFT Calculator
-              </p>
+              {biz.tagline && (
+                <p className="brand-subtitle" style={{ margin: 0, fontSize: '0.73rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
+                  {biz.tagline}
+                </p>
+              )}
             </div>
 
             {/* Mobile Header Buttons (Shown only in phone view in place of title) */}
