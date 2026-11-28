@@ -137,6 +137,9 @@ export interface MeasurementSheet {
   consigneeState?: string;
   consigneeStateCode?: string;
   motorVehicleNo?: string;
+  billOfEntryNo?: string;
+  boeDate?: string;
+  containerNo?: string;
   termsOfDelivery?: string;
   paymentTerms?: string;
   buyerOrderNo?: string;

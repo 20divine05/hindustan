@@ -244,6 +244,9 @@ export function sanitizeAndComputeSheet(
     consigneeState: sheet.consigneeState?.trim() || '',
     consigneeStateCode: sheet.consigneeStateCode?.trim() || '',
     motorVehicleNo: sheet.motorVehicleNo?.trim() || '',
+    billOfEntryNo: sheet.billOfEntryNo?.trim() || '',
+    boeDate: sheet.boeDate?.trim() || '',
+    containerNo: sheet.containerNo?.trim() || '',
     termsOfDelivery: sheet.termsOfDelivery?.trim() || '',
     paymentTerms: sheet.paymentTerms?.trim() || '',
     buyerOrderNo: sheet.buyerOrderNo?.trim() || '',
@@ -490,6 +493,10 @@ export const dbService = {
         .map((row) => {
           let isConfirmed = Boolean(row.is_confirmed);
           let proformaExportData: Record<string, any> | undefined;
+          let motorVehicleNo = '';
+          let billOfEntryNo = '';
+          let boeDate = '';
+          let containerNo = '';
           let finalGrandTotal: number | undefined;
           let cleanNotes = row.notes || '';
           if (cleanNotes.startsWith('__TIMBER_META__')) {
@@ -499,6 +506,10 @@ export const dbService = {
               if (meta.proformaExportData && typeof meta.proformaExportData === 'object') {
                 proformaExportData = meta.proformaExportData;
               }
+              motorVehicleNo = meta.motorVehicleNo || proformaExportData?.motorVehicleNo || '';
+              billOfEntryNo = meta.billOfEntryNo || proformaExportData?.billOfEntryNo || '';
+              boeDate = meta.boeDate || proformaExportData?.boeDate || '';
+              containerNo = meta.containerNo || proformaExportData?.containerNo || '';
               finalGrandTotal = computeSheetSummaryGrandTotal(meta);
               cleanNotes = meta.rawNotes || '';
             } catch {}
@@ -514,6 +525,10 @@ export const dbService = {
             notes: cleanNotes,
             items: [],
             isConfirmed,
+            motorVehicleNo,
+            billOfEntryNo,
+            boeDate,
+            containerNo,
             finalGrandTotal,
             proformaExportData,
             totalEntries: row.total_entries || 0,
@@ -663,6 +678,9 @@ export const dbService = {
         consigneeState: parsedMeta ? (parsedMeta.consigneeState || '') : (localSheet?.consigneeState || ''),
         consigneeStateCode: parsedMeta ? (parsedMeta.consigneeStateCode || '') : (localSheet?.consigneeStateCode || ''),
         motorVehicleNo: parsedMeta ? (parsedMeta.motorVehicleNo || '') : (localSheet?.motorVehicleNo || ''),
+        billOfEntryNo: parsedMeta ? (parsedMeta.billOfEntryNo || '') : (localSheet?.billOfEntryNo || ''),
+        boeDate: parsedMeta ? (parsedMeta.boeDate || '') : (localSheet?.boeDate || ''),
+        containerNo: parsedMeta ? (parsedMeta.containerNo || '') : (localSheet?.containerNo || ''),
         termsOfDelivery: parsedMeta ? (parsedMeta.termsOfDelivery || '') : (localSheet?.termsOfDelivery || ''),
         paymentTerms: parsedMeta ? (parsedMeta.paymentTerms || '') : (localSheet?.paymentTerms || ''),
         buyerOrderNo: parsedMeta ? (parsedMeta.buyerOrderNo || '') : (localSheet?.buyerOrderNo || ''),
@@ -758,6 +776,9 @@ export const dbService = {
           consigneeState: sanitized.consigneeState,
           consigneeStateCode: sanitized.consigneeStateCode,
           motorVehicleNo: sanitized.motorVehicleNo,
+          billOfEntryNo: sanitized.billOfEntryNo,
+          boeDate: sanitized.boeDate,
+          containerNo: sanitized.containerNo,
           termsOfDelivery: sanitized.termsOfDelivery,
           paymentTerms: sanitized.paymentTerms,
           buyerOrderNo: sanitized.buyerOrderNo,

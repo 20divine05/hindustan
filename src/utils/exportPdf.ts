@@ -34,6 +34,9 @@ export interface ProformaInvoiceExportData {
   destination?: string;
   billOfLadingNo?: string;
   motorVehicleNo?: string;
+  billOfEntryNo?: string;
+  boeDate?: string;
+  containerNo?: string;
   termsOfDelivery?: string;
 
   consigneeName?: string;
@@ -135,7 +138,10 @@ export function createProformaInvoiceDoc(
   const buyerOrderNo = invoiceData?.buyerOrderNo || '';
   const buyerOrderDate = invoiceData?.buyerOrderDate || '';
   const destination = invoiceData?.destination || sheet.destination || sheet.consigneeDistrict?.toUpperCase() || sheet.consigneeState?.toUpperCase() || sheet.customerState?.toUpperCase() || 'BANGLORE';
-  const motorVehicleNo = invoiceData?.motorVehicleNo || '';
+  const motorVehicleNo = invoiceData?.motorVehicleNo ?? sheet.motorVehicleNo ?? '';
+  const billOfEntryNo = invoiceData?.billOfEntryNo ?? sheet.billOfEntryNo ?? '';
+  const boeDate = invoiceData?.boeDate ?? sheet.boeDate ?? '';
+  const containerNo = invoiceData?.containerNo ?? sheet.containerNo ?? '';
   const termsOfDelivery = invoiceData?.termsOfDelivery || 'TRANSPORTATION EXTRA\nAPPLICABLE GST EXTRA';
 
   const consigneeName = invoiceData?.consigneeName ?? sheet.consigneeName ?? sheet.customerName ?? '';
@@ -539,7 +545,7 @@ export function createProformaInvoiceDoc(
   doc.line(129, 15, 129, 24); // Separator between Invoice No and e-Way Bill No in row 0
   if (isMeasurementOnly) {
     doc.line(rightDividerX, 15, rightDividerX, 24);
-    doc.line(rightDividerX, 33, rightDividerX, 42);
+    doc.line(rightDividerX, 33, rightDividerX, 51);
   } else {
     doc.line(rightDividerX, 15, rightDividerX, 42); // Vertical divider between left/right metadata cells (rows 0 to 2)
   }
@@ -588,28 +594,45 @@ export function createProformaInvoiceDoc(
     doc.text(destination, 154.0, 31.2);
   }
 
-  // Row 2 (33 to 42): Buyer's Order No. | Dated
+  // Row 2 (33 to 42): Bill of Entry No. | BOE Date (Measurement Sheet) or Buyer's Order No. | Dated (Proforma Invoice)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.8);
   doc.setTextColor(80, 80, 80);
-  doc.text("Buyer's Order No.", 106.5, 36.2);
-  doc.text('Dated', 154.0, 36.2);
+  if (isMeasurementOnly) {
+    doc.text('Bill of Entry No.', 106.5, 36.2);
+    doc.text('BOE Date', 154.0, 36.2);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.8);
-  doc.setTextColor(0, 0, 0);
-  doc.text(buyerOrderNo || '', 106.5, 40.2);
-  doc.text(buyerOrderDate || '', 154.0, 40.2);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.8);
+    doc.setTextColor(0, 0, 0);
+    doc.text(billOfEntryNo || '', 106.5, 40.2);
+    doc.text(boeDate || '', 154.0, 40.2);
+  } else {
+    doc.text("Buyer's Order No.", 106.5, 36.2);
+    doc.text('Dated', 154.0, 36.2);
 
-  // Row 3 (42 to 51): Motor Vehicle No.
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.8);
+    doc.setTextColor(0, 0, 0);
+    doc.text(buyerOrderNo || '', 106.5, 40.2);
+    doc.text(buyerOrderDate || '', 154.0, 40.2);
+  }
+
+  // Row 3 (42 to 51): Motor Vehicle No. | Container Number (Measurement Sheet) or Motor Vehicle No. (Proforma Invoice)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.8);
   doc.setTextColor(80, 80, 80);
   doc.text('Motor Vehicle No.', 106.5, 45.5);
+  if (isMeasurementOnly) {
+    doc.text('Container Number', 154.0, 45.5);
+  }
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.0);
   doc.setTextColor(0, 0, 0);
   doc.text(motorVehicleNo || '', 106.5, 49.2);
+  if (isMeasurementOnly) {
+    doc.text(containerNo || '', 154.0, 49.2);
+  }
 
   // Row 4 (51 to 87): Terms of Delivery (BIG SPACIOUS BOX)
   doc.setFont('helvetica', 'normal');
