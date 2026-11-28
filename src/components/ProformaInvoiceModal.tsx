@@ -5,7 +5,7 @@ import type { MeasurementSheet, BusinessSettings } from '../types';
 import { numberToIndianCurrencyWords, formatIndianCurrency } from '../utils/indianNumberWords';
 import { PAYMENT_QR_BASE64 } from '../utils/paymentQrBase64';
 import { exportSheetToPdf, printProformaInvoicePdf } from '../utils/exportPdf';
-import { renderDimensionHtml, renderWithSmallDecimalHtml, renderAdvanceFooterRows, renderWidthSpacerRow } from './PrintableProformaInvoice';
+import { renderDimensionHtml, renderWithSmallDecimalHtml, renderAdvanceFooterRows, renderWidthSpacerRow, getCftIntWidthCh } from './PrintableProformaInvoice';
 import { groupRoundLogsBySpeciesFirst, getRoundLogUnitConfig } from '../utils/roundLogCalculator';
 import { calculateRFT, formatValue, calculateSheetAmount, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, resolveSheetRateUnit, resolveSheetWidth, getCutLogItemDescription, getCutLogItemSectionHeading, hasWidthGroupTransition } from '../utils/calculator';
 import './ProformaInvoice.css';
@@ -886,7 +886,7 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
 
           {/* 2. Top Grid: Left (Seller + Consignee + Buyer) | Right (Dispatch Table) */}
           <div className="p-top-grid">
-            
+
             {/* Left Column (50%) */}
             <div className="p-left-col">
               {/* Seller Sub-box */}
@@ -1381,335 +1381,335 @@ export const ProformaInvoiceModal: React.FC<ProformaInvoiceProps> = ({
               </table>
             ) : (
               <table className="p-items-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '3.5%' }}>Sl<br />No.</th>
-                  <th style={{ width: showSqftCol ? '17.5%' : (showRftCol ? '18.5%' : '21%'), textAlign: 'left', paddingLeft: '8px' }}>Description of Goods</th>
-                  <th style={{ width: (!showSqftCol && !showRftCol) ? '11.5%' : '10%', textAlign: 'center' }}>Quantity (PCS)</th>
-                  <th style={{ width: (showSqftCol && showRftCol) ? '14%' : ((!showSqftCol && !showRftCol) ? '19%' : '16.5%'), textAlign: 'center' }}>Alt. Quantity (CFT)</th>
-                  {showSqftCol && <th style={{ width: showRftCol ? '11%' : '15%', textAlign: 'right' }}>SQFT</th>}
-                  {showRftCol && <th style={{ width: showSqftCol ? '10%' : '14%', textAlign: 'right' }}>RFT</th>}
-                  <th style={{ width: (!showSqftCol && !showRftCol) ? '10%' : '9%', textAlign: 'right' }}>Rate</th>
-                  <th style={{ width: '5%', textAlign: 'center', whiteSpace: 'nowrap' }}>per</th>
-                  <th style={{ width: (showSqftCol && showRftCol) ? '20%' : ((!showSqftCol && !showRftCol) ? '30%' : '23.5%'), textAlign: 'left', paddingLeft: '8px' }}>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {woodGroups.map((group, gIdx) => {
-                  const groupPieces = group.items.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
-                  const groupCft = group.items.reduce((acc, it) => {
-                    const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.woodType?.toUpperCase().includes('PLYWOOD') || it.woodType?.toUpperCase().includes('READY')) && it.itemCategory !== 'timber';
-                    const isRft = !isSheet && isTimberRftBilled(it);
-                    const isSqftBilled = isSheet ? resolveSheetRateUnit(it.rateUnit, it.per) === 'SQFT' : isTimberSqftBilled(it);
-                    if (isSheet || isRft || isSqftBilled) return acc;
-                    return acc + (typeof it.cft === 'number' ? it.cft : 0);
-                  }, 0);
-                  const groupAmount = group.items.reduce((acc, it) => acc + (typeof it.amount === 'number' ? it.amount : 0), 0);
-                  const groupSqftBilled = group.items.reduce((acc, it) => {
-                    const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.woodType?.toUpperCase().includes('PLYWOOD') || it.woodType?.toUpperCase().includes('READY')) && it.itemCategory !== 'timber';
-                    if (isSheet) {
-                      return resolveSheetRateUnit(it.rateUnit, it.per) === 'SQFT' ? acc + (typeof it.sqft === 'number' ? it.sqft : 0) : acc;
-                    }
-                    if (isTimberRftBilled(it)) return acc;
-                    if (isTimberSqftBilled(it)) return acc + (typeof it.sqft === 'number' ? it.sqft : (it.cft * 12));
-                    return acc;
-                  }, 0);
-                  const groupRftBilled = group.items.reduce((acc, it) => {
-                    const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.woodType?.toUpperCase().includes('PLYWOOD') || it.woodType?.toUpperCase().includes('READY')) && it.itemCategory !== 'timber';
-                    if (isSheet || !isTimberRftBilled(it)) return acc;
-                    const lenMatch = (it.description || '').match(/^([\d.]+)\s*[xX×]/);
-                    const rftVal = typeof it.rft === 'number' && it.rft > 0 ? it.rft : (lenMatch ? calculateRFT(parseFloat(lenMatch[1]) || 0, it.pieces) : 0);
-                    return acc + rftVal;
-                  }, 0);
+                <thead>
+                  <tr>
+                    <th style={{ width: '3.5%' }}>Sl<br />No.</th>
+                    <th style={{ width: showSqftCol ? '17.5%' : (showRftCol ? '18.5%' : '21%'), textAlign: 'left', paddingLeft: '8px' }}>Description of Goods</th>
+                    <th style={{ width: (!showSqftCol && !showRftCol) ? '11.5%' : '10%', textAlign: 'center' }}>Quantity (PCS)</th>
+                    <th style={{ width: (showSqftCol && showRftCol) ? '14%' : ((!showSqftCol && !showRftCol) ? '19%' : '16.5%'), textAlign: 'center' }}>Alt. Quantity (CFT)</th>
+                    {showSqftCol && <th style={{ width: showRftCol ? '11%' : '15%', textAlign: 'right' }}>SQFT</th>}
+                    {showRftCol && <th style={{ width: showSqftCol ? '10%' : '14%', textAlign: 'right' }}>RFT</th>}
+                    <th style={{ width: (!showSqftCol && !showRftCol) ? '10%' : '9%', textAlign: 'right' }}>Rate</th>
+                    <th style={{ width: '5%', textAlign: 'center', whiteSpace: 'nowrap' }}>per</th>
+                    <th style={{ width: (showSqftCol && showRftCol) ? '20%' : ((!showSqftCol && !showRftCol) ? '30%' : '23.5%'), textAlign: 'left', paddingLeft: '8px' }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {woodGroups.map((group, gIdx) => {
+                    const groupPieces = group.items.reduce((acc, it) => acc + (typeof it.pieces === 'number' ? it.pieces : 0), 0);
+                    const groupCft = group.items.reduce((acc, it) => {
+                      const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.woodType?.toUpperCase().includes('PLYWOOD') || it.woodType?.toUpperCase().includes('READY')) && it.itemCategory !== 'timber';
+                      const isRft = !isSheet && isTimberRftBilled(it);
+                      const isSqftBilled = isSheet ? resolveSheetRateUnit(it.rateUnit, it.per) === 'SQFT' : isTimberSqftBilled(it);
+                      if (isSheet || isRft || isSqftBilled) return acc;
+                      return acc + (typeof it.cft === 'number' ? it.cft : 0);
+                    }, 0);
+                    const groupAmount = group.items.reduce((acc, it) => acc + (typeof it.amount === 'number' ? it.amount : 0), 0);
+                    const groupSqftBilled = group.items.reduce((acc, it) => {
+                      const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.woodType?.toUpperCase().includes('PLYWOOD') || it.woodType?.toUpperCase().includes('READY')) && it.itemCategory !== 'timber';
+                      if (isSheet) {
+                        return resolveSheetRateUnit(it.rateUnit, it.per) === 'SQFT' ? acc + (typeof it.sqft === 'number' ? it.sqft : 0) : acc;
+                      }
+                      if (isTimberRftBilled(it)) return acc;
+                      if (isTimberSqftBilled(it)) return acc + (typeof it.sqft === 'number' ? it.sqft : (it.cft * 12));
+                      return acc;
+                    }, 0);
+                    const groupRftBilled = group.items.reduce((acc, it) => {
+                      const isSheet = (it.itemCategory === 'plywood' || it.itemCategory === 'ready_board' || group.wood.includes('PLYWOOD') || group.wood.includes('READY') || it.woodType?.toUpperCase().includes('PLYWOOD') || it.woodType?.toUpperCase().includes('READY')) && it.itemCategory !== 'timber';
+                      if (isSheet || !isTimberRftBilled(it)) return acc;
+                      const lenMatch = (it.description || '').match(/^([\d.]+)\s*[xX×]/);
+                      const rftVal = typeof it.rft === 'number' && it.rft > 0 ? it.rft : (lenMatch ? calculateRFT(parseFloat(lenMatch[1]) || 0, it.pieces) : 0);
+                      return acc + rftVal;
+                    }, 0);
 
-                  return (
-                    <React.Fragment key={`wood-grp-${gIdx}`}>
-                      {/* Wood Species Heading (no dots, continuous vertical borders) */}
-                      <tr className="p-wood-heading-row">
-                        <td></td>
-                        <td className="p-wood-heading-desc">
-                          {group.wood.toUpperCase()}
+                    return (
+                      <React.Fragment key={`wood-grp-${gIdx}`}>
+                        {/* Wood Species Heading (no dots, continuous vertical borders) */}
+                        <tr className="p-wood-heading-row">
+                          <td></td>
+                          <td className="p-wood-heading-desc">
+                            {group.wood.toUpperCase()}
+                          </td>
+                          <td></td>
+                          <td></td>
+                          {showSqftCol && <td></td>}
+                          {showRftCol && <td></td>}
+                          <td></td>
+                          <td></td>
+                          <td></td>
+                        </tr>
+
+                        {/* Measurements of that wood */}
+                        {group.items.map((item, itemIdx) => {
+                          const isSheet = (group.wood.includes('PLYWOOD') || group.wood.includes('READY') || item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || (item.woodType && (item.woodType.toUpperCase().includes('PLYWOOD') || item.woodType.toUpperCase().includes('READY')))) && item.itemCategory !== 'timber';
+                          const dimOnly = isSheet ? getCutLogItemDescription({ ...item, woodType: group.wood || item.woodType } as any) : (item.description.split(/\s+/)[0] || item.description);
+                          const sheetUnit = isSheet ? resolveSheetRateUnit(item.rateUnit, item.per) : null;
+                          const isRftBilled = !isSheet && isTimberRftBilled(item);
+                          const lenMatch = (item.description || '').match(/^([\d.]+)\s*[xX×]/);
+                          const itemRft = isRftBilled ? (typeof item.rft === 'number' && item.rft > 0 ? item.rft : (lenMatch ? calculateRFT(parseFloat(lenMatch[1]) || 0, item.pieces) : 0)) : 0;
+                          const isSqftBilled = isSheet ? sheetUnit === 'SQFT' : isTimberSqftBilled(item);
+                          const slStr = String(item.slNo);
+                          const perUnit = isSheet ? sheetUnit! : (isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : 'CFT'));
+                          const showWidthSpacer = hasWidthGroupTransition(item, group.items[itemIdx + 1], group.wood);
+                          const totalColsCount = 7 + (showSqftCol ? 1 : 0) + (showRftCol ? 1 : 0);
+                          return (
+                            <React.Fragment key={item.slNo}>
+                              <tr className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                                <td className="text-center">{slStr}</td>
+                                <td className="p-item-desc p-item-desc-indent" style={{ paddingLeft: '14px', fontWeight: 700 }}>
+                                  {renderDimensionHtml(dimOnly)}
+                                </td>
+                                <td className="text-left p-mono p-qty-indent">{item.pieces}</td>
+                                <td className="text-left p-mono p-qty-indent">{renderWithSmallDecimalHtml(!isSheet && !isRftBilled && item.cft > 0 ? item.cft.toFixed(4) : '', '', '', getCftIntWidthCh(invoiceItems))}</td>
+                                {showSqftCol && (
+                                  <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled && (item.sqft || (!isSheet && item.cft * 12)) ? `${(item.sqft || item.cft * 12).toFixed(2)} SQFT` : '')}</td>
+                                )}
+                                {showRftCol && (
+                                  <td className="text-right p-mono">{renderWithSmallDecimalHtml(isRftBilled && itemRft > 0 ? `${itemRft.toFixed(2)} RFT` : '')}</td>
+                                )}
+                                <td className="text-right p-mono">
+                                  {(() => {
+                                    const origIdx = item.sourceIndex !== undefined ? item.sourceIndex : (item.slNo - 1);
+                                    const rateInputKey = item.id || String(origIdx);
+                                    const displayVal = draftRateInputs[rateInputKey] !== undefined ? draftRateInputs[rateInputKey] : item.rate;
+                                    return (
+                                      <input
+                                        type="number"
+                                        className="p-input text-right p-mono"
+                                        value={displayVal}
+                                        onChange={(e) => {
+                                          const raw = e.target.value;
+                                          setDraftRateInputs((prev) => ({ ...prev, [rateInputKey]: raw }));
+                                          const parsed = parseFloat(raw);
+                                          const isValidRate = raw.trim() !== '' && !isNaN(parsed) && (parsed > 0 || (item.per === 'RFT' && parsed >= 0));
+                                          if (!isValidRate) return;
+                                          setCustomRates((prev) => {
+                                            const next = { ...prev };
+                                            if (item.id) next[item.id] = parsed;
+                                            if (item.sourceIndex !== undefined) next[item.sourceIndex] = parsed;
+                                            next[origIdx] = parsed;
+                                            return next;
+                                          });
+                                        }}
+                                        onBlur={() => {
+                                          setDraftRateInputs((prev) => {
+                                            if (prev[rateInputKey] === undefined) return prev;
+                                            const next = { ...prev };
+                                            delete next[rateInputKey];
+                                            return next;
+                                          });
+                                        }}
+                                      />
+                                    );
+                                  })()}
+                                </td>
+                                <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{perUnit}</td>
+                                <td className="text-left p-mono font-bold" style={{ paddingLeft: '8px' }}>
+                                  {renderWithSmallDecimalHtml(formatIndianCurrency(item.amount))}
+                                </td>
+                              </tr>
+                              {showWidthSpacer && renderWidthSpacerRow(totalColsCount, `width-sep-${gIdx}-${itemIdx}`)}
+                            </React.Fragment>
+                          );
+                        })}
+
+                        {/* Wood Subtotal Row (Total without wood species name) */}
+                        <tr className="p-item-row" style={{ backgroundColor: '#f3f4f6', borderTop: '1px solid #222222', borderBottom: '1px solid #222222', fontWeight: 700 }}>
+                          <td className="text-center" style={{ color: '#888' }}></td>
+                          <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 800, textTransform: 'uppercase' }}>
+                            Total
+                          </td>
+                          <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                            {groupPieces} PCS
+                          </td>
+                          <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                            {renderWithSmallDecimalHtml(groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '')}
+                          </td>
+                          {showSqftCol && (
+                            <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                              {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '')}
+                            </td>
+                          )}
+                          {showRftCol && (
+                            <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                              {renderWithSmallDecimalHtml(groupRftBilled > 0 ? `${groupRftBilled.toFixed(2)} RFT` : '')}
+                            </td>
+                          )}
+                          <td className="text-right p-mono"></td>
+                          <td className="text-center"></td>
+                          <td className="text-right p-mono" style={{ fontWeight: 800, paddingRight: '8px' }}>
+                            {renderWithSmallDecimalHtml(formatIndianCurrency(groupAmount), 'Rs. ')}
+                          </td>
+                        </tr>
+                      </React.Fragment>
+                    );
+                  })}
+
+                  {/* Combined Total Wood Amount row at the end */}
+                  {totalPieces > 0 && (
+                    <tr className="p-total-wood-row">
+                      <td className="text-center" style={{ color: '#444' }}></td>
+                      <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                        TOTAL MATERIALS
+                      </td>
+                      <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                        {totalPieces} PCS
+                      </td>
+                      <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                        {renderWithSmallDecimalHtml(totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '')}
+                      </td>
+                      {showSqftCol && (
+                        <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                          {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '')}
                         </td>
-                        <td></td>
-                        <td></td>
-                        {showSqftCol && <td></td>}
-                        {showRftCol && <td></td>}
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                      </tr>
+                      )}
+                      {showRftCol && (
+                        <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                          {renderWithSmallDecimalHtml(totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '')}
+                        </td>
+                      )}
+                      <td className="text-right p-mono"></td>
+                      <td className="text-center"></td>
+                      <td className="text-right p-mono" style={{ fontWeight: 800, paddingRight: '8px' }}>
+                        {renderWithSmallDecimalHtml(formatIndianCurrency(totalAmount), 'Rs. ')}
+                      </td>
+                    </tr>
+                  )}
 
-                      {/* Measurements of that wood */}
-                      {group.items.map((item, itemIdx) => {
-                        const isSheet = (group.wood.includes('PLYWOOD') || group.wood.includes('READY') || item.itemCategory === 'plywood' || item.itemCategory === 'ready_board' || (item.woodType && (item.woodType.toUpperCase().includes('PLYWOOD') || item.woodType.toUpperCase().includes('READY')))) && item.itemCategory !== 'timber';
-                        const dimOnly = isSheet ? getCutLogItemDescription({ ...item, woodType: group.wood || item.woodType } as any) : (item.description.split(/\s+/)[0] || item.description);
-                        const sheetUnit = isSheet ? resolveSheetRateUnit(item.rateUnit, item.per) : null;
-                        const isRftBilled = !isSheet && isTimberRftBilled(item);
-                        const lenMatch = (item.description || '').match(/^([\d.]+)\s*[xX×]/);
-                        const itemRft = isRftBilled ? (typeof item.rft === 'number' && item.rft > 0 ? item.rft : (lenMatch ? calculateRFT(parseFloat(lenMatch[1]) || 0, item.pieces) : 0)) : 0;
-                        const isSqftBilled = isSheet ? sheetUnit === 'SQFT' : isTimberSqftBilled(item);
-                        const slStr = String(item.slNo);
-                        const perUnit = isSheet ? sheetUnit! : (isRftBilled ? 'RFT' : (isSqftBilled ? 'SQFT' : 'CFT'));
-                        const showWidthSpacer = hasWidthGroupTransition(item, group.items[itemIdx + 1], group.wood);
-                        const totalColsCount = 7 + (showSqftCol ? 1 : 0) + (showRftCol ? 1 : 0);
-                        return (
-                          <React.Fragment key={item.slNo}>
-                            <tr className={`p-item-row ${itemIdx % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                              <td className="text-center">{slStr}</td>
-                              <td className="p-item-desc p-item-desc-indent" style={{ paddingLeft: '14px', fontWeight: 700 }}>
-                                {renderDimensionHtml(dimOnly)}
+                  {/* Additional Charges and Discount rows with zebra striping */}
+                  {(() => {
+                    let chargeIdx = 0;
+                    const chargeSpan = 5 + (showSqftCol ? 1 : 0) + (showRftCol ? 1 : 0);
+                    return (
+                      <>
+                        {/* 1. Next: Planing Charges immediately after wood */}
+                        {totalPlaning > 0 && (
+                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                            <td className="text-center"></td>
+                            <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                              {planingLabel}
+                            </td>
+                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                              {renderWithSmallDecimalHtml(formatIndianCurrency(totalPlaning))}
+                            </td>
+                          </tr>
+                        )}
+
+                        {/* 2. Next: Carpentry Charges */}
+                        {totalCarpentryWorks > 0 && (
+                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                            <td className="text-center"></td>
+                            <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                              CARPENTRY WORKS
+                            </td>
+                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                              {renderWithSmallDecimalHtml(formatIndianCurrency(totalCarpentryWorks))}
+                            </td>
+                          </tr>
+                        )}
+
+                        {/* 3. Next: Transport Charges */}
+                        {totalTransportation > 0 && (
+                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                            <td className="text-center"></td>
+                            <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                              TRANSPORTATION &amp; DELIVERY CHARGES
+                            </td>
+                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                              {renderWithSmallDecimalHtml(formatIndianCurrency(totalTransportation))}
+                            </td>
+                          </tr>
+                        )}
+
+                        {/* 4. Next: Other Charges (if any) */}
+                        {totalOther > 0 && (
+                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                            <td className="text-center"></td>
+                            <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                              {(ac?.otherLabel || 'OTHER CHARGES').toUpperCase()}
+                            </td>
+                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                              {renderWithSmallDecimalHtml(formatIndianCurrency(totalOther))}
+                            </td>
+                          </tr>
+                        )}
+
+                        {/* 5. Next: GST */}
+                        {gstAmount > 0 && (
+                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                            <td className="text-center"></td>
+                            <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                              GST {sheet?.gstPercent ? `(${sheet.gstPercent}%)` : ''}
+                            </td>
+                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                              {renderWithSmallDecimalHtml(formatIndianCurrency(gstAmount))}
+                            </td>
+                          </tr>
+                        )}
+
+                        {/* 6. Next: Discount */}
+                        {discAmount > 0 && (
+                          <>
+                            <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`} style={{ fontWeight: 800 }}>
+                              <td className="text-center"></td>
+                              <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
+                                TOTAL PRICE BEFORE DISCOUNT
                               </td>
-                              <td className="text-left p-mono p-qty-indent">{item.pieces}</td>
-                              <td className="text-left p-mono p-qty-indent">{renderWithSmallDecimalHtml(!isSheet && !isRftBilled && item.cft > 0 ? item.cft.toFixed(4) : '')}</td>
-                              {showSqftCol && (
-                                <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled && (item.sqft || (!isSheet && item.cft * 12)) ? `${(item.sqft || item.cft * 12).toFixed(2)} SQFT` : '')}</td>
-                              )}
-                              {showRftCol && (
-                                <td className="text-right p-mono">{renderWithSmallDecimalHtml(isRftBilled && itemRft > 0 ? `${itemRft.toFixed(2)} RFT` : '')}</td>
-                              )}
-                              <td className="text-right p-mono">
-                              {(() => {
-                                const origIdx = item.sourceIndex !== undefined ? item.sourceIndex : (item.slNo - 1);
-                                const rateInputKey = item.id || String(origIdx);
-                                const displayVal = draftRateInputs[rateInputKey] !== undefined ? draftRateInputs[rateInputKey] : item.rate;
-                                return (
-                                  <input
-                                    type="number"
-                                    className="p-input text-right p-mono"
-                                    value={displayVal}
-                                    onChange={(e) => {
-                                      const raw = e.target.value;
-                                      setDraftRateInputs((prev) => ({ ...prev, [rateInputKey]: raw }));
-                                      const parsed = parseFloat(raw);
-                                      const isValidRate = raw.trim() !== '' && !isNaN(parsed) && (parsed > 0 || (item.per === 'RFT' && parsed >= 0));
-                                      if (!isValidRate) return;
-                                      setCustomRates((prev) => {
-                                        const next = { ...prev };
-                                        if (item.id) next[item.id] = parsed;
-                                        if (item.sourceIndex !== undefined) next[item.sourceIndex] = parsed;
-                                        next[origIdx] = parsed;
-                                        return next;
-                                      });
-                                    }}
-                                    onBlur={() => {
-                                      setDraftRateInputs((prev) => {
-                                        if (prev[rateInputKey] === undefined) return prev;
-                                        const next = { ...prev };
-                                        delete next[rateInputKey];
-                                        return next;
-                                      });
-                                    }}
-                                  />
-                                );
-                              })()}
-                              </td>
-                              <td className="text-center" style={{ whiteSpace: 'nowrap' }}>{perUnit}</td>
-                              <td className="text-left p-mono font-bold" style={{ paddingLeft: '8px' }}>
-                                {renderWithSmallDecimalHtml(formatIndianCurrency(item.amount))}
+                              <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
+                                {renderWithSmallDecimalHtml(formatIndianCurrency(subtotalWithCharges + gstAmount))}
                               </td>
                             </tr>
-                            {showWidthSpacer && renderWidthSpacerRow(totalColsCount, `width-sep-${gIdx}-${itemIdx}`)}
-                          </React.Fragment>
-                        );
-                      })}
-
-                      {/* Wood Subtotal Row (Total without wood species name) */}
-                      <tr className="p-item-row" style={{ backgroundColor: '#f3f4f6', borderTop: '1px solid #222222', borderBottom: '1px solid #222222', fontWeight: 700 }}>
-                        <td className="text-center" style={{ color: '#888' }}></td>
-                        <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 800, textTransform: 'uppercase' }}>
-                          Total
-                        </td>
-                        <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                          {groupPieces} PCS
-                        </td>
-                        <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                          {renderWithSmallDecimalHtml(groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '')}
-                        </td>
-                        {showSqftCol && (
-                          <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                            {renderWithSmallDecimalHtml(groupSqftBilled > 0 ? `${groupSqftBilled.toFixed(2)} SQFT` : '')}
-                          </td>
+                            <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
+                              <td className="text-center"></td>
+                              <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
+                                LESS: DISCOUNT {sheet?.discount?.type === 'percentage' && sheet.discount.value ? `(${sheet.discount.value}%)` : (sheet?.discount?.type === 'rupees' && sheet.discount.value ? `(SPECIAL DISCOUNT)` : '')}
+                              </td>
+                              <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
+                                - {renderWithSmallDecimalHtml(formatIndianCurrency(discAmount))}
+                              </td>
+                            </tr>
+                          </>
                         )}
-                        {showRftCol && (
-                          <td className="text-right p-mono" style={{ fontWeight: 800 }}>
-                            {renderWithSmallDecimalHtml(groupRftBilled > 0 ? `${groupRftBilled.toFixed(2)} RFT` : '')}
-                          </td>
-                        )}
-                        <td className="text-right p-mono"></td>
-                        <td className="text-center"></td>
-                        <td className="text-right p-mono" style={{ fontWeight: 800, paddingRight: '8px' }}>
-                          {renderWithSmallDecimalHtml(formatIndianCurrency(groupAmount), 'Rs. ')}
-                        </td>
-                      </tr>
-                    </React.Fragment>
-                  );
-                })}
+                      </>
+                    );
+                  })()}
 
-                {/* Combined Total Wood Amount row at the end */}
-                {totalPieces > 0 && (
-                  <tr className="p-total-wood-row">
-                    <td className="text-center" style={{ color: '#444' }}></td>
-                    <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                      TOTAL MATERIALS
+                  {/* Fill empty spacing to push total to bottom if few items */}
+                  {invoiceItems.length < 8 && (
+                    <tr style={{ height: `${Math.max(20, (8 - invoiceItems.length) * 20)}px` }}>
+                      <td colSpan={7 + (showSqftCol ? 1 : 0) + (showRftCol ? 1 : 0)} style={{ borderBottom: 'none' }}></td>
+                    </tr>
+                  )}
+                </tbody>
+
+                {/* Total Row */}
+                <tfoot>
+                  <tr className="p-total-row">
+                    <td colSpan={2} style={{ textAlign: 'right', fontWeight: 800, paddingRight: '12px' }}>
+                      Total
                     </td>
-                    <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                    <td className="text-right p-mono font-bold">
                       {totalPieces} PCS
                     </td>
-                    <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                    <td className="text-right p-mono font-bold">
                       {renderWithSmallDecimalHtml(totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '')}
                     </td>
                     {showSqftCol && (
-                      <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                      <td className="text-right p-mono font-bold">
                         {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '')}
                       </td>
                     )}
                     {showRftCol && (
-                      <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                      <td className="text-right p-mono font-bold">
                         {renderWithSmallDecimalHtml(totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '')}
                       </td>
                     )}
-                    <td className="text-right p-mono"></td>
-                    <td className="text-center"></td>
-                    <td className="text-right p-mono" style={{ fontWeight: 800, paddingRight: '8px' }}>
-                      {renderWithSmallDecimalHtml(formatIndianCurrency(totalAmount), 'Rs. ')}
+                    <td colSpan={3} className="text-right p-mono font-bold p-final-total-highlight">
+                      {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), 'Rs. ')}
                     </td>
                   </tr>
-                )}
-
-                {/* Additional Charges and Discount rows with zebra striping */}
-                {(() => {
-                  let chargeIdx = 0;
-                  const chargeSpan = 5 + (showSqftCol ? 1 : 0) + (showRftCol ? 1 : 0);
-                  return (
-                    <>
-                      {/* 1. Next: Planing Charges immediately after wood */}
-                      {totalPlaning > 0 && (
-                        <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                          <td className="text-center"></td>
-                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
-                            {planingLabel}
-                          </td>
-                          <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
-                            {renderWithSmallDecimalHtml(formatIndianCurrency(totalPlaning))}
-                          </td>
-                        </tr>
-                      )}
-
-                      {/* 2. Next: Carpentry Charges */}
-                      {totalCarpentryWorks > 0 && (
-                        <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                          <td className="text-center"></td>
-                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
-                            CARPENTRY WORKS
-                          </td>
-                          <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
-                            {renderWithSmallDecimalHtml(formatIndianCurrency(totalCarpentryWorks))}
-                          </td>
-                        </tr>
-                      )}
-
-                      {/* 3. Next: Transport Charges */}
-                      {totalTransportation > 0 && (
-                        <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                          <td className="text-center"></td>
-                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
-                            TRANSPORTATION &amp; DELIVERY CHARGES
-                          </td>
-                          <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
-                            {renderWithSmallDecimalHtml(formatIndianCurrency(totalTransportation))}
-                          </td>
-                        </tr>
-                      )}
-
-                      {/* 4. Next: Other Charges (if any) */}
-                      {totalOther > 0 && (
-                        <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                          <td className="text-center"></td>
-                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
-                            {(ac?.otherLabel || 'OTHER CHARGES').toUpperCase()}
-                          </td>
-                          <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
-                            {renderWithSmallDecimalHtml(formatIndianCurrency(totalOther))}
-                          </td>
-                        </tr>
-                      )}
-
-                      {/* 5. Next: GST */}
-                      {gstAmount > 0 && (
-                        <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                          <td className="text-center"></td>
-                          <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
-                            GST {sheet?.gstPercent ? `(${sheet.gstPercent}%)` : ''}
-                          </td>
-                          <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
-                            {renderWithSmallDecimalHtml(formatIndianCurrency(gstAmount))}
-                          </td>
-                        </tr>
-                      )}
-
-                      {/* 6. Next: Discount */}
-                      {discAmount > 0 && (
-                        <>
-                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`} style={{ fontWeight: 800 }}>
-                            <td className="text-center"></td>
-                            <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase' }}>
-                              TOTAL PRICE BEFORE DISCOUNT
-                            </td>
-                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px' }}>
-                              {renderWithSmallDecimalHtml(formatIndianCurrency(subtotalWithCharges + gstAmount))}
-                            </td>
-                          </tr>
-                          <tr className={`p-item-row ${chargeIdx++ % 2 === 0 ? 'zebra-even' : 'zebra-odd'}`}>
-                            <td className="text-center"></td>
-                            <td colSpan={chargeSpan} className="text-right font-bold" style={{ paddingRight: '8px', textTransform: 'uppercase', color: '#166534' }}>
-                              LESS: DISCOUNT {sheet?.discount?.type === 'percentage' && sheet.discount.value ? `(${sheet.discount.value}%)` : (sheet?.discount?.type === 'rupees' && sheet.discount.value ? `(SPECIAL DISCOUNT)` : '')}
-                            </td>
-                            <td className="text-right p-mono font-bold" style={{ paddingRight: '8px', color: '#166534' }}>
-                              - {renderWithSmallDecimalHtml(formatIndianCurrency(discAmount))}
-                            </td>
-                          </tr>
-                        </>
-                      )}
-                    </>
-                  );
-                })()}
-
-                {/* Fill empty spacing to push total to bottom if few items */}
-                {invoiceItems.length < 8 && (
-                  <tr style={{ height: `${Math.max(20, (8 - invoiceItems.length) * 20)}px` }}>
-                    <td colSpan={7 + (showSqftCol ? 1 : 0) + (showRftCol ? 1 : 0)} style={{ borderBottom: 'none' }}></td>
-                  </tr>
-                )}
-              </tbody>
-
-              {/* Total Row */}
-              <tfoot>
-                <tr className="p-total-row">
-                  <td colSpan={2} style={{ textAlign: 'right', fontWeight: 800, paddingRight: '12px' }}>
-                    Total
-                  </td>
-                  <td className="text-right p-mono font-bold">
-                    {totalPieces} PCS
-                  </td>
-                  <td className="text-right p-mono font-bold">
-                    {renderWithSmallDecimalHtml(totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '')}
-                  </td>
-                  {showSqftCol && (
-                    <td className="text-right p-mono font-bold">
-                      {renderWithSmallDecimalHtml(totalSqftBilled > 0 ? `${totalSqftBilled.toFixed(2)} SQFT` : '')}
-                    </td>
-                  )}
-                  {showRftCol && (
-                    <td className="text-right p-mono font-bold">
-                      {renderWithSmallDecimalHtml(totalRftBilled > 0 ? `${totalRftBilled.toFixed(2)} RFT` : '')}
-                    </td>
-                  )}
-                  <td colSpan={3} className="text-right p-mono font-bold p-final-total-highlight">
-                    {renderWithSmallDecimalHtml(formatIndianCurrency(effectiveTotal), 'Rs. ')}
-                  </td>
-                </tr>
-                {renderAdvanceFooterRows(advanceAmt, remainingAmt, 3 + (showSqftCol ? 1 : 0) + (showRftCol ? 1 : 0), 3, true)}
-              </tfoot>
+                  {renderAdvanceFooterRows(advanceAmt, remainingAmt, 3 + (showSqftCol ? 1 : 0) + (showRftCol ? 1 : 0), 3, true)}
+                </tfoot>
               </table>
             )}
           </div>

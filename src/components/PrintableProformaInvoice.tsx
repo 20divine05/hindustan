@@ -42,7 +42,7 @@ export const renderDimensionHtml = (dim: string) => {
         className="p-dim-grid"
         style={{
           display: 'inline-grid',
-          gridTemplateColumns: '3.4em 1.2em 2.8em 1.2em 2.8em',
+          gridTemplateColumns: '4.2em 1.1em 2.3em 1.1em 2.7em',
           alignItems: 'center',
           fontVariantNumeric: 'tabular-nums'
         }}
@@ -78,7 +78,10 @@ export const renderDimensionHtml = (dim: string) => {
   );
 };
 
-export const renderWithSmallDecimalHtml = (val: string | number | undefined | null, prefix: string = '', suffix: string = '') => {
+export const getCftIntWidthCh = (items: Array<{ cft?: number }>) =>
+  Math.max(3, ...items.map((it) => (typeof it.cft === 'number' && it.cft > 0 ? `${Math.floor(it.cft)}.`.length : 0)));
+
+export const renderWithSmallDecimalHtml = (val: string | number | undefined | null, prefix: string = '', suffix: string = '', intWidthCh?: number) => {
   if (val === undefined || val === null) return null;
   const str = typeof val === 'number' ? val.toString() : val;
   if (!str || str === '-') return null;
@@ -117,7 +120,7 @@ export const renderWithSmallDecimalHtml = (val: string | number | undefined | nu
   return (
     <span style={scaleStyle}>
       {prefix}
-      <span>{intStr}</span>
+      <span style={intWidthCh ? { display: 'inline-block', minWidth: `${intWidthCh}ch`, textAlign: 'right' } : undefined}>{intStr}</span>
       <span className="p-dec-small">{decStr}</span>
       {postStr}
       {suffix}
@@ -998,7 +1001,7 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                                 {renderDimensionHtml(descStr)}
                               </td>
                               <td className="text-left p-mono p-qty-indent">{itPieces > 0 ? itPieces : ''}</td>
-                              <td className="text-left p-mono p-qty-indent">{renderWithSmallDecimalHtml(!isSheet && !isRftBilled && it.cft > 0 ? it.cft.toFixed(4) : '')}</td>
+                              <td className="text-left p-mono p-qty-indent">{renderWithSmallDecimalHtml(!isSheet && !isRftBilled && it.cft > 0 ? it.cft.toFixed(4) : '', '', '', getCftIntWidthCh(validItems))}</td>
                               {showSqftCol && (
                                 <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled && (isSheet ? sheetSqft > 0 : it.sqft > 0) ? `${(isSheet ? sheetSqft : it.sqft).toFixed(2)} SQFT` : '')}</td>
                               )}

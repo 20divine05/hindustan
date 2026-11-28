@@ -1409,6 +1409,22 @@ export function createProformaInvoiceDoc(
 
   const lastColIndex = isRoundLog ? 4 : (totalCutCols - 1);
 
+  let maxItemCftIntDotW = 0;
+  if (!isRoundLog) {
+    doc.setFont('helvetica', isMeasurementOnly ? 'bold' : 'normal');
+    doc.setFontSize(9.0);
+    maxItemCftIntDotW = doc.getTextWidth('00.');
+    for (const row of tableBody) {
+      if (!Array.isArray(row) || row.length <= 3) continue;
+      const cftCell = row[3] as any;
+      if (!cftCell || typeof cftCell !== 'object' || cftCell.styles?.halign !== 'left') continue;
+      const dec = splitDecimalNumber(String(cftCell.content || ''));
+      if (dec && !dec.suffix) {
+        maxItemCftIntDotW = Math.max(maxItemCftIntDotW, doc.getTextWidth(dec.intStr));
+      }
+    }
+  }
+
   autoTable(doc, {
     startY: tableStartY,
     margin: { left: 10, right: 10 },
@@ -1526,11 +1542,11 @@ export function createProformaInvoiceDoc(
         }
 
         if (dimParts) {
-          // 5-track tabular layout matching HTML grid (3.4em, 1.2em, 2.8em, 1.2em, 2.8em) with clean indent past species header (x + 2.2)
+          // 5-track tabular layout matching HTML grid (4.2em, 1.1em, 2.3em, 1.1em, 2.7em) with breathing room after 4-char length and clean indent past species header
           const startX = x + 3.6;
           if (dimParts.length === 5) {
             const emMm = Math.min(2.26, Math.max(1.8, (w - 4.8) / 11.4));
-            const trackWidths = [3.4 * emMm, 1.2 * emMm, 2.8 * emMm, 1.2 * emMm, 2.8 * emMm];
+            const trackWidths = [4.2 * emMm, 1.1 * emMm, 2.3 * emMm, 1.1 * emMm, 2.7 * emMm];
             let trackX = startX;
             for (let i = 0; i < 5; i++) {
               const part = dimParts[i];
@@ -1572,6 +1588,7 @@ export function createProformaInvoiceDoc(
         } else if (decParts) {
           const isLeftAligned = data.cell.styles.halign === 'left';
           const isLeftAmount = !isMeasurementOnly && data.section === 'body' && data.column.index === lastColIndex && isLeftAligned;
+          const isItemCftCell = !isRoundLog && data.section === 'body' && data.column.index === 3 && isLeftAligned && !decParts.suffix;
           const padRight = 2.2;
           const padLeft = isLeftAmount ? 2.2 : (isLeftAligned ? 2.8 : 2.2);
           const isBold = isFootTotal || data.cell.styles.fontStyle === 'bold';
@@ -1615,8 +1632,11 @@ export function createProformaInvoiceDoc(
             totalW = wInt + wDec + wSuffix;
           }
 
-          // Strict column confinement: curX respects left-alignment indentation or stays flush inside right boundary
-          let curX = isLeftAligned ? (x + padLeft) : Math.max(x + padLeft, x + w - padRight - totalW);
+          const scaledAnchorIntDotW = maxItemCftIntDotW * (currentBaseFontSize / baseFontSize);
+          // Strict column confinement: curX anchors item CFT decimals on their decimal point, respects left-alignment indentation, or stays flush right
+          let curX = isItemCftCell
+            ? Math.min(Math.max(x + padLeft, x + padLeft + scaledAnchorIntDotW - wInt), Math.max(x + padLeft, x + w - padRight - totalW))
+            : (isLeftAligned ? (x + padLeft) : Math.max(x + padLeft, x + w - padRight - totalW));
 
           doc.setFont('helvetica', isBold ? 'bold' : 'normal');
           doc.setFontSize(currentBaseFontSize);
