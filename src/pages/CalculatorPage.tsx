@@ -1102,7 +1102,18 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       customGstTaxableAmount: customGstTaxableAmount > 0 ? customGstTaxableAmount : undefined,
       gstPercent,
       finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : totalBeforeDiscount,
-      advanceAmount: advanceAmount > 0 ? advanceAmount : undefined
+      advanceAmount: advanceAmount > 0 ? advanceAmount : undefined,
+      ...(sheetToEdit && sheetToEdit.id === sheetId
+        ? {
+            motorVehicleNo: sheetToEdit.motorVehicleNo,
+            gstNumber: sheetToEdit.gstNumber,
+            billOfEntryNo: sheetToEdit.billOfEntryNo,
+            boeDate: sheetToEdit.boeDate,
+            containerNo: sheetToEdit.containerNo,
+            proformaExportData: sheetToEdit.proformaExportData,
+            attachedFiles: sheetToEdit.attachedFiles
+          }
+        : {})
     };
     return sanitizeAndComputeSheet(raw, user?.id || 'guest');
   };
@@ -1186,7 +1197,18 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       customGstTaxableAmount: customGstTaxableAmount > 0 ? customGstTaxableAmount : undefined,
       gstPercent,
       finalGrandTotal: (finalGrandTotal && finalGrandTotal > 0) ? finalGrandTotal : totalBeforeDiscount,
-      advanceAmount: advanceAmount > 0 ? advanceAmount : undefined
+      advanceAmount: advanceAmount > 0 ? advanceAmount : undefined,
+      ...(sheetToEdit && sheetToEdit.id === sheetId
+        ? {
+            motorVehicleNo: sheetToEdit.motorVehicleNo,
+            gstNumber: sheetToEdit.gstNumber,
+            billOfEntryNo: sheetToEdit.billOfEntryNo,
+            boeDate: sheetToEdit.boeDate,
+            containerNo: sheetToEdit.containerNo,
+            proformaExportData: sheetToEdit.proformaExportData,
+            attachedFiles: sheetToEdit.attachedFiles
+          }
+        : {})
     };
 
     // Always preserve working session draft

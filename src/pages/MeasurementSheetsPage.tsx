@@ -1,13 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { Printer, Search, FileText, Loader2, FileDown, Pencil, X, Check } from 'lucide-react';
-import type { BusinessSettings, MeasurementSheet } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Printer,
+  Search,
+  FileText,
+  Loader2,
+  FileDown,
+  Pencil,
+  X,
+  Check,
+  Paperclip,
+  Eye,
+  Trash2,
+  Plus
+} from 'lucide-react';
+import type { BusinessSettings, MeasurementSheet, MeasurementSheetAttachment } from '../types';
 import { dbService } from '../services/db';
 import { useAuth } from '../contexts/AuthContext';
 import { formatValue } from '../utils/calculator';
-import { printMeasurementSheetPdf, exportMeasurementSheetToPdf } from '../utils/exportPdf';
+import {
+  printMeasurementSheetPdf,
+  exportMeasurementSheetToPdf,
+  createMeasurementSheetDocWithPages,
+  type MeasurementSheetPdfPageMeta
+} from '../utils/exportPdf';
+import {
+  processMeasurementAttachmentFiles,
+  renderPdfArrayBufferToPreviewImages
+} from '../utils/sheetAttachments';
 
 interface MeasurementSheetsPageProps {
   businessSettings?: BusinessSettings;
+  onSheetUpdated?: (sheet: MeasurementSheet) => void;
 }
 
 export interface MeasurementSheetDispatchDetails {
@@ -16,6 +39,10 @@ export interface MeasurementSheetDispatchDetails {
   boeDate: string;
   motorVehicleNo: string;
   containerNo: string;
+}
+
+interface PreviewRenderedPage extends MeasurementSheetPdfPageMeta {
+  imageUrl: string;
 }
 
 export function resolveSheetInvoiceNumber(sheet: MeasurementSheet): string {
@@ -47,7 +74,8 @@ function formatTodayShort(): string {
 }
 
 export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
-  businessSettings
+  businessSettings,
+  onSheetUpdated
 }) => {
   const { user } = useAuth();
   const [sheets, setSheets] = useState<MeasurementSheet[]>([]);
@@ -65,6 +93,20 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
   });
   const [savingDetails, setSavingDetails] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+
+  // Attachment upload state
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileUploadTargetRef = useRef<MeasurementSheet | null>(null);
+  const [attachingSheetId, setAttachingSheetId] = useState<string | null>(null);
+  const [attachmentNotice, setAttachmentNotice] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+
+  // PDF preview modal state
+  const [previewSheet, setPreviewSheet] = useState<MeasurementSheet | null>(null);
+  const [previewPages, setPreviewPages] = useState<PreviewRenderedPage[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
+  const previewRequestSeqRef = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -84,12 +126,46 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
     };
   }, [user]);
 
+  const loadAuthoritativeSheet = async (summary: MeasurementSheet): Promise<MeasurementSheet | null> => {
+    const uid = user?.id || summary.userId || 'guest';
+    const full = await dbService.getSheetById(summary.id, uid, user?.role || 'admin');
+    if (full) return full;
+    if ((summary.items && summary.items.length > 0) || summary.totalEntries === 0) {
+      return summary;
+    }
+    return null;
+  };
+
+  const syncSheetState = (savedSheet: MeasurementSheet, extraAttachments?: MeasurementSheetAttachment[]) => {
+    const resolvedAttachments = extraAttachments !== undefined ? extraAttachments : savedSheet.attachedFiles;
+    setSheets((prev) =>
+      prev.map((s) =>
+        s.id === savedSheet.id
+          ? {
+              ...s,
+              gstNumber: savedSheet.gstNumber,
+              billOfEntryNo: savedSheet.billOfEntryNo,
+              boeDate: savedSheet.boeDate,
+              motorVehicleNo: savedSheet.motorVehicleNo,
+              containerNo: savedSheet.containerNo,
+              proformaExportData: savedSheet.proformaExportData || s.proformaExportData,
+              attachedFiles: resolvedAttachments
+            }
+          : s
+      )
+    );
+    setPreviewSheet((prev) =>
+      prev && prev.id === savedSheet.id
+        ? { ...savedSheet, attachedFiles: resolvedAttachments }
+        : prev
+    );
+    onSheetUpdated?.({ ...savedSheet, attachedFiles: resolvedAttachments });
+  };
+
   const handleMeasurementSheetAction = async (summary: MeasurementSheet, action: 'print' | 'download') => {
     setPrintingId(summary.id);
     try {
-      const uid = user?.id || summary.userId || 'guest';
-      const full = await dbService.getSheetById(summary.id, uid, user?.role || 'admin');
-      const target = full || ((summary.items && summary.items.length > 0) || summary.totalEntries === 0 ? summary : null);
+      const target = await loadAuthoritativeSheet(summary);
       if (!target) {
         alert('Could not load measurement rows from the database. Please check your connection and try again.');
         return;
@@ -116,8 +192,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
     setDetailError(null);
     try {
       const uid = user?.id || editingSheet.userId || 'guest';
-      const full = await dbService.getSheetById(editingSheet.id, uid, user?.role || 'admin');
-      const base = full || ((editingSheet.items && editingSheet.items.length > 0) || editingSheet.totalEntries === 0 ? editingSheet : null);
+      const base = await loadAuthoritativeSheet(editingSheet);
       if (!base) {
         setDetailError('Could not load measurement rows from the database. Please check your connection and try again.');
         return;
@@ -144,17 +219,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
 
       const res = await dbService.saveSheet(updatedPayload, uid);
       const savedSheet = res.sheet;
-      setSheets((prev) =>
-        prev.map((s) =>
-          s.id === savedSheet.id
-            ? {
-                ...s,
-                ...nextDetails,
-                proformaExportData: savedSheet.proformaExportData || nextExportData
-              }
-            : s
-        )
-      );
+      syncSheetState(savedSheet);
       setEditingSheet(null);
 
       if (andPrint) {
@@ -165,6 +230,194 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
       setDetailError('Failed to save details. Please try again.');
     } finally {
       setSavingDetails(false);
+    }
+  };
+
+  const renderPreviewForSheet = async (target: MeasurementSheet) => {
+    const reqSeq = ++previewRequestSeqRef.current;
+    setPreviewSheet(target);
+    setPreviewLoading(true);
+    setPreviewError(null);
+
+    try {
+      const { doc, pages } = createMeasurementSheetDocWithPages(
+        target,
+        businessSettings,
+        target.proformaExportData
+      );
+      const pdfBuffer = doc.output('arraybuffer');
+      const images = await renderPdfArrayBufferToPreviewImages(pdfBuffer);
+
+      if (previewRequestSeqRef.current !== reqSeq) return;
+
+      const merged: PreviewRenderedPage[] = pages.map((meta, idx) => ({
+        ...meta,
+        imageUrl: images[idx] || ''
+      }));
+      setPreviewPages(merged);
+    } catch (err) {
+      console.error('Failed generating measurement sheet preview:', err);
+      if (previewRequestSeqRef.current === reqSeq) {
+        setPreviewError('Could not render PDF preview. Please try again.');
+      }
+    } finally {
+      if (previewRequestSeqRef.current === reqSeq) {
+        setPreviewLoading(false);
+      }
+    }
+  };
+
+  const handleOpenPreview = async (summary: MeasurementSheet) => {
+    const reqSeq = ++previewRequestSeqRef.current;
+    setPreviewSheet(summary);
+    setPreviewPages([]);
+    setPreviewLoading(true);
+    setPreviewError(null);
+
+    try {
+      const target = await loadAuthoritativeSheet(summary);
+      if (previewRequestSeqRef.current !== reqSeq) return;
+      if (!target) {
+        setPreviewError('Could not load measurement rows from the database. Please check your connection and try again.');
+        setPreviewLoading(false);
+        return;
+      }
+      await renderPreviewForSheet(target);
+    } catch (err) {
+      console.error('Failed loading sheet for PDF preview:', err);
+      if (previewRequestSeqRef.current === reqSeq) {
+        setPreviewError('Could not open PDF preview. Please try again.');
+        setPreviewLoading(false);
+      }
+    }
+  };
+
+  const closePreviewModal = () => {
+    previewRequestSeqRef.current++;
+    setPreviewSheet(null);
+    setPreviewPages([]);
+    setPreviewError(null);
+    setPreviewLoading(false);
+    setDeletingAttachmentId(null);
+  };
+
+  const triggerAddFiles = (sheet: MeasurementSheet) => {
+    if (attachingSheetId) return;
+    fileUploadTargetRef.current = sheet;
+    setAttachmentNotice(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const targetSummary = fileUploadTargetRef.current;
+    const selectedFiles = e.target.files;
+    if (!targetSummary || !selectedFiles || selectedFiles.length === 0) return;
+
+    const files = Array.from(selectedFiles);
+    setAttachingSheetId(targetSummary.id);
+    setAttachmentNotice(null);
+
+    try {
+      const processedAttachments = await processMeasurementAttachmentFiles(files);
+      if (processedAttachments.length === 0) return;
+
+      const uid = user?.id || targetSummary.userId || 'guest';
+      const base = await loadAuthoritativeSheet(targetSummary);
+      if (!base) {
+        setAttachmentNotice({
+          type: 'error',
+          text: 'Could not load measurement sheet rows from the database.'
+        });
+        return;
+      }
+
+      const nextAttachments: MeasurementSheetAttachment[] = [
+        ...(base.attachedFiles || []),
+        ...processedAttachments
+      ];
+
+      const updatedPayload: MeasurementSheet = {
+        ...base,
+        attachedFiles: nextAttachments
+      };
+
+      const res = await dbService.saveSheet(updatedPayload, uid);
+      if (res.error) {
+        setAttachmentNotice({
+          type: 'error',
+          text: res.error
+        });
+      }
+      const savedSheet: MeasurementSheet = {
+        ...res.sheet,
+        attachedFiles: nextAttachments
+      };
+      syncSheetState(savedSheet, nextAttachments);
+
+      if (!res.error) {
+        setAttachmentNotice({
+          type: 'success',
+          text: `Added ${processedAttachments.length} ${processedAttachments.length === 1 ? 'page' : 'pages'} to ${base.customerName || 'sheet'}.`
+        });
+      }
+
+      if (previewSheet && previewSheet.id === savedSheet.id) {
+        await renderPreviewForSheet(savedSheet);
+      }
+    } catch (err: any) {
+      console.error('Failed adding attachment files:', err);
+      const msg = err?.message || 'Failed to attach file(s). Please upload valid PDF or image files.';
+      if (previewSheet && previewSheet.id === targetSummary.id) {
+        setPreviewError(msg);
+      } else {
+        setAttachmentNotice({ type: 'error', text: msg });
+      }
+    } finally {
+      setAttachingSheetId(null);
+      fileUploadTargetRef.current = null;
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDeleteAttachedPage = async (attachmentId: string) => {
+    if (!previewSheet || deletingAttachmentId) return;
+    setDeletingAttachmentId(attachmentId);
+    setPreviewError(null);
+
+    try {
+      const uid = user?.id || previewSheet.userId || 'guest';
+      const base = await loadAuthoritativeSheet(previewSheet);
+      if (!base) {
+        setPreviewError('Could not load measurement sheet rows from the database.');
+        return;
+      }
+
+      const nextAttachments = (base.attachedFiles || []).filter((att) => att.id !== attachmentId);
+      const updatedPayload: MeasurementSheet = {
+        ...base,
+        attachedFiles: nextAttachments
+      };
+
+      const res = await dbService.saveSheet(updatedPayload, uid);
+      const savedSheet: MeasurementSheet = {
+        ...res.sheet,
+        attachedFiles: nextAttachments.length > 0 ? nextAttachments : undefined
+      };
+      syncSheetState(savedSheet, savedSheet.attachedFiles);
+      await renderPreviewForSheet(savedSheet);
+      if (res.error) {
+        setPreviewError(res.error);
+      }
+    } catch (err) {
+      console.error('Failed deleting attached page:', err);
+      setPreviewError('Failed to delete page. Please try again.');
+    } finally {
+      setDeletingAttachmentId(null);
     }
   };
 
@@ -196,8 +449,19 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
     return parts.join(' • ');
   };
 
+  const userAddedCountInPreview = previewPages.filter((p) => p.kind === 'attachment').length;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.pdf,application/pdf"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileInputChange}
+      />
+
       <div className="card" style={{ padding: '1.25rem' }}>
         <div
           style={{
@@ -234,6 +498,41 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
           </div>
         </div>
 
+        {attachmentNotice && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '0.75rem',
+              marginBottom: '0.85rem',
+              padding: '0.55rem 0.85rem',
+              borderRadius: '8px',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              backgroundColor: attachmentNotice.type === 'error' ? '#fef2f2' : '#f0fdf4',
+              border: `1px solid ${attachmentNotice.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
+              color: attachmentNotice.type === 'error' ? '#b91c1c' : '#166534'
+            }}
+          >
+            <span>{attachmentNotice.text}</span>
+            <button
+              type="button"
+              onClick={() => setAttachmentNotice(null)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: 'inherit',
+                padding: '0.15rem'
+              }}
+              aria-label="Dismiss notice"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
             Loading measurement sheets...
@@ -259,13 +558,16 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                       <th>Customer Name</th>
                       <th>Invoice Number</th>
                       <th style={{ textAlign: 'right' }}>Total CFT</th>
-                      <th style={{ textAlign: 'center', width: '310px' }}>Action</th>
+                      <th style={{ textAlign: 'center', width: '430px' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredSheets.map((sheet) => {
                       const invoiceNo = resolveSheetInvoiceNumber(sheet);
                       const isPrinting = printingId === sheet.id;
+                      const isAttaching = attachingSheetId === sheet.id;
+                      const busy = isPrinting || isAttaching;
+                      const attachedCount = sheet.attachedFiles?.length || 0;
                       const details = resolveSheetDispatchDetails(sheet);
                       const detailsSummary = formatDetailsSummary(details);
                       return (
@@ -277,6 +579,11 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                                 {detailsSummary}
                               </div>
                             )}
+                            {attachedCount > 0 && (
+                              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#1d4ed8', marginTop: '0.15rem' }}>
+                                {attachedCount} extra {attachedCount === 1 ? 'page' : 'pages'} attached
+                              </div>
+                            )}
                           </td>
                           <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-main)' }}>
                             {invoiceNo}
@@ -285,33 +592,55 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                             {formatValue(sheet.totalCft, 3)} CFT
                           </td>
                           <td style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
                               <button
                                 type="button"
                                 className="btn btn-secondary btn-sm"
-                                disabled={isPrinting}
+                                disabled={busy}
                                 onClick={() => openDetailsModal(sheet)}
-                                title="Enter Bill of Entry No., BOE Date, Motor Vehicle No. & Container Number"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.32rem', fontWeight: 600 }}
+                                title="Enter GST Invoice Number, BOE No., BOE Date, Motor Vehicle No. & Container Number"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600 }}
                               >
                                 <Pencil size={13} />
                                 {detailsSummary ? 'Edit Details' : 'Add Details'}
                               </button>
                               <button
                                 type="button"
+                                className="btn btn-secondary btn-sm"
+                                disabled={busy}
+                                onClick={() => triggerAddFiles(sheet)}
+                                title="Attach PDF or image pages to the end of this measurement sheet"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600 }}
+                              >
+                                {isAttaching ? <Loader2 size={13} className="animate-spin" /> : <Paperclip size={13} />}
+                                {isAttaching ? 'Adding...' : attachedCount > 0 ? `Add Files (${attachedCount})` : 'Add Files'}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                disabled={busy}
+                                onClick={() => handleOpenPreview(sheet)}
+                                title="Preview all pages in this measurement sheet PDF"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600 }}
+                              >
+                                <Eye size={13} />
+                                Preview PDF
+                              </button>
+                              <button
+                                type="button"
                                 className="btn btn-primary btn-sm"
-                                disabled={isPrinting}
+                                disabled={busy}
                                 onClick={() => handleMeasurementSheetAction(sheet, 'print')}
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                               >
                                 {isPrinting ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
-                                {isPrinting ? 'Preparing...' : 'Print Measurement Sheet'}
+                                {isPrinting ? 'Preparing...' : 'Print Sheet'}
                               </button>
                               <button
                                 type="button"
                                 className="btn btn-secondary btn-sm"
                                 title="Download PDF named after customer"
-                                disabled={isPrinting}
+                                disabled={busy}
                                 onClick={() => handleMeasurementSheetAction(sheet, 'download')}
                                 style={{ padding: '0.35rem 0.5rem' }}
                               >
@@ -332,6 +661,9 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
               {filteredSheets.map((sheet) => {
                 const invoiceNo = resolveSheetInvoiceNumber(sheet);
                 const isPrinting = printingId === sheet.id;
+                const isAttaching = attachingSheetId === sheet.id;
+                const busy = isPrinting || isAttaching;
+                const attachedCount = sheet.attachedFiles?.length || 0;
                 const details = resolveSheetDispatchDetails(sheet);
                 const detailsSummary = formatDetailsSummary(details);
                 return (
@@ -391,7 +723,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
-                        disabled={isPrinting}
+                        disabled={busy}
                         onClick={() => openDetailsModal(sheet)}
                         style={{
                           display: 'inline-flex',
@@ -405,6 +737,47 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                       >
                         <Pencil size={12} />
                         {detailsSummary ? 'Edit Details' : 'Add Details'}
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={busy}
+                        onClick={() => triggerAddFiles(sheet)}
+                        style={{
+                          flex: '1 1 0',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.32rem',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {isAttaching ? <Loader2 size={13} className="animate-spin" /> : <Paperclip size={13} />}
+                        {isAttaching ? 'Adding...' : attachedCount > 0 ? `Add Files (${attachedCount})` : 'Add Files'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={busy}
+                        onClick={() => handleOpenPreview(sheet)}
+                        style={{
+                          flex: '1 1 0',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.32rem',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <Eye size={13} />
+                        Preview PDF
                       </button>
                     </div>
 
@@ -430,7 +803,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                         <button
                           type="button"
                           className="btn btn-primary btn-sm"
-                          disabled={isPrinting}
+                          disabled={busy}
                           onClick={() => handleMeasurementSheetAction(sheet, 'print')}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, whiteSpace: 'nowrap' }}
                         >
@@ -441,7 +814,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                           type="button"
                           className="btn btn-secondary btn-sm"
                           title="Download PDF"
-                          disabled={isPrinting}
+                          disabled={busy}
                           onClick={() => handleMeasurementSheetAction(sheet, 'download')}
                           style={{ padding: '0.35rem 0.5rem' }}
                         >
@@ -457,6 +830,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
         )}
       </div>
 
+      {/* Add / Edit Details Modal */}
       {editingSheet && (
         <div
           style={{
@@ -637,6 +1011,289 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                 {savingDetails ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
                 Save &amp; Print
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview PDF Modal */}
+      {previewSheet && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.72)',
+            backdropFilter: 'blur(3px)',
+            zIndex: 10050,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0.75rem'
+          }}
+          onClick={closePreviewModal}
+        >
+          <div
+            className="card"
+            style={{
+              width: '100%',
+              maxWidth: '820px',
+              maxHeight: '92vh',
+              backgroundColor: '#f1f5f9',
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.35)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              padding: 0
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                backgroundColor: '#fff',
+                borderBottom: '1px solid var(--border-medium)',
+                padding: '0.9rem 1.1rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '0.65rem'
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <h3 style={{ margin: 0, fontSize: '1.08rem', color: 'var(--text-main)' }}>
+                  Preview PDF — {previewSheet.customerName || 'Direct Customer'}
+                </h3>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Invoice #{resolveSheetInvoiceNumber(previewSheet)}
+                  {previewPages.length > 0 && (
+                    <>
+                      {' • '}
+                      <strong>{previewPages.length} total {previewPages.length === 1 ? 'page' : 'pages'}</strong>
+                      {userAddedCountInPreview > 0 ? ` (${userAddedCountInPreview} added)` : ''}
+                    </>
+                  )}
+                </p>
+              </div>
+
+              <div style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={previewLoading || attachingSheetId === previewSheet.id || Boolean(deletingAttachmentId)}
+                  onClick={() => triggerAddFiles(previewSheet)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}
+                >
+                  {attachingSheetId === previewSheet.id ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Plus size={14} />
+                  )}
+                  Add Files
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  disabled={previewLoading || printingId === previewSheet.id}
+                  onClick={() => handleMeasurementSheetAction(previewSheet, 'print')}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}
+                >
+                  <Printer size={14} />
+                  Print
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={previewLoading || printingId === previewSheet.id}
+                  onClick={() => handleMeasurementSheetAction(previewSheet, 'download')}
+                  title="Download PDF"
+                  style={{ padding: '0.35rem 0.5rem' }}
+                >
+                  <FileDown size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={closePreviewModal}
+                  aria-label="Close Preview"
+                  style={{ padding: '0.35rem 0.5rem' }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body (Scrollable All Pages) */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '1rem'
+              }}
+            >
+              {previewError && (
+                <div
+                  style={{
+                    width: '100%',
+                    maxWidth: '680px',
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    color: '#b91c1c',
+                    borderRadius: '8px',
+                    padding: '0.6rem 0.85rem',
+                    fontSize: '0.84rem',
+                    fontWeight: 600
+                  }}
+                >
+                  {previewError}
+                </div>
+              )}
+
+              {previewLoading ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '3.5rem 1rem',
+                    color: 'var(--text-muted)',
+                    gap: '0.65rem'
+                  }}
+                >
+                  <Loader2 size={28} className="animate-spin" color="var(--primary-700)" />
+                  <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Rendering all PDF pages...</span>
+                </div>
+              ) : (
+                previewPages.map((page) => {
+                  const isAdded = page.kind === 'attachment' && Boolean(page.attachmentId);
+                  const isDeletingThis = Boolean(isAdded && deletingAttachmentId === page.attachmentId);
+                  const badgeStyle =
+                    page.kind === 'attachment'
+                      ? { backgroundColor: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd' }
+                      : page.kind === 'forest'
+                        ? { backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac' }
+                        : { backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1' };
+
+                  return (
+                    <div
+                      key={`${page.pageNumber}_${page.attachmentId || page.kind}`}
+                      style={{
+                        width: '100%',
+                        maxWidth: '680px',
+                        backgroundColor: '#fff',
+                        borderRadius: '10px',
+                        border: isAdded ? '1.5px solid #93c5fd' : '1px solid #cbd5e1',
+                        boxShadow: '0 4px 16px rgba(15, 23, 42, 0.08)',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '0.5rem',
+                          padding: '0.55rem 0.8rem',
+                          backgroundColor: '#f8fafc',
+                          borderBottom: '1px solid #e2e8f0'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.45rem', minWidth: 0 }}>
+                          <span
+                            style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 800,
+                              color: '#0f172a',
+                              backgroundColor: '#e2e8f0',
+                              borderRadius: '6px',
+                              padding: '0.15rem 0.45rem'
+                            }}
+                          >
+                            Page {page.pageNumber} of {previewPages.length}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '0.73rem',
+                              fontWeight: 700,
+                              borderRadius: '6px',
+                              padding: '0.14rem 0.45rem',
+                              ...badgeStyle
+                            }}
+                          >
+                            {page.label}
+                          </span>
+                          {page.attachmentName && (
+                            <span
+                              style={{
+                                fontSize: '0.76rem',
+                                color: '#475569',
+                                fontWeight: 600,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                maxWidth: '250px'
+                              }}
+                              title={page.attachmentName}
+                            >
+                              {page.attachmentName}
+                            </span>
+                          )}
+                        </div>
+
+                        {isAdded && page.attachmentId && (
+                          <button
+                            type="button"
+                            disabled={Boolean(deletingAttachmentId) || attachingSheetId === previewSheet.id}
+                            onClick={() => handleDeleteAttachedPage(page.attachmentId!)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              backgroundColor: '#fef2f2',
+                              color: '#dc2626',
+                              border: '1px solid #fecaca',
+                              borderRadius: '6px',
+                              padding: '0.26rem 0.55rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              cursor: deletingAttachmentId ? 'not-allowed' : 'pointer'
+                            }}
+                          >
+                            {isDeletingThis ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={13} />
+                            )}
+                            {isDeletingThis ? 'Deleting...' : 'Delete Page'}
+                          </button>
+                        )}
+                      </div>
+
+                      {page.imageUrl && (
+                        <div style={{ backgroundColor: '#fff', padding: '0.5rem' }}>
+                          <img
+                            src={page.imageUrl}
+                            alt={`Measurement Sheet Page ${page.pageNumber}`}
+                            style={{
+                              width: '100%',
+                              height: 'auto',
+                              display: 'block',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '4px'
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

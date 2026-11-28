@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 import type {
   BusinessSettings,
   MeasurementSheet,
+  MeasurementSheetAttachment,
   RoundLogOutputUnit,
   RoundLogInputUnitType,
   RoundLogItem
@@ -99,6 +100,43 @@ export interface ProformaInvoiceExportData {
   bankName?: string;
   bankAccountNo?: string;
   bankIfsc?: string;
+  attachedFiles?: MeasurementSheetAttachment[];
+}
+
+export interface MeasurementSheetPdfPageMeta {
+  pageNumber: number;
+  kind: 'core' | 'forest' | 'attachment';
+  label: string;
+  attachmentId?: string;
+  sourceType?: 'image' | 'pdf';
+  attachmentName?: string;
+}
+
+export interface MeasurementSheetDocResult {
+  doc: jsPDF;
+  pages: MeasurementSheetPdfPageMeta[];
+}
+
+function appendFullPageImage(
+  doc: jsPDF,
+  page: { dataUrl: string; width?: number; height?: number }
+): void {
+  doc.addPage();
+  const maxW = 202;
+  const maxH = 289;
+  const srcW = page.width && page.width > 0 ? page.width : 1000;
+  const srcH = page.height && page.height > 0 ? page.height : 1414;
+  const scale = Math.min(maxW / srcW, maxH / srcH);
+  const drawW = srcW * scale;
+  const drawH = srcH * scale;
+  const x = (210 - drawW) / 2;
+  const y = (297 - drawH) / 2;
+  const format = page.dataUrl.startsWith('data:image/png')
+    ? 'PNG'
+    : page.dataUrl.startsWith('data:image/webp')
+      ? 'WEBP'
+      : 'JPEG';
+  doc.addImage(page.dataUrl, format, x, y, drawW, drawH);
 }
 
 function formatDateToInvoice(dateStr?: string): string {
@@ -119,7 +157,8 @@ export function createProformaInvoiceDoc(
   sheet: MeasurementSheet,
   settings?: BusinessSettings,
   invoiceData?: ProformaInvoiceExportData,
-  documentMode: 'proforma' | 'measurement' = 'proforma'
+  documentMode: 'proforma' | 'measurement' = 'proforma',
+  outPages?: MeasurementSheetPdfPageMeta[]
 ): jsPDF {
   const isMeasurementOnly = documentMode === 'measurement';
   const doc = new jsPDF({
@@ -1872,17 +1911,47 @@ export function createProformaInvoiceDoc(
     doc.setTextColor(60, 60, 60);
     doc.text('Measurement Sheet • Hindustan Saw Mill', 105, bottomY + boxHeight + 4.2, { align: 'center' });
 
+    const pageList = outPages;
+    if (pageList) {
+      pageList.length = 0;
+      const coreCount = doc.getNumberOfPages();
+      for (let p = 1; p <= coreCount; p++) {
+        pageList.push({
+          pageNumber: p,
+          kind: 'core',
+          label: 'Measurement Sheet'
+        });
+      }
+    }
+
     // Append Forest Department exemption circular pages in exact order at the end of every Measurement Sheet
-    for (const scanPage of FOREST_EXEMPTION_PAGES) {
-      doc.addPage();
-      const maxW = 202;
-      const maxH = 289;
-      const scale = Math.min(maxW / scanPage.width, maxH / scanPage.height);
-      const drawW = scanPage.width * scale;
-      const drawH = scanPage.height * scale;
-      const x = (210 - drawW) / 2;
-      const y = (297 - drawH) / 2;
-      doc.addImage(scanPage.dataUrl, 'JPEG', x, y, drawW, drawH);
+    for (let i = 0; i < FOREST_EXEMPTION_PAGES.length; i++) {
+      const scanPage = FOREST_EXEMPTION_PAGES[i];
+      appendFullPageImage(doc, scanPage);
+      if (pageList) {
+        pageList.push({
+          pageNumber: doc.getNumberOfPages(),
+          kind: 'forest',
+          label: `Forest Dept. Notification (${i + 1}/${FOREST_EXEMPTION_PAGES.length})`
+        });
+      }
+    }
+
+    // Append user-uploaded PDF/image pages at the end of the Measurement Sheet
+    const userAttachments = invoiceData?.attachedFiles ?? sheet.attachedFiles ?? [];
+    for (const att of userAttachments) {
+      if (!att?.dataUrl) continue;
+      appendFullPageImage(doc, att);
+      if (pageList) {
+        pageList.push({
+          pageNumber: doc.getNumberOfPages(),
+          kind: 'attachment',
+          label: att.sourceType === 'pdf' ? 'Added PDF' : 'Added Image',
+          attachmentId: att.id,
+          sourceType: att.sourceType,
+          attachmentName: att.name
+        });
+      }
     }
 
     return doc;
@@ -2100,6 +2169,16 @@ export function getMeasurementSheetFilename(
     .trim();
   const dateStr = sheet.measurementDate || invoiceData?.invoiceDate || new Date().toISOString().split('T')[0];
   return `${safeFilename || 'Measurement Sheet'}_${dateStr}.pdf`;
+}
+
+export function createMeasurementSheetDocWithPages(
+  sheet: MeasurementSheet,
+  settings?: BusinessSettings,
+  invoiceData?: ProformaInvoiceExportData
+): MeasurementSheetDocResult {
+  const pages: MeasurementSheetPdfPageMeta[] = [];
+  const doc = createProformaInvoiceDoc(sheet, settings, invoiceData, 'measurement', pages);
+  return { doc, pages };
 }
 
 export function createMeasurementSheetDoc(

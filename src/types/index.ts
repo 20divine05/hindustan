@@ -110,6 +110,15 @@ export interface AdditionalCharges {
   otherLabel?: string;
 }
 
+export interface MeasurementSheetAttachment {
+  id: string;
+  name: string;
+  sourceType: 'image' | 'pdf';
+  dataUrl: string;
+  width: number;
+  height: number;
+}
+
 export interface SheetDiscount {
   type: 'rupees' | 'percentage';
   value: number;
@@ -163,6 +172,7 @@ export interface MeasurementSheet {
   finalGrandTotal?: number;
   advanceAmount?: number;
   proformaExportData?: Record<string, any>;
+  attachedFiles?: MeasurementSheetAttachment[];
   totalEntries: number;
   totalPieces: number;
   totalCft: number;

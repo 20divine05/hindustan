@@ -116,7 +116,12 @@ const MainApp: React.FC<{ onNavigateToAdmin?: () => void }> = ({ onNavigateToAdm
         )}
 
         {currentView === 'measurement_sheets' && (
-          <MeasurementSheetsPage businessSettings={settings} />
+          <MeasurementSheetsPage
+            businessSettings={settings}
+            onSheetUpdated={(updatedSheet) => {
+              setActiveSheet((prev) => (prev?.id === updatedSheet.id ? updatedSheet : prev));
+            }}
+          />
         )}
 
         {currentView === 'settings' && (

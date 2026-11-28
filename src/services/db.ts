@@ -1,5 +1,5 @@
 import { getSupabase, getSupabaseCredentials } from '../lib/supabase';
-import type { MeasurementItem, MeasurementSheet } from '../types';
+import type { MeasurementItem, MeasurementSheet, MeasurementSheetAttachment } from '../types';
 import { calculateRFT, calculateRow, calculateSheetAmount, calculateTotals, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, normalizeTeakGrade, resolveSheetRateUnit, resolveSheetWidth } from '../utils/calculator';
 
 const LOCAL_SHEETS_KEY = 'timberpro_local_sheets';
@@ -122,6 +122,26 @@ export function generateId(): string {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+function sanitizeAttachedFiles(raw: unknown): MeasurementSheetAttachment[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const cleaned: MeasurementSheetAttachment[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const rec = item as Record<string, unknown>;
+    const dataUrl = typeof rec.dataUrl === 'string' ? rec.dataUrl.trim() : '';
+    if (!dataUrl) continue;
+    cleaned.push({
+      id: typeof rec.id === 'string' && rec.id.trim() ? rec.id.trim() : generateId(),
+      name: typeof rec.name === 'string' && rec.name.trim() ? rec.name.trim() : 'Attachment',
+      sourceType: rec.sourceType === 'pdf' ? 'pdf' : 'image',
+      dataUrl,
+      width: typeof rec.width === 'number' && rec.width > 0 ? rec.width : 1000,
+      height: typeof rec.height === 'number' && rec.height > 0 ? rec.height : 1414
+    });
+  }
+  return cleaned.length > 0 ? cleaned : undefined;
 }
 
 /**
@@ -275,6 +295,7 @@ export function sanitizeAndComputeSheet(
       return !isNaN(parsedAdv) && parsedAdv > 0 ? Math.round(parsedAdv * 100) / 100 : undefined;
     })(),
     proformaExportData: sheet.proformaExportData,
+    attachedFiles: sanitizeAttachedFiles(sheet.attachedFiles),
     totalEntries: sheet.logType === 'round' && sheet.roundLogItems ? sheet.roundLogItems.length : totals.totalEntries,
     totalPieces: sheet.logType === 'round' && sheet.roundLogItems ? sheet.roundLogItems.reduce((acc, it) => acc + (Number(it.pieces) || 0), 0) : totals.totalPieces,
     totalCft: sheet.logType === 'round' && sheet.roundLogItems ? (sheet.roundLogOutputUnit === 'CFT' ? sheet.roundLogItems.reduce((acc, it) => acc + (Number(it.volume) || 0), 0) : sheet.roundLogItems.reduce((acc, it) => acc + (Number(it.volume) || 0), 0) * 35.3147) : totals.totalCft,
@@ -400,7 +421,7 @@ const localDb = {
       }
 
       const compact = sheets.map((s) =>
-        s.id === sheet.id ? s : { ...s, proformaExportData: undefined }
+        s.id === sheet.id ? s : { ...s, proformaExportData: undefined, attachedFiles: undefined }
       );
       try {
         localStorage.setItem(LOCAL_SHEETS_KEY, JSON.stringify(compact));
@@ -423,6 +444,16 @@ const localDb = {
         } catch {
           // Continue evicting oldest entries until within localStorage quota
         }
+      }
+
+      // Ultra-last resort if a single sheet's heavy payloads overflow localStorage (cloud save still proceeds)
+      try {
+        localStorage.setItem(
+          LOCAL_SHEETS_KEY,
+          JSON.stringify([{ ...sheet, attachedFiles: undefined }])
+        );
+      } catch {
+        // Ignore if still exceeding localStorage quota
       }
     } catch (e) {
       console.warn('Local sheet cache skipped (storage quota):', e);
@@ -494,6 +525,7 @@ export const dbService = {
         .map((row) => {
           let isConfirmed = Boolean(row.is_confirmed);
           let proformaExportData: Record<string, any> | undefined;
+          let attachedFiles: MeasurementSheetAttachment[] | undefined;
           let motorVehicleNo = '';
           let gstNumber = '';
           let billOfEntryNo = '';
@@ -508,6 +540,7 @@ export const dbService = {
               if (meta.proformaExportData && typeof meta.proformaExportData === 'object') {
                 proformaExportData = meta.proformaExportData;
               }
+              attachedFiles = sanitizeAttachedFiles(meta.attachedFiles);
               motorVehicleNo = meta.motorVehicleNo || proformaExportData?.motorVehicleNo || '';
               gstNumber = meta.gstNumber || proformaExportData?.gstNumber || '';
               billOfEntryNo = meta.billOfEntryNo || proformaExportData?.billOfEntryNo || '';
@@ -535,6 +568,7 @@ export const dbService = {
             containerNo,
             finalGrandTotal,
             proformaExportData,
+            attachedFiles,
             totalEntries: row.total_entries || 0,
             totalPieces: Number(row.total_pieces) || 0,
             totalCft: Number(row.total_cft) || 0,
@@ -708,6 +742,7 @@ export const dbService = {
         finalGrandTotal: parsedMeta ? parsedMeta.finalGrandTotal : localSheet?.finalGrandTotal,
         advanceAmount: parsedMeta ? parsedMeta.advanceAmount : localSheet?.advanceAmount,
         proformaExportData: parsedMeta ? parsedMeta.proformaExportData : localSheet?.proformaExportData,
+        attachedFiles: sanitizeAttachedFiles(parsedMeta?.attachedFiles ?? localSheet?.attachedFiles),
         totalEntries: sheetData.total_entries || finalItems.length,
         totalPieces: Number(sheetData.total_pieces) || localSheet?.totalPieces || 0,
         totalCft: Number(sheetData.total_cft) || localSheet?.totalCft || 0,
@@ -797,6 +832,7 @@ export const dbService = {
           finalGrandTotal: sanitized.finalGrandTotal,
           advanceAmount: sanitized.advanceAmount,
           proformaExportData: sanitized.proformaExportData,
+          attachedFiles: sanitized.attachedFiles,
           logType: sanitized.logType,
           roundLogOutputUnit: sanitized.roundLogOutputUnit,
           roundLogInputUnit: sanitized.roundLogInputUnit,
@@ -955,6 +991,10 @@ export const dbService = {
       updatedAt: new Date().toISOString(),
       items: original.items.map((it) => ({
         ...it,
+        id: generateId()
+      })),
+      attachedFiles: original.attachedFiles?.map((att) => ({
+        ...att,
         id: generateId()
       }))
     };
