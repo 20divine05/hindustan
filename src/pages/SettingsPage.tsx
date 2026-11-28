@@ -298,7 +298,7 @@ CREATE POLICY "Allow all on measurement_items" ON public.measurement_items FOR A
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   backgroundColor: formData.logoDataUrl ? 'rgba(22, 163, 74, 0.14)' : 'rgba(217, 155, 38, 0.2)',
-                  color: formData.logoDataUrl ? '#15803d' : 'var(--amber-300)',
+                  color: formData.logoDataUrl ? '#15803d' : '#92400e',
                   padding: '2px 6px',
                   borderRadius: '4px',
                   border: `1px solid ${formData.logoDataUrl ? 'rgba(22, 163, 74, 0.35)' : 'rgba(217, 155, 38, 0.35)'}`

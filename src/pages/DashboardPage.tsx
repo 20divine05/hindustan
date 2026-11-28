@@ -14,25 +14,29 @@ import {
   Copy,
   FileDown
 } from 'lucide-react';
-import type { MeasurementSheet } from '../types';
+import type { BusinessSettings, MeasurementSheet } from '../types';
 import { dbService } from '../services/db';
 import { formatCompact, formatValue } from '../utils/calculator';
 import { useAuth } from '../contexts/AuthContext';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { exportSheetToPdf } from '../utils/exportPdf';
+import { resolveBusinessSettings } from '../utils/businessSettings';
 
 interface DashboardPageProps {
   onNewSheet: () => void;
   onOpenSheet: (sheet: MeasurementSheet) => void;
   onViewAllSheets: () => void;
+  businessSettings?: BusinessSettings;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   onNewSheet,
   onOpenSheet,
-  onViewAllSheets
+  onViewAllSheets,
+  businessSettings
 }) => {
   const { user } = useAuth();
+  const biz = resolveBusinessSettings(businessSettings);
   const [sheets, setSheets] = useState<MeasurementSheet[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,8 +111,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flex: 1, minWidth: '240px' }}>
           <img
-            src="/logo-icon-transparent.png"
-            alt="Hindustan Saw Mill Logo"
+            src={biz.logoDataUrl || '/logo-icon-transparent.png'}
+            alt={`${biz.companyName} Logo`}
             className="welcome-banner-logo"
             style={{
               width: '64px',
@@ -132,14 +136,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   borderRadius: '4px'
                 }}
               >
-                Hindustan Saw Mill &amp; Wood Industries &bull; Est. 1971
+                {biz.companyName}{biz.sinceBadge ? ` • ${biz.sinceBadge}` : ''}
               </span>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Logged in as {user?.email}
+                Logged in as {user?.id === 'hindustan-staff' ? biz.email : user?.email}
               </span>
             </div>
             <h1 style={{ fontSize: '1.85rem', color: 'var(--text-main)', margin: 0 }}>
-              Welcome back, {user?.fullName || 'Mill Sawyer'}
+              Welcome back, {user?.id === 'hindustan-staff' ? biz.companyName : (user?.fullName || biz.companyName)}
             </h1>
             <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '580px' }}>
               Industrial CFT (Cubic Feet) &amp; SQFT (Square Feet) measurement platform.

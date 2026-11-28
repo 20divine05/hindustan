@@ -14,6 +14,7 @@ import type { BusinessSettings, MeasurementSheet, AppVisitor } from './types';
 import { dbService } from './services/db';
 import {
   DEFAULT_BUSINESS_SETTINGS,
+  applyDocumentBranding,
   loadBusinessSettings,
   saveBusinessSettings
 } from './utils/businessSettings';
@@ -24,6 +25,10 @@ const MainApp: React.FC<{ onNavigateToAdmin?: () => void }> = ({ onNavigateToAdm
 
   // Business settings state
   const [settings, setSettings] = useState<BusinessSettings>(() => loadBusinessSettings());
+
+  useEffect(() => {
+    applyDocumentBranding(settings);
+  }, [settings]);
 
   const handleUpdateSettings = (newSettings: BusinessSettings) => {
     const saved = saveBusinessSettings(newSettings);
@@ -69,6 +74,7 @@ const MainApp: React.FC<{ onNavigateToAdmin?: () => void }> = ({ onNavigateToAdm
             onNewSheet={handleNewSheet}
             onOpenSheet={handleOpenSheet}
             onViewAllSheets={() => setCurrentView('history')}
+            businessSettings={settings}
           />
         )}
 
@@ -200,6 +206,10 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    applyDocumentBranding(loadBusinessSettings());
+  }, []);
+
+  useEffect(() => {
     if (!isAdminRoute && !publicInvoiceId) {
       verifyVisitor();
     }
@@ -228,6 +238,7 @@ export function App() {
 
   // 2. Checking visitor credentials
   if (visitorStatus === 'checking') {
+    const initialBiz = loadBusinessSettings();
     return (
       <div style={{
         minHeight: '100vh',
@@ -251,7 +262,7 @@ export function App() {
           marginBottom: '1.25rem'
         }} />
         <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 0.4rem', letterSpacing: '-0.02em' }}>
-          Hindustan Saw Mill &amp; Wood Industries
+          {initialBiz.companyName}
         </h2>
         <p style={{ fontSize: '0.84rem', color: '#94a3b8', margin: 0 }}>
           Verifying visitor authorization &amp; credentials...

@@ -62,6 +62,7 @@ import {
 import { formatIndianCurrency } from '../utils/indianNumberWords';
 import { exportSheetToCsv } from '../utils/exportCsv';
 import { exportSheetToPdf, printProformaInvoicePdf, getProformaInvoicePdfBlob, type ProformaInvoiceExportData } from '../utils/exportPdf';
+import { resolveBusinessSettings } from '../utils/businessSettings';
 import { dbService, generateId, sanitizeAndComputeSheet } from '../services/db';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchGstinDetails } from '../services/gstinService';
@@ -1728,8 +1729,9 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
       const invNo = exportData.invoiceNo || 'Invoice';
       const clientName = (customerName || consigneeName || '').trim() || 'Valued Customer';
 
+      const shareCompany = resolveBusinessSettings(businessSettings).companyName;
       const shareMessage =
-        `*HINDUSTAN SAW MILL & WOOD INDUSTRIES*\n` +
+        `*${shareCompany}*\n` +
         `*Proforma Invoice:* #${invNo}\n` +
         `*Customer:* ${clientName}\n\n` +
         `*View / Download Invoice PDF:*\n${invoiceUrl}\n\n` +

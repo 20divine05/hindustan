@@ -182,3 +182,36 @@ export async function generateUpiQrDataUrl(upiId: string, payeeName?: string): P
     }
   });
 }
+
+function resolveFaviconMimeType(href: string): string {
+  if (href.startsWith('data:image/jpeg') || href.startsWith('data:image/jpg')) return 'image/jpeg';
+  if (href.startsWith('data:image/webp')) return 'image/webp';
+  if (href.startsWith('data:image/svg+xml')) return 'image/svg+xml';
+  return 'image/png';
+}
+
+/** Synchronizes browser tab title and favicon(s) with saved business branding. */
+export function applyDocumentBranding(settings?: Partial<BusinessSettings> | null): void {
+  if (typeof document === 'undefined') return;
+  const biz = resolveBusinessSettings(settings);
+  document.title = biz.tagline ? `${biz.companyName} | ${biz.tagline}` : biz.companyName;
+
+  const iconHref = biz.logoDataUrl || '/logo-icon-transparent.png';
+  const iconType = resolveFaviconMimeType(iconHref);
+  const links = document.querySelectorAll?.('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]');
+  if (links && links.length > 0) {
+    links.forEach((el) => {
+      el.setAttribute('href', iconHref);
+      el.setAttribute('type', iconType);
+    });
+    return;
+  }
+
+  if (document.head && typeof document.createElement === 'function') {
+    const iconLink = document.createElement('link');
+    iconLink.setAttribute('rel', 'icon');
+    iconLink.setAttribute('type', iconType);
+    iconLink.setAttribute('href', iconHref);
+    document.head.appendChild(iconLink);
+  }
+}

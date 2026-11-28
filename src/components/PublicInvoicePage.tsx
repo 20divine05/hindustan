@@ -4,6 +4,7 @@ import { dbService } from '../services/db';
 import { getProformaInvoicePdfBlob, printProformaInvoicePdf, type ProformaInvoiceExportData } from '../utils/exportPdf';
 import { formatIndianCurrency } from '../utils/indianNumberWords';
 import { calculateRFT, calculateTotals, calculateSheetAmount, calculateSheetSqft, isCftRftOnlyWood, isTimberRftBilled, isTimberSqftBilled, resolveSheetRateUnit, resolveSheetWidth, getCutLogItemSectionHeading, getCutLogItemDescription, sortTimberEntries } from '../utils/calculator';
+import { resolveBusinessSettings } from '../utils/businessSettings';
 import type { BusinessSettings, MeasurementSheet } from '../types';
 
 interface PublicInvoicePageProps {
@@ -15,6 +16,7 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
   sheetId,
   businessSettings
 }) => {
+  const biz = resolveBusinessSettings(businessSettings);
   const [sheet, setSheet] = useState<MeasurementSheet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -241,7 +243,7 @@ export const PublicInvoicePage: React.FC<PublicInvoicePageProps> = ({
         }} />
         <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700 }}>Opening Invoice PDF...</h2>
         <p style={{ margin: '0.35rem 0 0', fontSize: '0.84rem', color: '#94a3b8' }}>
-          Hindustan Saw Mill &amp; Wood Industries
+          {biz.companyName}
         </p>
       </div>
     );

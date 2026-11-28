@@ -38,6 +38,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileNavMenuOpen, setIsMobileNavMenuOpen] = useState(false);
   const biz = resolveBusinessSettings(businessSettings);
+  const isSharedStaffProfile = !user || user.id === 'hindustan-staff' || user.id.startsWith('demo-');
+  const toggleDisplayName = isSharedStaffProfile ? biz.companyName : (user.fullName || biz.companyName);
+  const toggleDisplayEmail = user?.id === 'hindustan-staff' ? biz.email : (user?.email || biz.email);
+  const toggleInitial = (toggleDisplayName || 'H').trim().charAt(0).toUpperCase() || 'H';
 
   return (
     <>
@@ -376,25 +380,43 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                 >
-                  <div
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--primary-100)',
-                      color: 'var(--primary-800)',
-                      border: '1px solid var(--primary-200)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.75rem',
-                      fontWeight: 700
-                    }}
-                  >
-                    {user.fullName ? user.fullName[0].toUpperCase() : 'U'}
-                  </div>
-                  <span className="navbar-user-name" style={{ fontSize: '0.85rem', maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {user.fullName || user.email.split('@')[0]}
+                  {biz.logoDataUrl ? (
+                    <img
+                      src={biz.logoDataUrl}
+                      alt={toggleDisplayName}
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        objectFit: 'contain',
+                        backgroundColor: '#ffffff',
+                        border: '1px solid var(--primary-200)',
+                        padding: '1px',
+                        flexShrink: 0
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--primary-100)',
+                        color: 'var(--primary-800)',
+                        border: '1px solid var(--primary-200)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        flexShrink: 0
+                      }}
+                    >
+                      {toggleInitial}
+                    </div>
+                  )}
+                  <span className="navbar-user-name" style={{ fontSize: '0.85rem', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {toggleDisplayName}
                   </span>
                   <ChevronDown size={14} color="var(--text-muted)" />
                 </button>
@@ -425,10 +447,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <div style={{ paddingBottom: '0.5rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-light)' }}>
                       <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                        {user.fullName}
+                        {toggleDisplayName}
                       </p>
                       <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {user.email}
+                        {toggleDisplayEmail}
                       </p>
                       <div style={{ marginTop: '0.35rem' }}>
                         <span className="badge badge-role">
