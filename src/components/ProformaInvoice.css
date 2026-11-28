@@ -369,6 +369,11 @@
   padding-right: 7px !important;
 }
 
+.p-items-table td.p-qty-indent {
+  text-align: left !important;
+  padding-left: 10px !important;
+}
+
 .p-items-table th:last-child {
   border-right: none;
 }

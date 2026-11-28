@@ -886,8 +886,8 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                 <tr>
                   <th style={{ width: '3.5%' }}>Sl<br />No.</th>
                   <th style={{ width: showSqftCol ? '17.5%' : (showRftCol ? '18.5%' : '21%'), textAlign: 'left', paddingLeft: '8px' }}>Description of Goods</th>
-                  <th style={{ width: (!showSqftCol && !showRftCol) ? '11.5%' : '10%', textAlign: 'right' }}>Quantity (PCS)</th>
-                  <th style={{ width: (showSqftCol && showRftCol) ? '14%' : ((!showSqftCol && !showRftCol) ? '19%' : '16.5%'), textAlign: 'right' }}>Alt. Quantity (CFT)</th>
+                  <th style={{ width: (!showSqftCol && !showRftCol) ? '11.5%' : '10%', textAlign: 'center' }}>Quantity (PCS)</th>
+                  <th style={{ width: (showSqftCol && showRftCol) ? '14%' : ((!showSqftCol && !showRftCol) ? '19%' : '16.5%'), textAlign: 'center' }}>Alt. Quantity (CFT)</th>
                   {showSqftCol && <th style={{ width: showRftCol ? '11%' : '15%', textAlign: 'right' }}>SQFT</th>}
                   {showRftCol && <th style={{ width: showSqftCol ? '10%' : '14%', textAlign: 'right' }}>RFT</th>}
                   <th style={{ width: (!showSqftCol && !showRftCol) ? '10%' : '9%', textAlign: 'right' }}>Rate</th>
@@ -997,8 +997,8 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                               <td className="p-item-desc p-item-desc-indent" style={{ paddingLeft: '14px', fontWeight: 700 }}>
                                 {renderDimensionHtml(descStr)}
                               </td>
-                              <td className="text-right p-mono">{itPieces > 0 ? itPieces : ''}</td>
-                              <td className="text-right p-mono">{renderWithSmallDecimalHtml(!isSheet && !isRftBilled && it.cft > 0 ? it.cft.toFixed(4) : '')}</td>
+                              <td className="text-left p-mono p-qty-indent">{itPieces > 0 ? itPieces : ''}</td>
+                              <td className="text-left p-mono p-qty-indent">{renderWithSmallDecimalHtml(!isSheet && !isRftBilled && it.cft > 0 ? it.cft.toFixed(4) : '')}</td>
                               {showSqftCol && (
                                 <td className="text-right p-mono">{renderWithSmallDecimalHtml(isSqftBilled && (isSheet ? sheetSqft > 0 : it.sqft > 0) ? `${(isSheet ? sheetSqft : it.sqft).toFixed(2)} SQFT` : '')}</td>
                               )}
@@ -1022,10 +1022,10 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                         <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 800, textTransform: 'uppercase', color: '#000000' }}>
                           Total
                         </td>
-                        <td className="text-right p-mono" style={{ fontWeight: 800, color: '#000000' }}>
+                        <td className="text-left p-mono p-qty-indent" style={{ fontWeight: 800, color: '#000000' }}>
                           {groupPieces} PCS
                         </td>
-                        <td className="text-right p-mono" style={{ fontWeight: 800, color: '#000000' }}>
+                        <td className="text-left p-mono p-qty-indent" style={{ fontWeight: 800, color: '#000000' }}>
                           {renderWithSmallDecimalHtml(groupCft > 0 ? `${groupCft.toFixed(4)} CFT` : '')}
                         </td>
                         {showSqftCol && (
@@ -1055,10 +1055,10 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                     <td className="p-item-desc" style={{ paddingLeft: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                       TOTAL MATERIALS
                     </td>
-                    <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                    <td className="text-left p-mono p-qty-indent" style={{ fontWeight: 800 }}>
                       {totalPieces} PCS
                     </td>
-                    <td className="text-right p-mono" style={{ fontWeight: 800 }}>
+                    <td className="text-left p-mono p-qty-indent" style={{ fontWeight: 800 }}>
                       {renderWithSmallDecimalHtml(totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '')}
                     </td>
                     {showSqftCol && (
@@ -1191,10 +1191,10 @@ export const PrintableProformaInvoice: React.FC<PrintableProformaInvoiceProps> =
                   <td colSpan={2} style={{ textAlign: 'right', fontWeight: 800, paddingRight: '12px' }}>
                     Total
                   </td>
-                  <td className="text-right p-mono font-bold">
+                  <td className="text-left p-mono font-bold p-qty-indent">
                     {totalPieces} PCS
                   </td>
-                  <td className="text-right p-mono font-bold">
+                  <td className="text-left p-mono font-bold p-qty-indent">
                     {renderWithSmallDecimalHtml(totalCft > 0 ? `${totalCft.toFixed(4)} CFT` : '')}
                   </td>
                   {showSqftCol && (
