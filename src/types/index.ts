@@ -173,6 +173,7 @@ export interface MeasurementSheet {
   advanceAmount?: number;
   proformaExportData?: Record<string, any>;
   attachedFiles?: MeasurementSheetAttachment[];
+  pageOrder?: string[];
   totalEntries: number;
   totalPieces: number;
   totalCft: number;

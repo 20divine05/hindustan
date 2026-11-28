@@ -101,10 +101,12 @@ export interface ProformaInvoiceExportData {
   bankAccountNo?: string;
   bankIfsc?: string;
   attachedFiles?: MeasurementSheetAttachment[];
+  pageOrder?: string[];
 }
 
 export interface MeasurementSheetPdfPageMeta {
   pageNumber: number;
+  unitKey: string;
   kind: 'core' | 'forest' | 'attachment';
   label: string;
   attachmentId?: string;
@@ -115,6 +117,44 @@ export interface MeasurementSheetPdfPageMeta {
 export interface MeasurementSheetDocResult {
   doc: jsPDF;
   pages: MeasurementSheetPdfPageMeta[];
+}
+
+export function resolveMeasurementSheetPageOrder(
+  savedOrder: string[] | undefined,
+  forestCount: number,
+  attachments: MeasurementSheetAttachment[]
+): string[] {
+  const canonical: string[] = ['core'];
+  for (let i = 0; i < forestCount; i++) {
+    canonical.push(`forest:${i}`);
+  }
+  for (const att of attachments) {
+    if (att?.dataUrl && att.id) {
+      canonical.push(`att:${att.id}`);
+    }
+  }
+
+  if (!Array.isArray(savedOrder) || savedOrder.length === 0) {
+    return canonical;
+  }
+
+  const allowed = new Set(canonical);
+  const seen = new Set<string>();
+  const resolved: string[] = [];
+
+  for (const token of savedOrder) {
+    if (typeof token !== 'string') continue;
+    if (!allowed.has(token) || seen.has(token)) continue;
+    seen.add(token);
+    resolved.push(token);
+  }
+  for (const token of canonical) {
+    if (!seen.has(token)) {
+      seen.add(token);
+      resolved.push(token);
+    }
+  }
+  return resolved;
 }
 
 function pickText(...values: Array<string | undefined | null>): string {
@@ -1968,46 +2008,97 @@ export function createProformaInvoiceDoc(
     doc.setTextColor(60, 60, 60);
     doc.text('Measurement Sheet • Hindustan Saw Mill', 105, bottomY + boxHeight + 4.2, { align: 'center' });
 
+    const coreCount = doc.getNumberOfPages();
+    const userAttachments = invoiceData?.attachedFiles ?? sheet.attachedFiles ?? [];
+    const effectiveOrder = resolveMeasurementSheetPageOrder(
+      sheet.pageOrder ?? invoiceData?.pageOrder,
+      FOREST_EXEMPTION_PAGES.length,
+      userAttachments
+    );
+
+    const attachmentMap = new Map<string, MeasurementSheetAttachment>();
+    for (const att of userAttachments) {
+      if (att?.dataUrl && att.id) {
+        attachmentMap.set(att.id, att);
+      }
+    }
+
+    const corePos = Math.max(0, effectiveOrder.indexOf('core'));
+    const beforeCoreTokens = effectiveOrder.slice(0, corePos);
+    const afterCoreTokens = effectiveOrder.slice(corePos + 1);
+
+    const renderTokenImage = (token: string): boolean => {
+      if (token.startsWith('forest:')) {
+        const idx = parseInt(token.slice(7), 10);
+        const scanPage = FOREST_EXEMPTION_PAGES[idx];
+        if (!scanPage) return false;
+        appendFullPageImage(doc, scanPage);
+        return true;
+      }
+      if (token.startsWith('att:')) {
+        const att = attachmentMap.get(token.slice(4));
+        if (!att?.dataUrl) return false;
+        appendFullPageImage(doc, att);
+        return true;
+      }
+      return false;
+    };
+
+    const metaForToken = (token: string, pageNumber: number): MeasurementSheetPdfPageMeta => {
+      if (token.startsWith('forest:')) {
+        const idx = parseInt(token.slice(7), 10);
+        return {
+          pageNumber,
+          unitKey: token,
+          kind: 'forest',
+          label: `Forest Dept. Notification (${idx + 1}/${FOREST_EXEMPTION_PAGES.length})`
+        };
+      }
+      if (token.startsWith('att:')) {
+        const att = attachmentMap.get(token.slice(4));
+        return {
+          pageNumber,
+          unitKey: token,
+          kind: 'attachment',
+          label: att?.sourceType === 'pdf' ? 'Added PDF' : 'Added Image',
+          attachmentId: att?.id,
+          sourceType: att?.sourceType,
+          attachmentName: att?.name
+        };
+      }
+      return {
+        pageNumber,
+        unitKey: 'core',
+        kind: 'core',
+        label: 'Measurement Sheet'
+      };
+    };
+
+    let insertedBeforeCount = 0;
+    for (const token of beforeCoreTokens) {
+      if (renderTokenImage(token)) {
+        const appendedPageNum = doc.getNumberOfPages();
+        doc.movePage(appendedPageNum, insertedBeforeCount + 1);
+        insertedBeforeCount++;
+      }
+    }
+
+    for (const token of afterCoreTokens) {
+      renderTokenImage(token);
+    }
+
     const pageList = outPages;
     if (pageList) {
       pageList.length = 0;
-      const coreCount = doc.getNumberOfPages();
-      for (let p = 1; p <= coreCount; p++) {
-        pageList.push({
-          pageNumber: p,
-          kind: 'core',
-          label: 'Measurement Sheet'
-        });
-      }
-    }
-
-    // Append Forest Department exemption circular pages in exact order at the end of every Measurement Sheet
-    for (let i = 0; i < FOREST_EXEMPTION_PAGES.length; i++) {
-      const scanPage = FOREST_EXEMPTION_PAGES[i];
-      appendFullPageImage(doc, scanPage);
-      if (pageList) {
-        pageList.push({
-          pageNumber: doc.getNumberOfPages(),
-          kind: 'forest',
-          label: `Forest Dept. Notification (${i + 1}/${FOREST_EXEMPTION_PAGES.length})`
-        });
-      }
-    }
-
-    // Append user-uploaded PDF/image pages at the end of the Measurement Sheet
-    const userAttachments = invoiceData?.attachedFiles ?? sheet.attachedFiles ?? [];
-    for (const att of userAttachments) {
-      if (!att?.dataUrl) continue;
-      appendFullPageImage(doc, att);
-      if (pageList) {
-        pageList.push({
-          pageNumber: doc.getNumberOfPages(),
-          kind: 'attachment',
-          label: att.sourceType === 'pdf' ? 'Added PDF' : 'Added Image',
-          attachmentId: att.id,
-          sourceType: att.sourceType,
-          attachmentName: att.name
-        });
+      let pageNum = 1;
+      for (const token of effectiveOrder) {
+        if (token === 'core') {
+          for (let c = 0; c < coreCount; c++) {
+            pageList.push(metaForToken('core', pageNum++));
+          }
+        } else {
+          pageList.push(metaForToken(token, pageNum++));
+        }
       }
     }
 

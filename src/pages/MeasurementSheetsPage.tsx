@@ -13,7 +13,9 @@ import {
   Trash2,
   Plus,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react';
 import type { BusinessSettings, MeasurementSheet, MeasurementSheetAttachment } from '../types';
 import { dbService } from '../services/db';
@@ -108,8 +110,22 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
+  const [hasUnsavedOrder, setHasUnsavedOrder] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [savedOrderSuccess, setSavedOrderSuccess] = useState(false);
   const previewRequestSeqRef = useRef(0);
   const previewScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const extractUnitOrderFromPages = (pages: PreviewRenderedPage[]): string[] => {
+    const order: string[] = [];
+    const seen = new Set<string>();
+    for (const p of pages) {
+      if (!p.unitKey || seen.has(p.unitKey)) continue;
+      seen.add(p.unitKey);
+      order.push(p.unitKey);
+    }
+    return order;
+  };
 
   const scrollPreviewBy = (direction: -1 | 1) => {
     const el = previewScrollRef.current;
@@ -159,7 +175,8 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
               motorVehicleNo: savedSheet.motorVehicleNo,
               containerNo: savedSheet.containerNo,
               proformaExportData: savedSheet.proformaExportData || s.proformaExportData,
-              attachedFiles: resolvedAttachments
+              attachedFiles: resolvedAttachments,
+              pageOrder: savedSheet.pageOrder
             }
           : s
       )
@@ -172,7 +189,11 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
     onSheetUpdated?.({ ...savedSheet, attachedFiles: resolvedAttachments });
   };
 
-  const handleMeasurementSheetAction = async (summary: MeasurementSheet, action: 'print' | 'download') => {
+  const handleMeasurementSheetAction = async (
+    summary: MeasurementSheet,
+    action: 'print' | 'download',
+    pageOrderOverride?: string[]
+  ) => {
     setPrintingId(summary.id);
     try {
       const target = await loadAuthoritativeSheet(summary);
@@ -180,10 +201,12 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
         alert('Could not load measurement rows from the database. Please check your connection and try again.');
         return;
       }
+      const effectiveTarget: MeasurementSheet =
+        pageOrderOverride !== undefined ? { ...target, pageOrder: pageOrderOverride } : target;
       if (action === 'download') {
-        exportMeasurementSheetToPdf(target, businessSettings, target.proformaExportData);
+        exportMeasurementSheetToPdf(effectiveTarget, businessSettings, effectiveTarget.proformaExportData);
       } else {
-        printMeasurementSheetPdf(target, businessSettings, target.proformaExportData);
+        printMeasurementSheetPdf(effectiveTarget, businessSettings, effectiveTarget.proformaExportData);
       }
     } finally {
       setPrintingId(null);
@@ -283,6 +306,8 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
     setPreviewPages([]);
     setPreviewLoading(true);
     setPreviewError(null);
+    setHasUnsavedOrder(false);
+    setSavedOrderSuccess(false);
 
     try {
       const target = await loadAuthoritativeSheet(summary);
@@ -309,6 +334,80 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
     setPreviewError(null);
     setPreviewLoading(false);
     setDeletingAttachmentId(null);
+    setHasUnsavedOrder(false);
+    setSavingOrder(false);
+    setSavedOrderSuccess(false);
+  };
+
+  const handleMovePreviewPage = (unitKey: string, direction: -1 | 1) => {
+    if (previewLoading || savingOrder || Boolean(deletingAttachmentId)) return;
+    setPreviewPages((prev) => {
+      // Group contiguous pages by unitKey so multi-page units (e.g. a 2-page core sheet) stay together when moved
+      const groups: Array<{ unitKey: string; items: PreviewRenderedPage[] }> = [];
+      for (const page of prev) {
+        const last = groups[groups.length - 1];
+        if (last && last.unitKey === page.unitKey) {
+          last.items.push(page);
+        } else {
+          groups.push({ unitKey: page.unitKey, items: [page] });
+        }
+      }
+      const idx = groups.findIndex((g) => g.unitKey === unitKey);
+      const targetIdx = idx + direction;
+      if (idx < 0 || targetIdx < 0 || targetIdx >= groups.length) {
+        return prev;
+      }
+      const nextGroups = [...groups];
+      const [moved] = nextGroups.splice(idx, 1);
+      nextGroups.splice(targetIdx, 0, moved);
+
+      let pageNum = 1;
+      const flattened: PreviewRenderedPage[] = [];
+      for (const grp of nextGroups) {
+        for (const item of grp.items) {
+          flattened.push({ ...item, pageNumber: pageNum++ });
+        }
+      }
+      return flattened;
+    });
+    setHasUnsavedOrder(true);
+    setSavedOrderSuccess(false);
+    setPreviewError(null);
+  };
+
+  const handleSavePageOrder = async () => {
+    if (!previewSheet || savingOrder || previewPages.length === 0) return;
+    setSavingOrder(true);
+    setPreviewError(null);
+    try {
+      const uid = user?.id || previewSheet.userId || 'guest';
+      const base = await loadAuthoritativeSheet(previewSheet);
+      if (!base) {
+        setPreviewError('Could not load measurement sheet rows from the database.');
+        return;
+      }
+
+      const nextOrder = extractUnitOrderFromPages(previewPages);
+      const updatedPayload: MeasurementSheet = {
+        ...base,
+        pageOrder: nextOrder
+      };
+
+      const res = await dbService.saveSheet(updatedPayload, uid);
+      if (res.error) {
+        setPreviewError(res.error);
+        return;
+      }
+      syncSheetState(res.sheet);
+      setHasUnsavedOrder(false);
+      setSavedOrderSuccess(true);
+      setTimeout(() => setSavedOrderSuccess(false), 2500);
+    } catch (err) {
+      console.error('Failed saving measurement sheet page order:', err);
+      setPreviewError('Failed to save page order. Please try again.');
+    } finally {
+      setSavingOrder(false);
+    }
   };
 
   const triggerAddFiles = (sheet: MeasurementSheet) => {
@@ -348,10 +447,18 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
         ...(base.attachedFiles || []),
         ...processedAttachments
       ];
+      const activePreviewOrder =
+        previewSheet && previewSheet.id === targetSummary.id && previewPages.length > 0
+          ? extractUnitOrderFromPages(previewPages)
+          : base.pageOrder;
+      const nextOrder = activePreviewOrder
+        ? [...activePreviewOrder, ...processedAttachments.map((a) => `att:${a.id}`)]
+        : undefined;
 
       const updatedPayload: MeasurementSheet = {
         ...base,
-        attachedFiles: nextAttachments
+        attachedFiles: nextAttachments,
+        pageOrder: nextOrder
       };
 
       const res = await dbService.saveSheet(updatedPayload, uid);
@@ -363,7 +470,8 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
       }
       const savedSheet: MeasurementSheet = {
         ...res.sheet,
-        attachedFiles: nextAttachments
+        attachedFiles: nextAttachments,
+        pageOrder: nextOrder
       };
       syncSheetState(savedSheet, nextAttachments);
 
@@ -375,6 +483,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
       }
 
       if (previewSheet && previewSheet.id === savedSheet.id) {
+        setHasUnsavedOrder(false);
         await renderPreviewForSheet(savedSheet);
       }
     } catch (err: any) {
@@ -408,17 +517,23 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
       }
 
       const nextAttachments = (base.attachedFiles || []).filter((att) => att.id !== attachmentId);
+      const currentOrder =
+        previewPages.length > 0 ? extractUnitOrderFromPages(previewPages) : base.pageOrder;
+      const nextOrder = currentOrder?.filter((tok) => tok !== `att:${attachmentId}`);
       const updatedPayload: MeasurementSheet = {
         ...base,
-        attachedFiles: nextAttachments
+        attachedFiles: nextAttachments,
+        pageOrder: nextOrder
       };
 
       const res = await dbService.saveSheet(updatedPayload, uid);
       const savedSheet: MeasurementSheet = {
         ...res.sheet,
-        attachedFiles: nextAttachments.length > 0 ? nextAttachments : undefined
+        attachedFiles: nextAttachments.length > 0 ? nextAttachments : undefined,
+        pageOrder: nextOrder
       };
       syncSheetState(savedSheet, savedSheet.attachedFiles);
+      setHasUnsavedOrder(false);
       await renderPreviewForSheet(savedSheet);
       if (res.error) {
         setPreviewError(res.error);
@@ -1146,8 +1261,43 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                 )}
                 <button
                   type="button"
+                  className="btn btn-sm"
+                  disabled={previewLoading || savingOrder || Boolean(deletingAttachmentId)}
+                  onClick={handleSavePageOrder}
+                  title="Save current page order for this measurement sheet"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    fontWeight: 700,
+                    backgroundColor: savedOrderSuccess
+                      ? '#dcfce7'
+                      : hasUnsavedOrder
+                        ? '#15803d'
+                        : '#ffffff',
+                    color: savedOrderSuccess
+                      ? '#166534'
+                      : hasUnsavedOrder
+                        ? '#ffffff'
+                        : 'var(--text-main)',
+                    border: savedOrderSuccess
+                      ? '1px solid #86efac'
+                      : hasUnsavedOrder
+                        ? '1px solid #15803d'
+                        : '1px solid var(--border-medium)'
+                  }}
+                >
+                  {savingOrder ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Check size={14} />
+                  )}
+                  {savingOrder ? 'Saving...' : savedOrderSuccess ? 'Order Saved' : 'Save Order'}
+                </button>
+                <button
+                  type="button"
                   className="btn btn-secondary btn-sm"
-                  disabled={previewLoading || attachingSheetId === previewSheet.id || Boolean(deletingAttachmentId)}
+                  disabled={previewLoading || attachingSheetId === previewSheet.id || Boolean(deletingAttachmentId) || savingOrder}
                   onClick={() => triggerAddFiles(previewSheet)}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}
                 >
@@ -1162,7 +1312,13 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                   type="button"
                   className="btn btn-primary btn-sm"
                   disabled={previewLoading || printingId === previewSheet.id}
-                  onClick={() => handleMeasurementSheetAction(previewSheet, 'print')}
+                  onClick={() =>
+                    handleMeasurementSheetAction(
+                      previewSheet,
+                      'print',
+                      hasUnsavedOrder ? extractUnitOrderFromPages(previewPages) : undefined
+                    )
+                  }
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}
                 >
                   <Printer size={14} />
@@ -1172,7 +1328,13 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                   type="button"
                   className="btn btn-secondary btn-sm"
                   disabled={previewLoading || printingId === previewSheet.id}
-                  onClick={() => handleMeasurementSheetAction(previewSheet, 'download')}
+                  onClick={() =>
+                    handleMeasurementSheetAction(
+                      previewSheet,
+                      'download',
+                      hasUnsavedOrder ? extractUnitOrderFromPages(previewPages) : undefined
+                    )
+                  }
                   title="Download PDF"
                   style={{ padding: '0.35rem 0.5rem' }}
                 >
@@ -1241,9 +1403,13 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                   <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Rendering all PDF pages...</span>
                 </div>
               ) : (
-                previewPages.map((page) => {
+                previewPages.map((page, pageIdx) => {
                   const isAdded = page.kind === 'attachment' && Boolean(page.attachmentId);
                   const isDeletingThis = Boolean(isAdded && deletingAttachmentId === page.attachmentId);
+                  const canMoveLeft = pageIdx > 0 && previewPages[0].unitKey !== page.unitKey;
+                  const canMoveRight =
+                    pageIdx < previewPages.length - 1 &&
+                    previewPages[previewPages.length - 1].unitKey !== page.unitKey;
                   const badgeStyle =
                     page.kind === 'attachment'
                       ? { backgroundColor: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd' }
@@ -1253,7 +1419,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
 
                   return (
                     <div
-                      key={`${page.pageNumber}_${page.attachmentId || page.kind}`}
+                      key={`${page.unitKey}_${page.pageNumber}`}
                       style={{
                         flex: '0 0 min(86vw, 600px)',
                         height: '100%',
@@ -1313,7 +1479,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
-                                maxWidth: '220px'
+                                maxWidth: '190px'
                               }}
                               title={page.attachmentName}
                             >
@@ -1322,33 +1488,84 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                           )}
                         </div>
 
-                        {isAdded && page.attachmentId && (
-                          <button
-                            type="button"
-                            disabled={Boolean(deletingAttachmentId) || attachingSheetId === previewSheet.id}
-                            onClick={() => handleDeleteAttachedPage(page.attachmentId!)}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.3rem',
-                              backgroundColor: '#fef2f2',
-                              color: '#dc2626',
-                              border: '1px solid #fecaca',
-                              borderRadius: '6px',
-                              padding: '0.26rem 0.55rem',
-                              fontSize: '0.75rem',
-                              fontWeight: 700,
-                              cursor: deletingAttachmentId ? 'not-allowed' : 'pointer'
-                            }}
-                          >
-                            {isDeletingThis ? (
-                              <Loader2 size={13} className="animate-spin" />
-                            ) : (
-                              <Trash2 size={13} />
-                            )}
-                            {isDeletingThis ? 'Deleting...' : 'Delete Page'}
-                          </button>
-                        )}
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
+                          {previewPages.length > 1 && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={!canMoveLeft || savingOrder || Boolean(deletingAttachmentId)}
+                                onClick={() => handleMovePreviewPage(page.unitKey, -1)}
+                                title="Move page earlier"
+                                aria-label="Move page left"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.15rem',
+                                  backgroundColor: canMoveLeft ? '#ffffff' : '#f1f5f9',
+                                  color: canMoveLeft ? '#0f172a' : '#94a3b8',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '6px',
+                                  padding: '0.24rem 0.42rem',
+                                  fontSize: '0.73rem',
+                                  fontWeight: 700,
+                                  cursor: canMoveLeft && !savingOrder ? 'pointer' : 'not-allowed'
+                                }}
+                              >
+                                <ArrowLeft size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={!canMoveRight || savingOrder || Boolean(deletingAttachmentId)}
+                                onClick={() => handleMovePreviewPage(page.unitKey, 1)}
+                                title="Move page later"
+                                aria-label="Move page right"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.15rem',
+                                  backgroundColor: canMoveRight ? '#ffffff' : '#f1f5f9',
+                                  color: canMoveRight ? '#0f172a' : '#94a3b8',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '6px',
+                                  padding: '0.24rem 0.42rem',
+                                  fontSize: '0.73rem',
+                                  fontWeight: 700,
+                                  cursor: canMoveRight && !savingOrder ? 'pointer' : 'not-allowed'
+                                }}
+                              >
+                                <ArrowRight size={12} />
+                              </button>
+                            </>
+                          )}
+
+                          {isAdded && page.attachmentId && (
+                            <button
+                              type="button"
+                              disabled={Boolean(deletingAttachmentId) || attachingSheetId === previewSheet.id || savingOrder}
+                              onClick={() => handleDeleteAttachedPage(page.attachmentId!)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                backgroundColor: '#fef2f2',
+                                color: '#dc2626',
+                                border: '1px solid #fecaca',
+                                borderRadius: '6px',
+                                padding: '0.24rem 0.5rem',
+                                fontSize: '0.73rem',
+                                fontWeight: 700,
+                                cursor: deletingAttachmentId ? 'not-allowed' : 'pointer'
+                              }}
+                            >
+                              {isDeletingThis ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={12} />
+                              )}
+                              {isDeletingThis ? 'Deleting...' : 'Delete'}
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {page.imageUrl && (

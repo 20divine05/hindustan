@@ -150,6 +150,20 @@ function sanitizeAttachedFiles(raw: unknown): MeasurementSheetAttachment[] | und
   return cleaned.length > 0 ? cleaned : undefined;
 }
 
+function sanitizePageOrder(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const seen = new Set<string>();
+  const cleaned: string[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== 'string') continue;
+    const token = entry.trim();
+    if (!token || seen.has(token)) continue;
+    seen.add(token);
+    cleaned.push(token);
+  }
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
 /**
  * Normalizes and recalculates all items and totals on a sheet before persisting
  */
@@ -302,6 +316,7 @@ export function sanitizeAndComputeSheet(
     })(),
     proformaExportData: sheet.proformaExportData,
     attachedFiles: sanitizeAttachedFiles(sheet.attachedFiles),
+    pageOrder: sanitizePageOrder(sheet.pageOrder),
     totalEntries: sheet.logType === 'round' && sheet.roundLogItems ? sheet.roundLogItems.length : totals.totalEntries,
     totalPieces: sheet.logType === 'round' && sheet.roundLogItems ? sheet.roundLogItems.reduce((acc, it) => acc + (Number(it.pieces) || 0), 0) : totals.totalPieces,
     totalCft: sheet.logType === 'round' && sheet.roundLogItems ? (sheet.roundLogOutputUnit === 'CFT' ? sheet.roundLogItems.reduce((acc, it) => acc + (Number(it.volume) || 0), 0) : sheet.roundLogItems.reduce((acc, it) => acc + (Number(it.volume) || 0), 0) * 35.3147) : totals.totalCft,
@@ -537,6 +552,7 @@ export const dbService = {
           let isConfirmed = Boolean(row.is_confirmed);
           let proformaExportData: Record<string, any> | undefined;
           let attachedFiles: MeasurementSheetAttachment[] | undefined;
+          let pageOrder: string[] | undefined;
           let motorVehicleNo = '';
           let gstNumber = '';
           let billOfEntryNo = '';
@@ -552,6 +568,7 @@ export const dbService = {
                 proformaExportData = meta.proformaExportData;
               }
               attachedFiles = sanitizeAttachedFiles(meta?.attachedFiles);
+              pageOrder = sanitizePageOrder(meta?.pageOrder);
               motorVehicleNo = meta?.motorVehicleNo || proformaExportData?.motorVehicleNo || '';
               gstNumber = meta?.gstNumber || proformaExportData?.gstNumber || '';
               billOfEntryNo = meta?.billOfEntryNo || proformaExportData?.billOfEntryNo || '';
@@ -604,6 +621,7 @@ export const dbService = {
             finalGrandTotal,
             proformaExportData,
             attachedFiles,
+            pageOrder,
             totalEntries: row.total_entries || 0,
             totalPieces: Number(row.total_pieces) || 0,
             totalCft: Number(row.total_cft) || 0,
@@ -781,6 +799,7 @@ export const dbService = {
         advanceAmount: parsedMeta ? parsedMeta.advanceAmount : localSheet?.advanceAmount,
         proformaExportData: parsedMeta ? parsedMeta.proformaExportData : localSheet?.proformaExportData,
         attachedFiles: sanitizeAttachedFiles(parsedMeta?.attachedFiles ?? localSheet?.attachedFiles),
+        pageOrder: sanitizePageOrder(parsedMeta?.pageOrder ?? localSheet?.pageOrder),
         totalEntries: sheetData.total_entries || finalItems.length,
         totalPieces: Number(sheetData.total_pieces) || localSheet?.totalPieces || 0,
         totalCft: Number(sheetData.total_cft) || localSheet?.totalCft || 0,
@@ -871,6 +890,7 @@ export const dbService = {
           advanceAmount: sanitized.advanceAmount,
           proformaExportData: sanitized.proformaExportData,
           attachedFiles: sanitized.attachedFiles,
+          pageOrder: sanitized.pageOrder,
           logType: sanitized.logType,
           roundLogOutputUnit: sanitized.roundLogOutputUnit,
           roundLogInputUnit: sanitized.roundLogInputUnit,
@@ -1020,6 +1040,16 @@ export const dbService = {
     const original = await this.getSheetById(sheetId, userId, role);
     if (!original) return null;
 
+    const attachmentIdMap = new Map<string, string>();
+    const clonedAttachments = original.attachedFiles?.map((att) => {
+      const nextId = generateId();
+      attachmentIdMap.set(att.id, nextId);
+      return {
+        ...att,
+        id: nextId
+      };
+    });
+
     const newSheet: MeasurementSheet = {
       ...original,
       id: generateId(),
@@ -1031,10 +1061,14 @@ export const dbService = {
         ...it,
         id: generateId()
       })),
-      attachedFiles: original.attachedFiles?.map((att) => ({
-        ...att,
-        id: generateId()
-      }))
+      attachedFiles: clonedAttachments,
+      pageOrder: original.pageOrder?.map((token) => {
+        if (token.startsWith('att:')) {
+          const mapped = attachmentIdMap.get(token.slice(4));
+          return mapped ? `att:${mapped}` : token;
+        }
+        return token;
+      })
     };
 
     const res = await this.saveSheet(newSheet, userId);

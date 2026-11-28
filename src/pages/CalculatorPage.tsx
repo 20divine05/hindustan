@@ -1195,7 +1195,8 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({
             boeDate: existingMeta.boeDate,
             containerNo: existingMeta.containerNo,
             proformaExportData: syncedExportData,
-            attachedFiles: existingMeta.attachedFiles
+            attachedFiles: existingMeta.attachedFiles,
+            pageOrder: existingMeta.pageOrder
           }
         : {})
     };
