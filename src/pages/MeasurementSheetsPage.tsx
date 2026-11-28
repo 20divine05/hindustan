@@ -11,7 +11,9 @@ import {
   Paperclip,
   Eye,
   Trash2,
-  Plus
+  Plus,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import type { BusinessSettings, MeasurementSheet, MeasurementSheetAttachment } from '../types';
 import { dbService } from '../services/db';
@@ -107,6 +109,14 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
   const previewRequestSeqRef = useRef(0);
+  const previewScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollPreviewBy = (direction: -1 | 1) => {
+    const el = previewScrollRef.current;
+    if (!el) return;
+    const step = Math.max(300, Math.round(el.clientWidth * 0.85));
+    el.scrollBy({ left: direction * step, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     let active = true;
@@ -1035,8 +1045,8 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
           <div
             className="card"
             style={{
-              width: '100%',
-              maxWidth: '820px',
+              width: 'min(96vw, 960px)',
+              height: '92vh',
               maxHeight: '92vh',
               backgroundColor: '#f1f5f9',
               boxShadow: '0 24px 60px rgba(0, 0, 0, 0.35)',
@@ -1050,9 +1060,10 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
             {/* Modal Header */}
             <div
               style={{
+                flexShrink: 0,
                 backgroundColor: '#fff',
                 borderBottom: '1px solid var(--border-medium)',
-                padding: '0.9rem 1.1rem',
+                padding: '0.85rem 1.1rem',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -1071,12 +1082,37 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                       {' • '}
                       <strong>{previewPages.length} total {previewPages.length === 1 ? 'page' : 'pages'}</strong>
                       {userAddedCountInPreview > 0 ? ` (${userAddedCountInPreview} added)` : ''}
+                      {' • Scroll horizontally to view pages'}
                     </>
                   )}
                 </p>
               </div>
 
               <div style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                {previewPages.length > 1 && (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginRight: '0.2rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => scrollPreviewBy(-1)}
+                      title="Scroll left"
+                      aria-label="Previous page"
+                      style={{ padding: '0.35rem 0.45rem' }}
+                    >
+                      <ChevronLeft size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => scrollPreviewBy(1)}
+                      title="Scroll right"
+                      aria-label="Next page"
+                      style={{ padding: '0.35rem 0.45rem' }}
+                    >
+                      <ChevronRight size={15} />
+                    </button>
+                  </div>
+                )}
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -1123,44 +1159,49 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
               </div>
             </div>
 
-            {/* Modal Body (Scrollable All Pages) */}
+            {previewError && (
+              <div
+                style={{
+                  flexShrink: 0,
+                  margin: '0.75rem 1rem 0',
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#b91c1c',
+                  borderRadius: '8px',
+                  padding: '0.6rem 0.85rem',
+                  fontSize: '0.84rem',
+                  fontWeight: 600
+                }}
+              >
+                {previewError}
+              </div>
+            )}
+
+            {/* Modal Body (Horizontally Scrollable Full Pages) */}
             <div
+              ref={previewScrollRef}
               style={{
                 flex: 1,
-                overflowY: 'auto',
-                padding: '1rem',
+                minHeight: 0,
+                width: '100%',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                scrollSnapType: 'x mandatory',
+                padding: '0.9rem 1rem',
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
+                flexDirection: 'row',
+                alignItems: 'stretch',
                 gap: '1rem'
               }}
             >
-              {previewError && (
-                <div
-                  style={{
-                    width: '100%',
-                    maxWidth: '680px',
-                    backgroundColor: '#fef2f2',
-                    border: '1px solid #fecaca',
-                    color: '#b91c1c',
-                    borderRadius: '8px',
-                    padding: '0.6rem 0.85rem',
-                    fontSize: '0.84rem',
-                    fontWeight: 600
-                  }}
-                >
-                  {previewError}
-                </div>
-              )}
-
               {previewLoading ? (
                 <div
                   style={{
+                    flex: '1 0 100%',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '3.5rem 1rem',
                     color: 'var(--text-muted)',
                     gap: '0.65rem'
                   }}
@@ -1183,17 +1224,21 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                     <div
                       key={`${page.pageNumber}_${page.attachmentId || page.kind}`}
                       style={{
-                        width: '100%',
-                        maxWidth: '680px',
+                        flex: '0 0 min(86vw, 600px)',
+                        height: '100%',
+                        scrollSnapAlign: 'start',
                         backgroundColor: '#fff',
                         borderRadius: '10px',
                         border: isAdded ? '1.5px solid #93c5fd' : '1px solid #cbd5e1',
-                        boxShadow: '0 4px 16px rgba(15, 23, 42, 0.08)',
+                        boxShadow: '0 4px 16px rgba(15, 23, 42, 0.1)',
+                        display: 'flex',
+                        flexDirection: 'column',
                         overflow: 'hidden'
                       }}
                     >
                       <div
                         style={{
+                          flexShrink: 0,
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
@@ -1237,7 +1282,7 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
-                                maxWidth: '250px'
+                                maxWidth: '220px'
                               }}
                               title={page.attachmentName}
                             >
@@ -1276,7 +1321,15 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                       </div>
 
                       {page.imageUrl && (
-                        <div style={{ backgroundColor: '#fff', padding: '0.5rem' }}>
+                        <div
+                          style={{
+                            flex: 1,
+                            minHeight: 0,
+                            overflowY: 'auto',
+                            backgroundColor: '#f8fafc',
+                            padding: '0.6rem'
+                          }}
+                        >
                           <img
                             src={page.imageUrl}
                             alt={`Measurement Sheet Page ${page.pageNumber}`}
@@ -1284,7 +1337,8 @@ export const MeasurementSheetsPage: React.FC<MeasurementSheetsPageProps> = ({
                               width: '100%',
                               height: 'auto',
                               display: 'block',
-                              border: '1px solid #e2e8f0',
+                              backgroundColor: '#fff',
+                              border: '1px solid #cbd5e1',
                               borderRadius: '4px'
                             }}
                           />
